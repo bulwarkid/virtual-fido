@@ -1,14 +1,12 @@
-use std::net::{TcpListener, TcpStream};
-use std::io::Read;
+mod usbip;
 
-fn handle_client(stream: &mut TcpStream) -> std::io::Result<()> {
+use std::net::{TcpListener, TcpStream};
+
+
+fn handle_stream(stream: &mut TcpStream) -> std::io::Result<()> {
     stream.set_nodelay(true)?;
-    let mut data = [0; 4];
-    let mut bytes_read = stream.read(&mut data)?;
-    while bytes_read > 0 {
-        println!("{:?}", data);
-        bytes_read = stream.read(&mut data)?;
-    }
+    let usbip_header = usbip::read_usbip_header(stream)?;
+    println!("{:?}", usbip_header);
     Ok(())
 }
 
@@ -17,7 +15,7 @@ fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:3240")?;
 
     for stream in listener.incoming() {
-        handle_client(&mut stream?)?;
+        handle_stream(&mut stream?)?;
     }
 
     Ok(())
