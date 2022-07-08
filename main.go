@@ -1,20 +1,12 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"net"
 )
 
-type USBIPHeader struct {
-	Version     uint16
-	CommandCode uint16
-	Status      uint32
-}
-
 func handleConnection(conn *net.Conn) error {
-	header := USBIPHeader{}
-	err := binary.Read(*conn, binary.BigEndian, &header)
+	header, err := readUSBIPHeader(*conn)
 	if err != nil {
 		return fmt.Errorf("Could not read USBIP header: %w", err)
 	}
