@@ -3,9 +3,9 @@ use std::io::Read;
 
 #[derive(Debug)]
 pub struct USBIPHeader {
-    version: u16,
-    command_code: u16,
-    status: u32,
+    pub version: u16,
+    pub command_code: u16,
+    pub status: u32,
 }
 
 pub fn read_usbip_header(stream: &mut TcpStream) -> std::io::Result<USBIPHeader> {
