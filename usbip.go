@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -71,6 +72,10 @@ type USBIPOpRepImport struct {
 	device USBIPDeviceSummaryHeader
 }
 
+func (reply USBIPOpRepImport) String() string {
+	return fmt.Sprintf("USBIPOpRepImport{ Header: %#v, Device: %s }", reply.header, reply.device)
+}
+
 func newOpRepImport(device *FIDODevice) USBIPOpRepImport {
 	return USBIPOpRepImport{
 		header: USBIPControlHeader{
@@ -116,6 +121,17 @@ type USBIPCommandSubmitBody struct {
 	Setup                [8]byte
 }
 
+func (body USBIPCommandSubmitBody) String() string {
+	setup := readLE[USBSetupPacket](bytes.NewBuffer(body.Setup[:]))
+	return fmt.Sprintf("USBIPCommandSubmitBody{ TransferFlags: 0x%x, TransferBufferLength: %d, StartFrame: %d, NumberOfPackets: %d, Interval: %d, Setup: %s",
+		body.TransferFlags,
+		body.TransferBufferLength,
+		body.StartFrame,
+		body.NumberOfPackets,
+		body.Interval,
+		setup)
+}
+
 type USBIPCommandUnlinkBody struct {
 	UnlinkSequenceNumber uint32
 	Padding              [24]byte
@@ -154,6 +170,10 @@ type USBIPDeviceSummary struct {
 	DeviceInterface USBIPDeviceInterface // We only support one interface to use binary.Write/Read
 }
 
+func (summary USBIPDeviceSummary) String() string {
+	return fmt.Sprintf("USBIPDeviceSummary{ Header: %s, DeviceInterface: %#v }", summary.Header, summary.DeviceInterface)
+}
+
 type USBIPDeviceSummaryHeader struct {
 	Path                [256]byte
 	BusId               [32]byte
@@ -169,6 +189,25 @@ type USBIPDeviceSummaryHeader struct {
 	BConfigurationValue uint8
 	BNumConfigurations  uint8
 	BNumInterfaces      uint8
+}
+
+func (header USBIPDeviceSummaryHeader) String() string {
+	return fmt.Sprintf(
+		"USBIPDeviceSummaryHeader{ Path: \"%s\", BusId: \"%s\", Busnum: %d, Devnum %d, Speed %d, IdVendor: %d, IdProduct: %d, BcdDevice: 0x%x, BDeviceClass: %d, BDeviceSubclass: %d, BDeviceProtocol: %d, BConfigurationValue: %d, BNumConfigurations: %d, BNumInterfaces: %d}",
+		string(header.Path[:]),
+		string(header.BusId[:]),
+		header.Busnum,
+		header.Devnum,
+		header.Speed,
+		header.IdVendor,
+		header.IdProduct,
+		header.BcdDevice,
+		header.BDeviceClass,
+		header.BDeviceSubclass,
+		header.BDeviceProtocol,
+		header.BConfigurationValue,
+		header.BNumConfigurations,
+		header.BNumInterfaces)
 }
 
 type USBIPDeviceInterface struct {

@@ -10,7 +10,7 @@ var device FIDODevice
 
 func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBIPCommandSubmitBody) {
 	setup := readLE[USBSetupPacket](bytes.NewBuffer(command.Setup[:]))
-	fmt.Printf("COMMAND SUBMIT: %#v %#v\n", command, setup)
+	fmt.Printf("COMMAND SUBMIT: %s\n\n", command)
 	transferBuffer := make([]byte, command.TransferBufferLength)
 	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)
@@ -23,10 +23,13 @@ func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBI
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
 		replyHeader, replyBody, _ := newReturnSubmit(header, command, (transferBuffer))
-		fmt.Printf("RETURN SUBMIT: %v %#v %v\n", replyHeader, replyBody, transferBuffer)
+		fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
 		write(*conn, toBE(replyHeader))
 		write(*conn, toBE(replyBody))
 		write(*conn, transferBuffer)
+	case USB_REQUEST_SET_CONFIGURATION:
+		// No-op since we can't change configuration
+		return
 	default:
 		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
 	}
@@ -35,13 +38,13 @@ func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBI
 func handleCommands(conn *net.Conn) {
 	for {
 		header := readBE[USBIPMessageHeader](*conn)
-		fmt.Printf("MESSAGE HEADER: %v\n", header)
+		fmt.Printf("MESSAGE HEADER: %v\n\n", header)
 		if header.Command == USBIP_COMMAND_SUBMIT {
 			command := readBE[USBIPCommandSubmitBody](*conn)
 			handleCommandSubmit(conn, header, command)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
 			unlink := readBE[USBIPCommandUnlinkBody](*conn)
-			fmt.Printf("COMMAND UNLINK: %#v\n", unlink)
+			fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
 		} else {
 			panic(fmt.Sprintf("Unsupported Command; %#v", header))
 		}
@@ -64,7 +67,7 @@ func handleConnection(conn *net.Conn) {
 			}
 			fmt.Println("BUS_ID: ", string(busId))
 			reply := newOpRepImport(&device)
-			fmt.Printf("OP_REP_IMPORT: %#v\n\n", reply)
+			fmt.Printf("OP_REP_IMPORT: %s\n\n", reply)
 			write(*conn, toBE(reply))
 			handleCommands(conn)
 		}

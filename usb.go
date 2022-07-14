@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 const (
 	USB_REQUEST_GET_STATUS        = 0
 	USB_REQUEST_CLEAR_FEATURE     = 1
@@ -44,12 +46,35 @@ const (
 	USB_REQUEST_RECIPIENT_OTHER     = 3
 )
 
+var requestTypeDescriptons = map[uint8]string{
+	USB_REQUEST_GET_STATUS:        "USB_REQUEST_GET_STATUS",
+	USB_REQUEST_CLEAR_FEATURE:     "USB_REQUEST_CLEAR_FEATURE",
+	USB_REQUEST_SET_FEATURE:       "USB_REQUEST_SET_FEATURE",
+	USB_REQUEST_SET_ADDRESS:       "USB_REQUEST_SET_ADDRESS",
+	USB_REQUEST_GET_DESCRIPTOR:    "USB_REQUEST_GET_DESCRIPTOR",
+	USB_REQUEST_SET_DESCRIPTOR:    "USB_REQUEST_SET_DESCRIPTOR",
+	USB_REQUEST_GET_CONFIGURATION: "USB_REQUEST_GET_CONFIGURATION",
+	USB_REQUEST_SET_CONFIGURATION: "USB_REQUEST_SET_CONFIGURATION",
+	USB_REQUEST_GET_INTERFACE:     "USB_REQUEST_GET_INTERFACE",
+	USB_REQUEST_SET_INTERFACE:     "USB_REQUEST_SET_INTERFACE",
+	USB_REQUEST_SYNCH_FRAME:       "USB_REQUEST_SYNCH_FRAME",
+}
+
 type USBSetupPacket struct {
 	BmRequestType uint8
 	BRequest      uint8
 	WValue        uint16
 	WIndex        uint16
 	WLength       uint16
+}
+
+func (setup USBSetupPacket) String() string {
+	return fmt.Sprintf("USBSetupPacket{ BmRequestType: 0x%x, BRequest: %s, WValue: 0x%x, WIndex: %d, WLength: %d }",
+		setup.BmRequestType,
+		requestTypeDescriptons[setup.BRequest],
+		setup.WValue,
+		setup.WIndex,
+		setup.WLength)
 }
 
 func (setup *USBSetupPacket) direction() uint8 {
