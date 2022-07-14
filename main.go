@@ -1,34 +1,97 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"net"
 )
 
+func checkEOF(conn *net.Conn) {
+	n, err := (*conn).Read([]byte{})
+	fmt.Printf("N: %d, Err; %v\n", n, err)
+	if err != nil {
+		fmt.Println("Getting err from connection:", err)
+	}
+}
+
+func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBIPCommandSubmitBody) error {
+	checkEOF(conn)
+	transferBuffer := make([]byte, command.TransferBufferLength)
+	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
+		_, err := (*conn).Read(transferBuffer)
+		if err != nil {
+			return fmt.Errorf("Could not read transfer buffer: %w", err)
+		}
+	}
+	fmt.Println(len(transferBuffer))
+	switch command.Setup.BRequest {
+	case USB_REQUEST_GET_DESCRIPTOR:
+		checkEOF(conn)
+		copy(transferBuffer, toLE(getDeviceDescriptor()))
+		replyHeader, replyBody, _ := newReturnSubmit(header, command, (transferBuffer))
+		fmt.Printf("RETURN SUBMIT: %#v %#v %v %v %v\n\n", replyHeader, replyBody, toBE(replyHeader), toBE(replyBody), transferBuffer)
+		err := write(*conn, toBE(replyHeader))
+		if err != nil {
+			return fmt.Errorf("Could not write device descriptor header: %w", err)
+		}
+		err = write(*conn, toBE(replyBody))
+		if err != nil {
+			return fmt.Errorf("Could not write device descriptor message body: %w", err)
+		}
+		err = write(*conn, transferBuffer)
+		if err != nil {
+			return fmt.Errorf("Could not write device descriptor: %w", err)
+		}
+		checkEOF(conn)
+	default:
+		return fmt.Errorf("Invalid CMD_SUBMIT bRequest: %d", command.Setup.BRequest)
+	}
+	return nil
+}
+
 func handleCommands(conn *net.Conn) error {
 	for {
-		command, err := readUSBIPCommandSubmit(*conn)
+		checkEOF(conn)
+		header, err := readBE[USBIPMessageHeader](*conn)
 		if err != nil {
-			return fmt.Errorf("Could not read USBIP command: %w", err)
+			return fmt.Errorf("Could not read USBIP message header: %w", err)
 		}
-		fmt.Printf("%#v\n", command)
+		fmt.Printf("MESSAGE HEADER: %#v\n\n", header)
+		checkEOF(conn)
+		if header.Command == USBIP_COMMAND_SUBMIT {
+			command, err := readBE[USBIPCommandSubmitBody](*conn)
+			if err != nil {
+				return fmt.Errorf("Could not read CMD_SUBMIT body: %w", err)
+			}
+			fmt.Printf("COMMAND SUBMIT: %#v\n\n", command)
+			err = handleCommandSubmit(conn, header, command)
+			if err != nil {
+				return fmt.Errorf("Could not handle CMD_SUBMIT: %w", err)
+			}
+		} else if header.Command == USBIP_COMMAND_UNLINK {
+			unlink, err := readBE[USBIPCommandUnlinkBody](*conn)
+			if err != nil {
+				return fmt.Errorf("Could not read CMD_UNLINK body: %w", err)
+			}
+			fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
+		} else {
+			return fmt.Errorf("Unsupported Command: %#v", header)
+		}
 	}
+	return nil
 }
 
 func handleConnection(conn *net.Conn) error {
 	for {
-		header, err := readUSBIPHeader(*conn)
+		header, err := readBE[USBIPControlHeader](*conn)
 		if err != nil {
 			return fmt.Errorf("Could not read USBIP header: %w", err)
 		}
-		fmt.Printf("Received USBIP control message: %#v\n", header)
-		response := new(bytes.Buffer)
+		fmt.Printf("Received USBIP control message: %#v\n\n", header)
+		checkEOF(conn)
 		if header.CommandCode == USBIP_COMMAND_OP_REQ_DEVLIST {
-			reply := opRepDevlist()
-			fmt.Printf("Writing OP_REP_DEVLIST: %#v\n", reply)
-			err = binary.Write(*conn, binary.BigEndian, reply)
+			reply := newOpRepDevlist()
+			fmt.Printf("Writing OP_REP_DEVLIST: %#v\n\n", reply)
+			err = write(*conn, toBE(reply))
 			if err != nil {
 				return fmt.Errorf("Could not write OP_REP_DEVLIST: %w", err)
 			}
@@ -38,14 +101,17 @@ func handleConnection(conn *net.Conn) error {
 			if err != nil || bytesRead != 32 {
 				return fmt.Errorf("Could not read busId for OP_REQ_IMPORT: %w", err)
 			}
-			fmt.Println("Bus ID: ", busId)
-			reply := opRepImport(response)
-			fmt.Printf("Writing OP_REP_IMPORT: %#v\n", reply)
-			err = binary.Write(*conn, binary.BigEndian, reply)
+			fmt.Println("BUS_ID: ", string(busId))
+			reply := newOpRepImport()
+			fmt.Printf("Writing OP_REP_IMPORT: %#v\n\n", reply)
+			err = write(*conn, toBE(reply))
 			if err != nil {
 				return fmt.Errorf("Could not write OP_REP_IMPORT: %w", err)
 			}
-			handleCommands(conn)
+			err = handleCommands(conn)
+			if err != nil {
+				return fmt.Errorf("Could not handle commands: %w", err)
+			}
 		}
 	}
 	return nil

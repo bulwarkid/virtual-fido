@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
-	"io"
 )
 
 const (
@@ -14,7 +12,13 @@ const (
 	USBIP_COMMAND_OP_REQ_IMPORT  = 0x8003
 	USBIP_COMMAND_OP_REP_IMPORT  = 0x0003
 
-	USBIP_COMMAND
+	USBIP_COMMAND_SUBMIT     = 0x1
+	USBIP_COMMAND_UNLINK     = 0x2
+	USBIP_COMMAND_RET_SUBMIT = 0x3
+	USBIP_COMMAND_RET_UNLINK = 0x4
+
+	USBIP_DIR_OUT = 0x0
+	USBIP_DIR_IN  = 0x1
 )
 
 type USBIPControlHeader struct {
@@ -27,22 +31,13 @@ func (header *USBIPControlHeader) String() string {
 	return fmt.Sprintf("USBIPHeader{ Version: 0x%04x, Command: 0x%04x, Status: 0x%08x }", header.Version, header.CommandCode, header.Status)
 }
 
-func readUSBIPHeader(reader io.Reader) (*USBIPControlHeader, error) {
-	header := USBIPControlHeader{}
-	err := binary.Read(reader, binary.BigEndian, &header)
-	if err != nil {
-		return nil, fmt.Errorf("Could not read USBIP header: %w", err)
-	}
-	return &header, nil
-}
-
 type USBIPOpRepDevlist struct {
 	Header     USBIPControlHeader
 	NumDevices uint32
 	Devices    []USBDeviceSummary
 }
 
-func opRepDevlist() USBIPOpRepDevlist {
+func newOpRepDevlist() USBIPOpRepDevlist {
 	device := USBDevice{}
 	return USBIPOpRepDevlist{
 		Header: USBIPControlHeader{
@@ -59,10 +54,10 @@ func opRepDevlist() USBIPOpRepDevlist {
 
 type USBIPOpRepImport struct {
 	header USBIPControlHeader
-	device USBDeviceSummary
+	device USBDeviceSummaryHeader
 }
 
-func opRepImport(writer io.Writer) USBIPOpRepImport {
+func newOpRepImport() USBIPOpRepImport {
 	device := USBDevice{}
 	return USBIPOpRepImport{
 		header: USBIPControlHeader{
@@ -70,7 +65,7 @@ func opRepImport(writer io.Writer) USBIPOpRepImport {
 			CommandCode: USBIP_COMMAND_OP_REP_IMPORT,
 			Status:      0,
 		},
-		device: device.usbipSummary(),
+		device: device.usbipSummaryHeader(),
 	}
 }
 
@@ -82,52 +77,46 @@ type USBIPMessageHeader struct {
 	Endpoint       uint32
 }
 
-func (header *USBIPMessageHeader) String() string {
-	return fmt.Sprintf(
-		"USBIPMessageHeader{ command: %04x, sequenceNumber: %04x, deviceId: %04x, direction %04x, endpoint %04x }",
-		header.Command,
-		header.SequenceNumber,
-		header.DeviceId,
-		header.Direction,
-		header.Endpoint)
-}
-
-type USBIPCommandSubmit struct {
-	Header               USBIPMessageHeader
+type USBIPCommandSubmitBody struct {
 	TransferFlags        uint32
 	TransferBufferLength uint32
 	StartFrame           uint32
 	NumberOfPackets      uint32
 	Interval             uint32
-	Setup                uint64
+	Setup                USBSetupPacket
 }
 
-func (command *USBIPCommandSubmit) String() string {
-	return fmt.Sprintf("USBIPCommandSubmit{ "+
-		"header: %v, "+
-		"transferFlags: %04x, "+
-		"transferBufferLength: %04x, "+
-		"startFrame: %04x, "+
-		"numberOfPackets: %04x, "+
-		"interval: %04x"+
-		"setup: %04x }",
-		command.Header,
-		command.TransferFlags,
-		command.TransferBufferLength,
-		command.StartFrame,
-		command.NumberOfPackets,
-		command.Interval,
-		command.Setup)
+type USBIPCommandUnlinkBody struct {
+	UnlinkSequenceNumber uint32
+	Padding              [24]byte
 }
 
-func readUSBIPCommandSubmit(reader io.Reader) (USBIPCommandSubmit, error) {
-	command := USBIPCommandSubmit{}
-	err := binary.Read(reader, binary.BigEndian, &command)
-	return command, err
+type USBIPReturnSubmitBody struct {
+	Status          uint32
+	ActualLength    uint32
+	StartFrame      uint32
+	NumberOfPackets uint32
+	ErrorCount      uint32
+	Padding         uint64
 }
 
-type USBDevice struct {
-	Index int
+func newReturnSubmit(senderHeader USBIPMessageHeader, command USBIPCommandSubmitBody, data []byte) (USBIPMessageHeader, USBIPReturnSubmitBody, error) {
+	header := USBIPMessageHeader{
+		Command:        USBIP_COMMAND_RET_SUBMIT,
+		SequenceNumber: senderHeader.SequenceNumber,
+		DeviceId:       senderHeader.DeviceId,
+		Direction:      USBIP_DIR_OUT,
+		Endpoint:       senderHeader.Endpoint,
+	}
+	body := USBIPReturnSubmitBody{
+		Status:          0,
+		ActualLength:    uint32(len(data)),
+		StartFrame:      command.StartFrame,
+		NumberOfPackets: command.NumberOfPackets,
+		ErrorCount:      0,
+		Padding:         0,
+	}
+	return header, body, nil
 }
 
 type USBDeviceSummary struct {
@@ -158,6 +147,10 @@ type USBDeviceInterface struct {
 	Padding            uint8
 }
 
+type USBDevice struct {
+	Index int
+}
+
 func (device *USBDevice) usbipSummary() USBDeviceSummary {
 	return USBDeviceSummary{
 		Header:          device.usbipSummaryHeader(),
@@ -173,8 +166,8 @@ func (device *USBDevice) usbipSummaryHeader() USBDeviceSummaryHeader {
 	return USBDeviceSummaryHeader{
 		Path:                path,
 		BusId:               busId,
-		Busnum:              1,
-		Devnum:              1,
+		Busnum:              33,
+		Devnum:              22,
 		Speed:               2,
 		IdVendor:            0,
 		IdProduct:           0,
@@ -190,8 +183,8 @@ func (device *USBDevice) usbipSummaryHeader() USBDeviceSummaryHeader {
 
 func (device *USBDevice) usbipInterfacesSummary() USBDeviceInterface {
 	return USBDeviceInterface{
-		BInterfaceClass:    3,
-		BInterfaceSubclass: 0,
-		Padding:            0,
+		BInterfaceClass:    0, //3,
+		BInterfaceSubclass: 1, //0,
+		Padding:            1,
 	}
 }
