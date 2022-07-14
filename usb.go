@@ -21,6 +21,14 @@ const (
 	USB_DESCRIPTOR_DEVICE_QUALIFIER          = 6
 	USB_DESCRIPTOR_OTHER_SPEED_CONFIGURATION = 7
 	USB_DESCRIPTOR_INTERFACE_POWER           = 8
+	USB_DESCRIPTOR_HID                       = 33
+	USB_DESCRIPTOR_HID_REPORT                = 34
+
+	USB_CONFIG_ATTR_BASE          = 0b10000000
+	USB_CONFIG_ATTR_SELF_POWERED  = 0b01000000
+	USB_CONFIG_ATTR_REMOTE_WAKEUP = 0b00100000
+
+	USB_INTERFACE_CLASS_HID = 3
 
 	USB_HOST_TO_DEVICE = 0
 	USB_DEVICE_TO_HOST = 1
@@ -96,7 +104,29 @@ type USBInterfaceDescriptor struct {
 	IInterface         uint8
 }
 
-type USBHIDDescriptor struct{}
+type USBHIDDescriptor struct {
+	BLength                 uint8
+	BDescriptorType         uint8
+	BcdHID                  uint16
+	BCountryCode            uint8
+	BNumDescriptors         uint8
+	BClassDescriptorType    uint8
+	WReportDescriptorLength uint16
+}
+
+type USBEndpointDescriptor struct {
+	BLength          uint8
+	BDescriptorType  uint8
+	BEndpointAddress uint8
+	BmAttributes     uint8
+	WMaxPacketSize   uint16
+	BInterval        uint8
+}
+
+type USBStringDescriptorHeader struct {
+	BLength         uint8
+	BDescriptorType uint8
+}
 
 type USBISOPacketDescriptor struct {
 	Offset       uint32

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 )
@@ -8,32 +9,35 @@ import (
 var device FIDODevice
 
 func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBIPCommandSubmitBody) {
+	setup := readLE[USBSetupPacket](bytes.NewBuffer(command.Setup[:]))
+	fmt.Printf("COMMAND SUBMIT: %#v %#v\n", command, setup)
 	transferBuffer := make([]byte, command.TransferBufferLength)
 	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)
 		checkErr(err, "Could not read transfer buffer")
 	}
-	switch command.Setup.BRequest {
+	switch setup.BRequest {
 	case USB_REQUEST_GET_DESCRIPTOR:
-		descriptor := device.getDescriptor(command.Setup.WValue)
+		descriptorType := setup.WValue >> 8
+		descriptorIndex := setup.WValue & 0xFF
+		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
 		replyHeader, replyBody, _ := newReturnSubmit(header, command, (transferBuffer))
-		fmt.Printf("RETURN SUBMIT: %#v %#v %v\n", replyHeader, replyBody, transferBuffer)
+		fmt.Printf("RETURN SUBMIT: %v %#v %v\n", replyHeader, replyBody, transferBuffer)
 		write(*conn, toBE(replyHeader))
 		write(*conn, toBE(replyBody))
 		write(*conn, transferBuffer)
 	default:
-		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", command.Setup.BRequest))
+		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
 	}
 }
 
 func handleCommands(conn *net.Conn) {
 	for {
 		header := readBE[USBIPMessageHeader](*conn)
-		fmt.Printf("MESSAGE HEADER: %#v\n", header)
+		fmt.Printf("MESSAGE HEADER: %v\n", header)
 		if header.Command == USBIP_COMMAND_SUBMIT {
 			command := readBE[USBIPCommandSubmitBody](*conn)
-			fmt.Printf("COMMAND SUBMIT: %#v\n", command)
 			handleCommandSubmit(conn, header, command)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
 			unlink := readBE[USBIPCommandUnlinkBody](*conn)

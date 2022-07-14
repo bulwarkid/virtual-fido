@@ -21,6 +21,21 @@ const (
 	USBIP_DIR_IN  = 0x1
 )
 
+func commandString(command uint32) string {
+	switch command {
+	case USBIP_COMMAND_SUBMIT:
+		return "USBIP_COMMAND_SUBMIT"
+	case USBIP_COMMAND_UNLINK:
+		return "USBIP_COMMAND_UNLINK"
+	case USBIP_COMMAND_RET_SUBMIT:
+		return "USBIP_COMMAND_RET_SUBMIT"
+	case USBIP_COMMAND_RET_UNLINK:
+		return "USBIP_COMMAND_RET_UNLINK"
+	default:
+		panic(fmt.Sprintf("Unrecognized command: %d", command))
+	}
+}
+
 type USBIPControlHeader struct {
 	Version     uint16
 	CommandCode uint16
@@ -75,13 +90,30 @@ type USBIPMessageHeader struct {
 	Endpoint       uint32
 }
 
+func (header USBIPMessageHeader) String() string {
+	var direction string
+	if header.Direction == USBIP_DIR_IN {
+		direction = "USBIP_DIR_IN"
+	} else {
+		direction = "USBIP_DIR_OUT"
+	}
+	deviceID := fmt.Sprintf("%d-%d", header.DeviceId>>16, header.DeviceId&0xFF)
+	return fmt.Sprintf(
+		"USBIPMessageHeader{ Command: %v, SequenceNumber: %d, DeviceID: %v, Direction: %v, Endpoint: %d }",
+		commandString(header.Command),
+		header.SequenceNumber,
+		deviceID,
+		direction,
+		header.Endpoint)
+}
+
 type USBIPCommandSubmitBody struct {
 	TransferFlags        uint32
 	TransferBufferLength uint32
 	StartFrame           uint32
 	NumberOfPackets      uint32
 	Interval             uint32
-	Setup                USBSetupPacket
+	Setup                [8]byte
 }
 
 type USBIPCommandUnlinkBody struct {
