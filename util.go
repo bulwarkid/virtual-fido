@@ -8,6 +8,12 @@ import (
 	"net"
 )
 
+func checkErr(err error, message string) {
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: %v - %v", message, err))
+	}
+}
+
 func checkEOF(conn *net.Conn) {
 	_, err := (*conn).Read([]byte{})
 	if err != nil {
@@ -21,21 +27,23 @@ func pad[T any](src []T, size int) []T {
 	return destination
 }
 
-func readBE[T any](reader io.Reader) (T, error) {
+func readBE[T any](reader io.Reader) T {
 	var value T
 	err := binary.Read(reader, binary.BigEndian, &value)
-	return value, err
+	checkErr(err, "Could not read data")
+	return value
 }
 
-func readLE[T any](reader io.Reader) (T, error) {
+func readLE[T any](reader io.Reader) T {
 	var value T
 	err := binary.Read(reader, binary.LittleEndian, &value)
-	return value, err
+	checkErr(err, "Could not read data")
+	return value
 }
 
-func writeBE[T any](writer io.Writer, val T) error {
+func writeBE[T any](writer io.Writer, val T) {
 	beBytes := toBE(val)
-	return write(writer, beBytes)
+	write(writer, beBytes)
 }
 
 func toLE[T any](val T) []byte {
@@ -50,8 +58,8 @@ func toBE[T any](val T) []byte {
 	return buffer.Bytes()
 }
 
-func write(writer io.Writer, data []byte) error {
+func write(writer io.Writer, data []byte) {
 	fmt.Printf("WRITE: %v %d\n", data, len(data))
 	_, err := writer.Write(data)
-	return err
+	checkErr(err, "Could not write data")
 }

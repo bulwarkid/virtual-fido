@@ -23,11 +23,11 @@ func getDeviceDescriptor() USBDeviceDescriptor {
 	}
 }
 
-func (device *FIDODevice) getDescriptor(descriptorType uint16) ([]byte, error) {
+func (device *FIDODevice) getDescriptor(descriptorType uint16) []byte {
 	switch descriptorType {
 	case USB_DESCRIPTOR_DEVICE:
-		return toLE(getDeviceDescriptor()), nil
+		return toLE(getDeviceDescriptor())
 	default:
-		return nil, fmt.Errorf("Invalid Descriptor type: %d", descriptorType)
+		panic(fmt.Sprintf("Invalid Descriptor type: %d", descriptorType))
 	}
 }
