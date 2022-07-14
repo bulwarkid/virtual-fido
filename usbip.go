@@ -34,11 +34,10 @@ func (header *USBIPControlHeader) String() string {
 type USBIPOpRepDevlist struct {
 	Header     USBIPControlHeader
 	NumDevices uint32
-	Devices    []USBDeviceSummary
+	Devices    []USBIPDeviceSummary
 }
 
-func newOpRepDevlist() USBIPOpRepDevlist {
-	device := USBDevice{}
+func newOpRepDevlist(device *FIDODevice) USBIPOpRepDevlist {
 	return USBIPOpRepDevlist{
 		Header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
@@ -46,7 +45,7 @@ func newOpRepDevlist() USBIPOpRepDevlist {
 			Status:      0,
 		},
 		NumDevices: 1,
-		Devices: []USBDeviceSummary{
+		Devices: []USBIPDeviceSummary{
 			device.usbipSummary(),
 		},
 	}
@@ -54,11 +53,10 @@ func newOpRepDevlist() USBIPOpRepDevlist {
 
 type USBIPOpRepImport struct {
 	header USBIPControlHeader
-	device USBDeviceSummaryHeader
+	device USBIPDeviceSummaryHeader
 }
 
-func newOpRepImport() USBIPOpRepImport {
-	device := USBDevice{}
+func newOpRepImport(device *FIDODevice) USBIPOpRepImport {
 	return USBIPOpRepImport{
 		header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
@@ -119,12 +117,12 @@ func newReturnSubmit(senderHeader USBIPMessageHeader, command USBIPCommandSubmit
 	return header, body, nil
 }
 
-type USBDeviceSummary struct {
-	Header          USBDeviceSummaryHeader
-	DeviceInterface USBDeviceInterface // We only support one interface to use binary.Write/Read
+type USBIPDeviceSummary struct {
+	Header          USBIPDeviceSummaryHeader
+	DeviceInterface USBIPDeviceInterface // We only support one interface to use binary.Write/Read
 }
 
-type USBDeviceSummaryHeader struct {
+type USBIPDeviceSummaryHeader struct {
 	Path                [256]byte
 	BusId               [32]byte
 	Busnum              uint32
@@ -141,50 +139,8 @@ type USBDeviceSummaryHeader struct {
 	BNumInterfaces      uint8
 }
 
-type USBDeviceInterface struct {
+type USBIPDeviceInterface struct {
 	BInterfaceClass    uint8
 	BInterfaceSubclass uint8
 	Padding            uint8
-}
-
-type USBDevice struct {
-	Index int
-}
-
-func (device *USBDevice) usbipSummary() USBDeviceSummary {
-	return USBDeviceSummary{
-		Header:          device.usbipSummaryHeader(),
-		DeviceInterface: device.usbipInterfacesSummary(),
-	}
-}
-
-func (device *USBDevice) usbipSummaryHeader() USBDeviceSummaryHeader {
-	path := [256]byte{}
-	copy(path[:], []byte("/device/"+fmt.Sprint(device.Index)))
-	busId := [32]byte{}
-	copy(busId[:], []byte("1-1"))
-	return USBDeviceSummaryHeader{
-		Path:                path,
-		BusId:               busId,
-		Busnum:              33,
-		Devnum:              22,
-		Speed:               2,
-		IdVendor:            0,
-		IdProduct:           0,
-		BcdDevice:           0,
-		BDeviceClass:        0,
-		BDeviceSubclass:     0,
-		BDeviceProtocol:     0,
-		BConfigurationValue: 0,
-		BNumConfigurations:  1,
-		BNumInterfaces:      1,
-	}
-}
-
-func (device *USBDevice) usbipInterfacesSummary() USBDeviceInterface {
-	return USBDeviceInterface{
-		BInterfaceClass:    0, //3,
-		BInterfaceSubclass: 1, //0,
-		Padding:            1,
-	}
 }

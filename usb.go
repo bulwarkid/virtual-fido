@@ -73,11 +73,34 @@ type USBDeviceDescriptor struct {
 	BNumConfigurations uint8
 }
 
+type USBConfigurationDescriptor struct {
+	BLength             uint8
+	BDescriptorType     uint8
+	WTotalLength        uint16
+	BNumInterfaces      uint8
+	BConfigurationValue uint8
+	IConfiguration      uint8
+	BmAttributes        uint8
+	BMaxPower           uint8
+}
+
+type USBInterfaceDescriptor struct {
+	BLength            uint8
+	BDescriptorType    uint8
+	BInterfaceNumber   uint8
+	BAlternateSetting  uint8
+	BNumEndpoints      uint8
+	BInterfaceClass    uint8
+	BInterfaceSubclass uint8
+	BInterfaceProtocol uint8
+	IInterface         uint8
+}
+
+type USBHIDDescriptor struct{}
+
 type USBISOPacketDescriptor struct {
 	Offset       uint32
 	Length       uint32
 	ActualLength uint32
 	Status       uint32
 }
-
-type USBDescriptor USBDeviceDescriptor
