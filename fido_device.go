@@ -1,5 +1,9 @@
 package main
 
+import "fmt"
+
+type FIDODevice struct{}
+
 func getDeviceDescriptor() USBDeviceDescriptor {
 	return USBDeviceDescriptor{
 		BLength:            18,
@@ -16,5 +20,14 @@ func getDeviceDescriptor() USBDeviceDescriptor {
 		IProduct:           2,
 		ISerialNumber:      3,
 		BNumConfigurations: 1,
+	}
+}
+
+func (device *FIDODevice) getDescriptor(descriptorType uint16) ([]byte, error) {
+	switch descriptorType {
+	case USB_DESCRIPTOR_DEVICE:
+		return toLE(getDeviceDescriptor()), nil
+	default:
+		return nil, fmt.Errorf("Invalid Descriptor type: %d", descriptorType)
 	}
 }

@@ -5,13 +5,7 @@ import (
 	"net"
 )
 
-func checkEOF(conn *net.Conn) {
-	n, err := (*conn).Read([]byte{})
-	fmt.Printf("N: %d, Err; %v\n", n, err)
-	if err != nil {
-		fmt.Println("Getting err from connection:", err)
-	}
-}
+var device FIDODevice
 
 func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBIPCommandSubmitBody) error {
 	checkEOF(conn)
@@ -22,14 +16,17 @@ func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBI
 			return fmt.Errorf("Could not read transfer buffer: %w", err)
 		}
 	}
-	fmt.Println(len(transferBuffer))
 	switch command.Setup.BRequest {
 	case USB_REQUEST_GET_DESCRIPTOR:
 		checkEOF(conn)
-		copy(transferBuffer, toLE(getDeviceDescriptor()))
+		descriptor, err := device.getDescriptor(command.Setup.WValue)
+		if err != nil {
+			return fmt.Errorf("Could not get descriptor: %#v %w", command, err)
+		}
+		copy(transferBuffer, descriptor)
 		replyHeader, replyBody, _ := newReturnSubmit(header, command, (transferBuffer))
 		fmt.Printf("RETURN SUBMIT: %#v %#v %v %v %v\n\n", replyHeader, replyBody, toBE(replyHeader), toBE(replyBody), transferBuffer)
-		err := write(*conn, toBE(replyHeader))
+		err = write(*conn, toBE(replyHeader))
 		if err != nil {
 			return fmt.Errorf("Could not write device descriptor header: %w", err)
 		}
@@ -77,7 +74,6 @@ func handleCommands(conn *net.Conn) error {
 			return fmt.Errorf("Unsupported Command: %#v", header)
 		}
 	}
-	return nil
 }
 
 func handleConnection(conn *net.Conn) error {
@@ -114,11 +110,11 @@ func handleConnection(conn *net.Conn) error {
 			}
 		}
 	}
-	return nil
 }
 
 func main() {
 	fmt.Println("Starting USBIP server...")
+	device = FIDODevice{}
 	listener, err := net.Listen("tcp", ":3240")
 	if err != nil {
 		fmt.Println("Could not create listener:", err)

@@ -79,3 +79,5 @@ type USBISOPacketDescriptor struct {
 	ActualLength uint32
 	Status       uint32
 }
+
+type USBDescriptor USBDeviceDescriptor
