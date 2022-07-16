@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"unicode/utf16"
 )
 
 func checkErr(err error, message string) {
@@ -62,4 +63,12 @@ func write(writer io.Writer, data []byte) {
 	//fmt.Printf("\tWRITE: [%d]byte{%v}\n", len(data), data)
 	_, err := writer.Write(data)
 	checkErr(err, "Could not write data")
+}
+
+func utf16encode(message string) []byte {
+	buffer := new(bytes.Buffer)
+	for _, val := range utf16.Encode([]rune(message)) {
+		binary.Write(buffer, binary.LittleEndian, val)
+	}
+	return buffer.Bytes()
 }

@@ -11,8 +11,6 @@ var device FIDODevice
 func handleDeviceRequest(
 	conn *net.Conn,
 	setup USBSetupPacket,
-	header USBIPMessageHeader,
-	command USBIPCommandSubmitBody,
 	transferBuffer []byte) {
 	switch setup.BRequest {
 	case USB_REQUEST_GET_DESCRIPTOR:
@@ -47,13 +45,13 @@ func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBI
 		checkErr(err, "Could not read transfer buffer")
 	}
 	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
-		handleDeviceRequest(conn, setup, header, command, transferBuffer)
+		handleDeviceRequest(conn, setup, transferBuffer)
 	} else if setup.recipient() == USB_REQUEST_RECIPIENT_INTERFACE {
 		handleInterfaceRequest(conn, setup)
 	} else {
 		panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
 	}
-	replyHeader, replyBody, _ := newReturnSubmit(header, command, (transferBuffer))
+	replyHeader, replyBody := newReturnSubmit(header, command, (transferBuffer))
 	fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
 	write(*conn, toBE(replyHeader))
 	write(*conn, toBE(replyBody))

@@ -100,28 +100,18 @@ func (device *FIDODevice) getEndpointDescriptors() []USBEndpointDescriptor {
 	}
 }
 
-func makeStringDescriptor(message string) (USBStringDescriptorHeader, string) {
-	length := uint8(unsafe.Sizeof(USBStringDescriptorHeader{})) + uint8(len(message))
-	return USBStringDescriptorHeader{
-		BLength:         length,
-		BDescriptorType: USB_DESCRIPTOR_STRING,
-	}, message
-}
-
-func (device *FIDODevice) getStringDescriptor(index uint16) (USBStringDescriptorHeader, string) {
+func (device *FIDODevice) getStringDescriptor(index uint16) []byte {
 	switch index {
-	case 0:
-		return makeStringDescriptor("String 0")
 	case 1:
-		return makeStringDescriptor("No Company")
+		return utf16encode("No Company")
 	case 2:
-		return makeStringDescriptor("Virtual FIDO")
+		return utf16encode("Virtual FIDO")
 	case 3:
-		return makeStringDescriptor("No Serial Number")
+		return utf16encode("No Serial Number")
 	case 4:
-		return makeStringDescriptor("String 4")
+		return utf16encode("String 4")
 	case 5:
-		return makeStringDescriptor("Default Interface")
+		return utf16encode("Default Interface")
 	default:
 		panic(fmt.Sprintf("Invalid string descriptor index: %d", index))
 	}
@@ -143,10 +133,22 @@ func (device *FIDODevice) getDescriptor(descriptorType uint16, index uint16) []b
 		}
 		return buffer.Bytes()
 	case USB_DESCRIPTOR_STRING:
-		header, message := device.getStringDescriptor(index)
+		var message []byte
+		if index == 0 {
+			message = toLE[uint16](0x0409)
+		} else {
+			message = device.getStringDescriptor(index)
+		}
+		var header USBStringDescriptorHeader
+		length := uint8(unsafe.Sizeof(header)) + uint8(len(message))
+		header = USBStringDescriptorHeader{
+			BLength:         length,
+			BDescriptorType: USB_DESCRIPTOR_STRING,
+		}
 		buffer := new(bytes.Buffer)
 		buffer.Write(toLE(header))
 		buffer.Write([]byte(message))
+		fmt.Printf("STRING: %#v %s %v\n", header, message, buffer.Bytes())
 		return buffer.Bytes()
 	default:
 		panic(fmt.Sprintf("Invalid Descriptor type: %d", descriptorType))
