@@ -8,6 +8,36 @@ import (
 
 var device FIDODevice
 
+func handleDeviceRequest(
+	conn *net.Conn,
+	setup USBSetupPacket,
+	header USBIPMessageHeader,
+	command USBIPCommandSubmitBody,
+	transferBuffer []byte) {
+	switch setup.BRequest {
+	case USB_REQUEST_GET_DESCRIPTOR:
+		descriptorType := setup.WValue >> 8
+		descriptorIndex := setup.WValue & 0xFF
+		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
+		copy(transferBuffer, descriptor)
+	case USB_REQUEST_SET_CONFIGURATION:
+		// No-op since we can't change configuration
+		return
+	default:
+		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
+	}
+}
+
+func handleInterfaceRequest(conn *net.Conn, setup USBSetupPacket) {
+	switch setup.BRequest {
+	case USB_HID_REQUEST_SET_IDLE:
+		// No-op since we are made in software
+		return
+	default:
+		panic(fmt.Sprintf("Invalid USB Interface bRequest: %d", setup.BRequest))
+	}
+}
+
 func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBIPCommandSubmitBody) {
 	setup := readLE[USBSetupPacket](bytes.NewBuffer(command.Setup[:]))
 	fmt.Printf("COMMAND SUBMIT: %s\n\n", command)
@@ -16,23 +46,18 @@ func handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBI
 		_, err := (*conn).Read(transferBuffer)
 		checkErr(err, "Could not read transfer buffer")
 	}
-	switch setup.BRequest {
-	case USB_REQUEST_GET_DESCRIPTOR:
-		descriptorType := setup.WValue >> 8
-		descriptorIndex := setup.WValue & 0xFF
-		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
-		copy(transferBuffer, descriptor)
-		replyHeader, replyBody, _ := newReturnSubmit(header, command, (transferBuffer))
-		fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
-		write(*conn, toBE(replyHeader))
-		write(*conn, toBE(replyBody))
-		write(*conn, transferBuffer)
-	case USB_REQUEST_SET_CONFIGURATION:
-		// No-op since we can't change configuration
-		return
-	default:
-		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
+	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
+		handleDeviceRequest(conn, setup, header, command, transferBuffer)
+	} else if setup.recipient() == USB_REQUEST_RECIPIENT_INTERFACE {
+		handleInterfaceRequest(conn, setup)
+	} else {
+		panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
 	}
+	replyHeader, replyBody, _ := newReturnSubmit(header, command, (transferBuffer))
+	fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
+	write(*conn, toBE(replyHeader))
+	write(*conn, toBE(replyBody))
+	write(*conn, transferBuffer)
 }
 
 func handleCommands(conn *net.Conn) {
@@ -45,6 +70,10 @@ func handleCommands(conn *net.Conn) {
 		} else if header.Command == USBIP_COMMAND_UNLINK {
 			unlink := readBE[USBIPCommandUnlinkBody](*conn)
 			fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
+			replyHeader, replyBody := newReturnUnlink(header)
+			write(*conn, toBE(replyHeader))
+			write(*conn, toLE(replyBody))
+			return
 		} else {
 			panic(fmt.Sprintf("Unsupported Command; %#v", header))
 		}

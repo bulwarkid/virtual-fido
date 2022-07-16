@@ -123,7 +123,7 @@ type USBIPCommandSubmitBody struct {
 
 func (body USBIPCommandSubmitBody) String() string {
 	setup := readLE[USBSetupPacket](bytes.NewBuffer(body.Setup[:]))
-	return fmt.Sprintf("USBIPCommandSubmitBody{ TransferFlags: 0x%x, TransferBufferLength: %d, StartFrame: %d, NumberOfPackets: %d, Interval: %d, Setup: %s",
+	return fmt.Sprintf("USBIPCommandSubmitBody{ TransferFlags: 0x%x, TransferBufferLength: %d, StartFrame: %d, NumberOfPackets: %d, Interval: %d, Setup: %s }",
 		body.TransferFlags,
 		body.TransferBufferLength,
 		body.StartFrame,
@@ -163,6 +163,26 @@ func newReturnSubmit(senderHeader USBIPMessageHeader, command USBIPCommandSubmit
 		Padding:         0,
 	}
 	return header, body, nil
+}
+
+type USBIPReturnUnlinkBody struct {
+	Status  uint32
+	Padding [24]byte
+}
+
+func newReturnUnlink(senderHeader USBIPMessageHeader) (USBIPMessageHeader, USBIPReturnUnlinkBody) {
+	header := USBIPMessageHeader{
+		Command:        USBIP_COMMAND_RET_UNLINK,
+		SequenceNumber: senderHeader.SequenceNumber,
+		DeviceId:       senderHeader.DeviceId,
+		Direction:      USBIP_DIR_OUT,
+		Endpoint:       senderHeader.Endpoint,
+	}
+	body := USBIPReturnUnlinkBody{
+		Status:  0,
+		Padding: [24]byte{},
+	}
+	return header, body
 }
 
 type USBIPDeviceSummary struct {

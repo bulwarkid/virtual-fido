@@ -118,6 +118,10 @@ func (device *FIDODevice) getStringDescriptor(index uint16) (USBStringDescriptor
 		return makeStringDescriptor("Virtual FIDO")
 	case 3:
 		return makeStringDescriptor("No Serial Number")
+	case 4:
+		return makeStringDescriptor("String 4")
+	case 5:
+		return makeStringDescriptor("Default Interface")
 	default:
 		panic(fmt.Sprintf("Invalid string descriptor index: %d", index))
 	}

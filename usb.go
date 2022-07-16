@@ -44,9 +44,16 @@ const (
 	USB_REQUEST_RECIPIENT_INTERFACE = 1
 	USB_REQUEST_RECIPIENT_ENDPOINT  = 2
 	USB_REQUEST_RECIPIENT_OTHER     = 3
+
+	USB_HID_REQUEST_GET_REPORT   = 1
+	USB_HID_REQUEST_GET_IDLE     = 2
+	USB_HID_REQUEST_GET_PROTOCOL = 3
+	USB_HID_REQUEST_SET_REPORT   = 9
+	USB_HID_REQUEST_SET_IDLE     = 10
+	USB_HID_REQUEST_SET_PROTOCOL = 11
 )
 
-var requestTypeDescriptons = map[uint8]string{
+var deviceRequestDescriptons = map[uint8]string{
 	USB_REQUEST_GET_STATUS:        "USB_REQUEST_GET_STATUS",
 	USB_REQUEST_CLEAR_FEATURE:     "USB_REQUEST_CLEAR_FEATURE",
 	USB_REQUEST_SET_FEATURE:       "USB_REQUEST_SET_FEATURE",
@@ -60,6 +67,34 @@ var requestTypeDescriptons = map[uint8]string{
 	USB_REQUEST_SYNCH_FRAME:       "USB_REQUEST_SYNCH_FRAME",
 }
 
+var interfaceRequestDescriptions = map[uint8]string{
+	USB_HID_REQUEST_GET_REPORT:   "USB_HID_REQUEST_GET_REPORT",
+	USB_HID_REQUEST_GET_IDLE:     "USB_HID_REQUEST_GET_IDLE",
+	USB_HID_REQUEST_GET_PROTOCOL: "USB_HID_REQUEST_GET_PROTOCOL",
+	USB_HID_REQUEST_SET_REPORT:   "USB_HID_REQUEST_SET_REPORT",
+	USB_HID_REQUEST_SET_IDLE:     "USB_HID_REQUEST_SET_IDLE",
+	USB_HID_REQUEST_SET_PROTOCOL: "USB_HID_REQUEST_SET_PROTOCOL",
+}
+
+var requestDirectionDescriptions = map[uint8]string{
+	USB_HOST_TO_DEVICE: "USB_HOST_TO_DEVICE",
+	USB_DEVICE_TO_HOST: "USB_DEVICE_TO_HOST",
+}
+
+var requestClassDescriptons = map[uint8]string{
+	USB_REQUEST_TYPE_STANDARD: "USB_REQUEST_TYPE_STANDARD",
+	USB_REQUEST_TYPE_CLASS:    "USB_REQUEST_TYPE_CLASS",
+	USB_REQUEST_TYPE_VENDOR:   "USB_REQUEST_TYPE_VENDOR",
+	USB_REQUEST_TYPE_RESERVED: "USB_REQUEST_TYPE_RESERVED",
+}
+
+var requestRecipientDescriptions = map[uint8]string{
+	USB_REQUEST_RECIPIENT_DEVICE:    "USB_REQUEST_RECIPIENT_DEVICE",
+	USB_REQUEST_RECIPIENT_INTERFACE: "USB_REQUEST_RECIPIENT_INTERFACE",
+	USB_REQUEST_RECIPIENT_ENDPOINT:  "USB_REQUEST_RECIPIENT_ENDPOINT",
+	USB_REQUEST_RECIPIENT_OTHER:     "USB_REQUEST_RECIPIENT_OTHER",
+}
+
 type USBSetupPacket struct {
 	BmRequestType uint8
 	BRequest      uint8
@@ -69,9 +104,17 @@ type USBSetupPacket struct {
 }
 
 func (setup USBSetupPacket) String() string {
-	return fmt.Sprintf("USBSetupPacket{ BmRequestType: 0x%x, BRequest: %s, WValue: 0x%x, WIndex: %d, WLength: %d }",
-		setup.BmRequestType,
-		requestTypeDescriptons[setup.BRequest],
+	var requestDescription string
+	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
+		requestDescription = deviceRequestDescriptons[setup.BRequest]
+	} else {
+		requestDescription = interfaceRequestDescriptions[setup.BRequest]
+	}
+	return fmt.Sprintf("USBSetupPacket{ Direction: %s, RequestType: %s, Recipient: %s, BRequest: %s, WValue: 0x%x, WIndex: %d, WLength: %d }",
+		requestDirectionDescriptions[setup.direction()],
+		requestClassDescriptons[setup.requestType()],
+		requestRecipientDescriptions[setup.recipient()],
+		requestDescription,
 		setup.WValue,
 		setup.WIndex,
 		setup.WLength)
