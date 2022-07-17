@@ -188,3 +188,40 @@ func (device *FIDODevice) usbipInterfacesSummary() USBIPDeviceInterface {
 		Padding:            0,
 	}
 }
+
+func (device *FIDODevice) handleDeviceRequest(
+	setup USBSetupPacket,
+	transferBuffer []byte) {
+	switch setup.BRequest {
+	case USB_REQUEST_GET_DESCRIPTOR:
+		descriptorType := USBDescriptorType(setup.WValue >> 8)
+		descriptorIndex := uint8(setup.WValue & 0xFF)
+		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
+		copy(transferBuffer, descriptor)
+	case USB_REQUEST_SET_CONFIGURATION:
+		// No-op since we can't change configuration
+		return
+	default:
+		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
+	}
+}
+
+func (device *FIDODevice) handleInterfaceRequest(setup USBSetupPacket, transferBuffer []byte) {
+	switch USBHIDRequestType(setup.BRequest) {
+	case USB_HID_REQUEST_SET_IDLE:
+		// No-op since we are made in software
+		return
+	default:
+		panic(fmt.Sprintf("Invalid USB Interface bRequest: %d", setup.BRequest))
+	}
+}
+
+func (device *FIDODevice) handleMessage(setup USBSetupPacket, transferBuffer []byte) {
+	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
+		device.handleDeviceRequest(setup, transferBuffer)
+	} else if setup.recipient() == USB_REQUEST_RECIPIENT_INTERFACE {
+		device.handleInterfaceRequest(setup, transferBuffer)
+	} else {
+		panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
+	}
+}
