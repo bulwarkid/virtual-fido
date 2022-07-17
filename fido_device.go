@@ -100,7 +100,7 @@ func (device *FIDODevice) getEndpointDescriptors() []USBEndpointDescriptor {
 	}
 }
 
-func (device *FIDODevice) getStringDescriptor(index uint16) []byte {
+func (device *FIDODevice) getStringDescriptor(index uint8) []byte {
 	switch index {
 	case 1:
 		return utf16encode("No Company")
@@ -117,7 +117,7 @@ func (device *FIDODevice) getStringDescriptor(index uint16) []byte {
 	}
 }
 
-func (device *FIDODevice) getDescriptor(descriptorType uint16, index uint16) []byte {
+func (device *FIDODevice) getDescriptor(descriptorType USBDescriptorType, index uint8) []byte {
 	switch descriptorType {
 	case USB_DESCRIPTOR_DEVICE:
 		return toLE(device.getDeviceDescriptor())

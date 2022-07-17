@@ -14,8 +14,8 @@ func handleDeviceRequest(
 	transferBuffer []byte) {
 	switch setup.BRequest {
 	case USB_REQUEST_GET_DESCRIPTOR:
-		descriptorType := setup.WValue >> 8
-		descriptorIndex := setup.WValue & 0xFF
+		descriptorType := USBDescriptorType(setup.WValue >> 8)
+		descriptorIndex := uint8(setup.WValue & 0xFF)
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
 	case USB_REQUEST_SET_CONFIGURATION:
@@ -27,7 +27,7 @@ func handleDeviceRequest(
 }
 
 func handleInterfaceRequest(conn *net.Conn, setup USBSetupPacket) {
-	switch setup.BRequest {
+	switch USBHIDRequestType(setup.BRequest) {
 	case USB_HID_REQUEST_SET_IDLE:
 		// No-op since we are made in software
 		return
