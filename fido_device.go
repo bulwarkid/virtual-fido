@@ -11,9 +11,8 @@ type FIDODevice struct {
 }
 
 func (device *FIDODevice) getDeviceDescriptor() USBDeviceDescriptor {
-	length := uint8(unsafe.Sizeof(USBDeviceDescriptor{}))
 	return USBDeviceDescriptor{
-		BLength:            length,
+		BLength:            sizeOf[USBDeviceDescriptor](),
 		BDescriptorType:    USB_DESCRIPTOR_DEVICE,
 		BcdUSB:             0x0110,
 		BDeviceClass:       0,
@@ -31,10 +30,9 @@ func (device *FIDODevice) getDeviceDescriptor() USBDeviceDescriptor {
 }
 
 func (device *FIDODevice) getConfigurationDescriptor() USBConfigurationDescriptor {
-	length := uint8(unsafe.Sizeof(USBConfigurationDescriptor{}))
 	totalLength := uint16(unsafe.Sizeof(USBConfigurationDescriptor{}) + unsafe.Sizeof(USBInterfaceDescriptor{}) + unsafe.Sizeof(USBHIDDescriptor{}))
 	return USBConfigurationDescriptor{
-		BLength:             length,
+		BLength:             sizeOf[USBConfigurationDescriptor](),
 		BDescriptorType:     USB_DESCRIPTOR_CONFIGURATION,
 		WTotalLength:        totalLength,
 		BNumInterfaces:      1,
@@ -46,9 +44,8 @@ func (device *FIDODevice) getConfigurationDescriptor() USBConfigurationDescripto
 }
 
 func (device *FIDODevice) getInterfaceDescriptor() USBInterfaceDescriptor {
-	length := uint8(unsafe.Sizeof(USBInterfaceDescriptor{}))
 	return USBInterfaceDescriptor{
-		BLength:            length,
+		BLength:            sizeOf[USBInterfaceDescriptor](),
 		BDescriptorType:    USB_DESCRIPTOR_INTERFACE,
 		BInterfaceNumber:   0,
 		BAlternateSetting:  0,
@@ -61,9 +58,8 @@ func (device *FIDODevice) getInterfaceDescriptor() USBInterfaceDescriptor {
 }
 
 func (device *FIDODevice) getHIDDescriptor(hidReportDescriptor []byte) USBHIDDescriptor {
-	length := uint8(unsafe.Sizeof(USBHIDDescriptor{}))
 	return USBHIDDescriptor{
-		BLength:                 length,
+		BLength:                 sizeOf[USBHIDDescriptor](),
 		BDescriptorType:         USB_DESCRIPTOR_HID,
 		BcdHID:                  0x0101,
 		BCountryCode:            0,
@@ -79,7 +75,7 @@ func (device *FIDODevice) getHIDReport() []byte {
 }
 
 func (device *FIDODevice) getEndpointDescriptors() []USBEndpointDescriptor {
-	length := uint8(unsafe.Sizeof(USBEndpointDescriptor{}))
+	length := sizeOf[USBEndpointDescriptor]()
 	return []USBEndpointDescriptor{
 		{
 			BLength:          length,
