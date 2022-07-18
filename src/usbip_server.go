@@ -55,14 +55,9 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 		header := readBE[USBIPMessageHeader](*conn)
 		fmt.Printf("MESSAGE HEADER: %v\n\n", header)
 		if header.Command == USBIP_COMMAND_SUBMIT {
-			command := readBE[USBIPCommandSubmitBody](*conn)
-			server.handleCommandSubmit(conn, header, command)
+			server.handleCommandSubmit(conn, header)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
-			unlink := readBE[USBIPCommandUnlinkBody](*conn)
-			fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
-			replyHeader, replyBody := newReturnUnlink(header)
-			write(*conn, toBE(replyHeader))
-			write(*conn, toBE(replyBody))
+			server.handleCommandUnlink(conn, header)
 			return
 		} else {
 			panic(fmt.Sprintf("Unsupported Command; %#v", header))
@@ -70,7 +65,8 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 	}
 }
 
-func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader, command USBIPCommandSubmitBody) {
+func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader) {
+	command := readBE[USBIPCommandSubmitBody](*conn)
 	setup := readLE[USBSetupPacket](bytes.NewBuffer(command.Setup[:]))
 	fmt.Printf("COMMAND SUBMIT: %s\n\n", command)
 	transferBuffer := make([]byte, command.TransferBufferLength)
@@ -84,4 +80,12 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 	write(*conn, toBE(replyHeader))
 	write(*conn, toBE(replyBody))
 	write(*conn, transferBuffer)
+}
+
+func (server *USBIPServer) handleCommandUnlink(conn *net.Conn, header USBIPMessageHeader) {
+	unlink := readBE[USBIPCommandUnlinkBody](*conn)
+	fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
+	replyHeader, replyBody := newReturnUnlink(header)
+	write(*conn, toBE(replyHeader))
+	write(*conn, toBE(replyBody))
 }
