@@ -79,7 +79,9 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 	fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
 	write(*conn, toBE(replyHeader))
 	write(*conn, toBE(replyBody))
-	write(*conn, transferBuffer)
+	if header.Direction == USBIP_DIR_IN {
+		write(*conn, transferBuffer)
+	}
 }
 
 func (server *USBIPServer) handleCommandUnlink(conn *net.Conn, header USBIPMessageHeader) {

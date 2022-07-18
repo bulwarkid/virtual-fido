@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"unicode/utf16"
-	"unsafe"
 )
 
 func checkErr(err error, message string) {
@@ -76,5 +75,7 @@ func utf16encode(message string) []byte {
 
 func sizeOf[T any]() uint8 {
 	var val T
-	return uint8(unsafe.Sizeof(val))
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, &val)
+	return uint8(buffer.Len())
 }

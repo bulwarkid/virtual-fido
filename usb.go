@@ -2,10 +2,6 @@ package main
 
 import "fmt"
 
-const (
-	USB_LANGID_ENG_USA = 0x0409
-)
-
 type USBSetupPacket struct {
 	BmRequestType uint8
 	BRequest      USBRequestType
