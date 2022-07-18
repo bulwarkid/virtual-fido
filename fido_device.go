@@ -131,7 +131,7 @@ func (device *FIDODevice) getDescriptor(descriptorType USBDescriptorType, index 
 	case USB_DESCRIPTOR_STRING:
 		var message []byte
 		if index == 0 {
-			message = toLE[uint16](0x0409)
+			message = toLE[uint16](USB_LANGID_ENG_USA)
 		} else {
 			message = device.getStringDescriptor(index)
 		}
