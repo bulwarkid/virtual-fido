@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 )
@@ -53,7 +52,8 @@ func (server *USBIPServer) handleConnection(conn *net.Conn) {
 func (server *USBIPServer) handleCommands(conn *net.Conn) {
 	for {
 		header := readBE[USBIPMessageHeader](*conn)
-		fmt.Printf("MESSAGE HEADER: %v\n\n", header)
+		fmt.Printf("--------------------------------------------\n")
+		fmt.Printf("MESSAGE HEADER: %s - Direction: %s - Endpoint: %d\n\n", header.CommandName(), header.DirectionName(), header.Endpoint)
 		if header.Command == USBIP_COMMAND_SUBMIT {
 			server.handleCommandSubmit(conn, header)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
@@ -67,8 +67,8 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 
 func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader) {
 	command := readBE[USBIPCommandSubmitBody](*conn)
-	setup := readLE[USBSetupPacket](bytes.NewBuffer(command.Setup[:]))
-	fmt.Printf("COMMAND SUBMIT: %s\n\n", command)
+	setup := command.Setup()
+	fmt.Printf("COMMAND SUBMIT: %s\n\n", setup)
 	transferBuffer := make([]byte, command.TransferBufferLength)
 	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)

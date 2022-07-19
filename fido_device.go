@@ -114,17 +114,25 @@ func (device *FIDODevice) getStringDescriptor(index uint8) []byte {
 }
 
 func (device *FIDODevice) getDescriptor(descriptorType USBDescriptorType, index uint8) []byte {
+	fmt.Printf("GET DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], index)
 	switch descriptorType {
 	case USB_DESCRIPTOR_DEVICE:
-		return toLE(device.getDeviceDescriptor())
+		descriptor := device.getDeviceDescriptor()
+		fmt.Printf("DEVICE DESCRIPTOR: %#v\n\n", descriptor)
+		return toLE(descriptor)
 	case USB_DESCRIPTOR_CONFIGURATION:
 		hidReport := device.getHIDReport()
 		buffer := new(bytes.Buffer)
-		buffer.Write(toLE(device.getConfigurationDescriptor()))
-		buffer.Write(toLE(device.getInterfaceDescriptor()))
-		buffer.Write(toLE(device.getHIDDescriptor(hidReport)))
+		config := device.getConfigurationDescriptor()
+		interfaceDescriptor := device.getInterfaceDescriptor()
+		hid := device.getHIDDescriptor(hidReport)
+		fmt.Printf("CONFIGURATION: %#v\n\nINTERFACE: %#v\n\nHID: %#v\n\n", config, interfaceDescriptor, hid)
+		buffer.Write(toLE(config))
+		buffer.Write(toLE(interfaceDescriptor))
+		buffer.Write(toLE(hid))
 		endpoints := device.getEndpointDescriptors()
 		for _, endpoint := range endpoints {
+			fmt.Printf("ENDPOINT: %#v\n\n", endpoint)
 			buffer.Write(toLE(endpoint))
 		}
 		return buffer.Bytes()
@@ -144,7 +152,7 @@ func (device *FIDODevice) getDescriptor(descriptorType USBDescriptorType, index 
 		buffer := new(bytes.Buffer)
 		buffer.Write(toLE(header))
 		buffer.Write([]byte(message))
-		fmt.Printf("STRING: %#v %s %v\n", header, message, buffer.Bytes())
+		fmt.Printf("STRING: Length: %d Message: \"%s\" Bytes: %v\n\n", header.BLength, message, buffer.Bytes())
 		return buffer.Bytes()
 	default:
 		panic(fmt.Sprintf("Invalid Descriptor type: %d", descriptorType))
@@ -199,6 +207,7 @@ func (device *FIDODevice) handleDeviceRequest(
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
 	case USB_REQUEST_SET_CONFIGURATION:
+		fmt.Printf("SET_CONFIGURATION: No-op\n\n")
 		// No-op since we can't change configuration
 		return
 	default:

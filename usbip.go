@@ -96,20 +96,28 @@ type USBIPMessageHeader struct {
 }
 
 func (header USBIPMessageHeader) String() string {
+	deviceID := fmt.Sprintf("%d-%d", header.DeviceId>>16, header.DeviceId&0xFF)
+	return fmt.Sprintf(
+		"USBIPMessageHeader{ Command: %v, SequenceNumber: %d, DeviceID: %v, Direction: %v, Endpoint: %d }",
+		header.CommandName(),
+		header.SequenceNumber,
+		deviceID,
+		header.DirectionName(),
+		header.Endpoint)
+}
+
+func (header USBIPMessageHeader) CommandName() string {
+	return commandString(header.Command)
+}
+
+func (header USBIPMessageHeader) DirectionName() string {
 	var direction string
 	if header.Direction == USBIP_DIR_IN {
 		direction = "USBIP_DIR_IN"
 	} else {
 		direction = "USBIP_DIR_OUT"
 	}
-	deviceID := fmt.Sprintf("%d-%d", header.DeviceId>>16, header.DeviceId&0xFF)
-	return fmt.Sprintf(
-		"USBIPMessageHeader{ Command: %v, SequenceNumber: %d, DeviceID: %v, Direction: %v, Endpoint: %d }",
-		commandString(header.Command),
-		header.SequenceNumber,
-		deviceID,
-		direction,
-		header.Endpoint)
+	return direction
 }
 
 type USBIPCommandSubmitBody struct {
@@ -118,18 +126,21 @@ type USBIPCommandSubmitBody struct {
 	StartFrame           uint32
 	NumberOfPackets      uint32
 	Interval             uint32
-	Setup                [8]byte
+	SetupBytes           [8]byte
 }
 
 func (body USBIPCommandSubmitBody) String() string {
-	setup := readLE[USBSetupPacket](bytes.NewBuffer(body.Setup[:]))
 	return fmt.Sprintf("USBIPCommandSubmitBody{ TransferFlags: 0x%x, TransferBufferLength: %d, StartFrame: %d, NumberOfPackets: %d, Interval: %d, Setup: %s }",
 		body.TransferFlags,
 		body.TransferBufferLength,
 		body.StartFrame,
 		body.NumberOfPackets,
 		body.Interval,
-		setup)
+		body.Setup())
+}
+
+func (body USBIPCommandSubmitBody) Setup() USBSetupPacket {
+	return readLE[USBSetupPacket](bytes.NewBuffer(body.SetupBytes[:]))
 }
 
 type USBIPCommandUnlinkBody struct {
