@@ -168,8 +168,8 @@ func newReturnSubmit(senderHeader USBIPMessageHeader, command USBIPCommandSubmit
 	body := USBIPReturnSubmitBody{
 		Status:          0,
 		ActualLength:    uint32(len(data)),
-		StartFrame:      command.StartFrame,
-		NumberOfPackets: command.NumberOfPackets,
+		StartFrame:      0,
+		NumberOfPackets: 0,
 		ErrorCount:      0,
 		Padding:         0,
 	}

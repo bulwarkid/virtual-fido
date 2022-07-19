@@ -205,24 +205,37 @@ func (device *FIDODevice) handleDeviceRequest(
 	transferBuffer []byte) {
 	switch setup.BRequest {
 	case USB_REQUEST_GET_DESCRIPTOR:
-		descriptorType := USBDescriptorType(setup.WValue >> 8)
-		descriptorIndex := uint8(setup.WValue & 0xFF)
+		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
 	case USB_REQUEST_SET_CONFIGURATION:
 		fmt.Printf("SET_CONFIGURATION: No-op\n\n")
 		// No-op since we can't change configuration
 		return
+	case USB_REQUEST_GET_STATUS:
+		copy(transferBuffer, []byte{1})
 	default:
 		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
 	}
 }
 
 func (device *FIDODevice) handleInterfaceRequest(setup USBSetupPacket, transferBuffer []byte) {
+
 	switch USBHIDRequestType(setup.BRequest) {
 	case USB_HID_REQUEST_SET_IDLE:
 		// No-op since we are made in software
+		fmt.Printf("SET IDLE: No-op\n\n")
 		return
+	case USBHIDRequestType(USB_REQUEST_GET_DESCRIPTOR):
+		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
+		fmt.Printf("GET INTERFACE DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], descriptorIndex)
+		switch descriptorType {
+		case USB_DESCRIPTOR_HID_REPORT:
+			fmt.Printf("HID REPORT: %v\n\n", device.getHIDReport())
+			copy(transferBuffer, device.getHIDReport())
+		default:
+			panic(fmt.Sprintf("Invalid USB Interface descriptor: %d - %d", descriptorType, descriptorIndex))
+		}
 	default:
 		panic(fmt.Sprintf("Invalid USB Interface bRequest: %d", setup.BRequest))
 	}

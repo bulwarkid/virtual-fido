@@ -109,3 +109,9 @@ type USBISOPacketDescriptor struct {
 	ActualLength uint32
 	Status       uint32
 }
+
+func getDescriptorTypeAndIndex(wValue uint16) (USBDescriptorType, uint8) {
+	descriptorType := USBDescriptorType(wValue >> 8)
+	descriptorIndex := uint8(wValue & 0xFF)
+	return descriptorType, descriptorIndex
+}
