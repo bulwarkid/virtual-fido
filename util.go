@@ -65,6 +65,13 @@ func write(writer io.Writer, data []byte) {
 	checkErr(err, "Could not write data")
 }
 
+func read(reader io.Reader, length uint) []byte {
+	output := make([]byte, length)
+	_, err := reader.Read(output)
+	checkErr(err, "Could not read data")
+	return output
+}
+
 func utf16encode(message string) []byte {
 	buffer := new(bytes.Buffer)
 	for _, val := range utf16.Encode([]rune(message)) {

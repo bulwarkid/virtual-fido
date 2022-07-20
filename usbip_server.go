@@ -74,7 +74,7 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 		_, err := (*conn).Read(transferBuffer)
 		checkErr(err, "Could not read transfer buffer")
 	}
-	server.device.handleMessage(setup, transferBuffer)
+	server.device.handleMessage(header.Endpoint, setup, transferBuffer)
 	replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
 	fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
 	write(*conn, toBE(replyHeader))

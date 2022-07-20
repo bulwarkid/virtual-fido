@@ -7,7 +7,15 @@ import (
 )
 
 type FIDODevice struct {
-	Index int
+	Index      int
+	CTAPServer *CTAPHIDServer
+}
+
+func NewFIDODevice(ctapHIDServer *CTAPHIDServer) *FIDODevice {
+	return &FIDODevice{
+		Index:      0,
+		CTAPServer: ctapHIDServer,
+	}
 }
 
 func (device *FIDODevice) getDeviceDescriptor() USBDeviceDescriptor {
@@ -241,12 +249,36 @@ func (device *FIDODevice) handleInterfaceRequest(setup USBSetupPacket, transferB
 	}
 }
 
-func (device *FIDODevice) handleMessage(setup USBSetupPacket, transferBuffer []byte) {
+func (device *FIDODevice) handleControlMessage(setup USBSetupPacket, transferBuffer []byte) {
 	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
 		device.handleDeviceRequest(setup, transferBuffer)
 	} else if setup.recipient() == USB_REQUEST_RECIPIENT_INTERFACE {
 		device.handleInterfaceRequest(setup, transferBuffer)
 	} else {
 		panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
+	}
+}
+
+func (device *FIDODevice) handleInputMessage(setup USBSetupPacket, transferBuffer []byte) {
+	buffer := bytes.NewBuffer(transferBuffer)
+	device.CTAPServer.handleInputMessage(buffer)
+}
+
+func (device *FIDODevice) handleOutputMessage(setup USBSetupPacket, transferBuffer []byte) {
+	response := device.CTAPServer.getResponse()
+	if response != nil {
+		copy(transferBuffer, response)
+	}
+}
+
+func (device *FIDODevice) handleMessage(endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
+	if endpoint == 0 {
+		device.handleControlMessage(setup, transferBuffer)
+	} else if endpoint == 1 {
+		device.handleOutputMessage(setup, transferBuffer)
+	} else if endpoint == 2 {
+		device.handleInputMessage(setup, transferBuffer)
+	} else {
+		panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
 	}
 }
