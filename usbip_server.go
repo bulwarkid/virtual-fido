@@ -74,14 +74,17 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 		_, err := (*conn).Read(transferBuffer)
 		checkErr(err, "Could not read transfer buffer")
 	}
-	server.device.handleMessage(header.Endpoint, setup, transferBuffer)
-	replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
-	fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
-	write(*conn, toBE(replyHeader))
-	write(*conn, toBE(replyBody))
-	if header.Direction == USBIP_DIR_IN {
-		write(*conn, transferBuffer)
+	// Getting the reponse may not be immediate, so we need a callback
+	onReturnSubmit := func() {
+		replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
+		fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
+		write(*conn, toBE(replyHeader))
+		write(*conn, toBE(replyBody))
+		if header.Direction == USBIP_DIR_IN {
+			write(*conn, transferBuffer)
+		}
 	}
+	server.device.handleMessage(onReturnSubmit, header.Endpoint, setup, transferBuffer)
 }
 
 func (server *USBIPServer) handleCommandUnlink(conn *net.Conn, header USBIPMessageHeader) {

@@ -16,16 +16,29 @@ const (
 type CTAPHIDCommand uint8
 
 const (
-	CTAPHID_COMMAND_MSG       CTAPHIDCommand = 0x03
-	CTAPHID_COMMAND_CBOR      CTAPHIDCommand = 0x10
-	CTAPHID_COMMAND_INIT      CTAPHIDCommand = 0x06
-	CTAPHID_COMMAND_ING       CTAPHIDCommand = 0x01
-	CTAPHID_COMMAND_CANCEL    CTAPHIDCommand = 0x11
-	CTAPHID_COMMAND_ERROR     CTAPHIDCommand = 0x3F
-	CTAPHID_COMMAND_KEEPALIVE CTAPHIDCommand = 0x3B
-	CTAPHID_COMMAND_WINK      CTAPHIDCommand = 0x08
-	CTAPHID_COMMAND_LOCK      CTAPHIDCommand = 0x04
+	// Each CTAPHID command has its seventh bit set for easier reading
+	CTAPHID_COMMAND_MSG       CTAPHIDCommand = 0x83
+	CTAPHID_COMMAND_CBOR      CTAPHIDCommand = 0x90
+	CTAPHID_COMMAND_INIT      CTAPHIDCommand = 0x86
+	CTAPHID_COMMAND_ING       CTAPHIDCommand = 0x81
+	CTAPHID_COMMAND_CANCEL    CTAPHIDCommand = 0x91
+	CTAPHID_COMMAND_ERROR     CTAPHIDCommand = 0xBF
+	CTAPHID_COMMAND_KEEPALIVE CTAPHIDCommand = 0xBB
+	CTAPHID_COMMAND_WINK      CTAPHIDCommand = 0x88
+	CTAPHID_COMMAND_LOCK      CTAPHIDCommand = 0x84
 )
+
+var ctapHIDCommandDescriptions = map[CTAPHIDCommand]string{
+	CTAPHID_COMMAND_MSG:       "CTAPHID_COMMAND_MSG",
+	CTAPHID_COMMAND_CBOR:      "CTAPHID_COMMAND_CBOR",
+	CTAPHID_COMMAND_INIT:      "CTAPHID_COMMAND_INIT",
+	CTAPHID_COMMAND_ING:       "CTAPHID_COMMAND_ING",
+	CTAPHID_COMMAND_CANCEL:    "CTAPHID_COMMAND_CANCEL",
+	CTAPHID_COMMAND_ERROR:     "CTAPHID_COMMAND_ERROR",
+	CTAPHID_COMMAND_KEEPALIVE: "CTAPHID_COMMAND_KEEPALIVE",
+	CTAPHID_COMMAND_WINK:      "CTAPHID_COMMAND_WINK",
+	CTAPHID_COMMAND_LOCK:      "CTAPHID_COMMAND_LOCK",
+}
 
 type CTAPHIDCapabilityFlag uint8
 
@@ -39,6 +52,13 @@ type CTAPHIDMessageHeader struct {
 	ChannelID     CTAPHIDChannelID
 	Command       CTAPHIDCommand
 	PayloadLength uint16
+}
+
+func (header CTAPHIDMessageHeader) String() string {
+	return fmt.Sprintf("CTAPHIDMessageHeader{ ChannelID: 0x%x, Command: %s, PayloadLength: %d }",
+		header.ChannelID,
+		ctapHIDCommandDescriptions[header.Command],
+		header.PayloadLength)
 }
 
 func readCTAPHIDMessageHeader(reader io.Reader) CTAPHIDMessageHeader {
@@ -97,6 +117,7 @@ func (server *CTAPHIDServer) getResponse() []byte {
 func (server *CTAPHIDServer) handleInputMessage(input io.Reader) {
 	response := new(bytes.Buffer)
 	header := readCTAPHIDMessageHeader(input)
+	fmt.Printf("CTAPHID MESSAGE: %s\n\n", header)
 	if header.ChannelID == CTAPHID_BROADCAST_CHANNEL {
 		server.handleBroadcastMessage(input, response, header)
 	} else {
@@ -124,6 +145,7 @@ func (server *CTAPHIDServer) handleBroadcastMessage(input io.Reader, output io.W
 		copy(response.Nonce[:], nonce)
 		server.maxChannelID += 1
 		server.channels[response.NewChannelID] = CTAPHIDChannel{}
+		fmt.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
 		writeCTAPHIDMessageHeader(output, CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_INIT, 17)
 		write(output, toLE(response))
 	default:
@@ -132,5 +154,5 @@ func (server *CTAPHIDServer) handleBroadcastMessage(input io.Reader, output io.W
 }
 
 func (channel *CTAPHIDChannel) handleMessage(input io.Reader, output io.Writer, header CTAPHIDMessageHeader) {
-	fmt.Printf("CTAPHID Message: %#v\n", header)
+
 }

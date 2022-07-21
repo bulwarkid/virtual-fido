@@ -264,21 +264,25 @@ func (device *FIDODevice) handleInputMessage(setup USBSetupPacket, transferBuffe
 	device.CTAPServer.handleInputMessage(buffer)
 }
 
-func (device *FIDODevice) handleOutputMessage(setup USBSetupPacket, transferBuffer []byte) {
+func (device *FIDODevice) handleOutputMessage(setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
 	response := device.CTAPServer.getResponse()
-	if response != nil {
-		copy(transferBuffer, response)
+	for response == nil {
+		response = device.CTAPServer.getResponse()
 	}
+	copy(transferBuffer, response)
+	onFinish()
 }
 
-func (device *FIDODevice) handleMessage(endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
+func (device *FIDODevice) handleMessage(onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
 	} else if endpoint == 1 {
-		device.handleOutputMessage(setup, transferBuffer)
+		go device.handleOutputMessage(setup, transferBuffer, onFinish)
+		return // handleOutputMessage should handle calling onFinish
 	} else if endpoint == 2 {
 		device.handleInputMessage(setup, transferBuffer)
 	} else {
 		panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
 	}
+	onFinish()
 }
