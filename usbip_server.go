@@ -7,11 +7,11 @@ import (
 )
 
 type USBIPServer struct {
-	device        *FIDODevice
+	device        *USBDevice
 	responseMutex *sync.Mutex
 }
 
-func NewUSBIPServer(device *FIDODevice) *USBIPServer {
+func NewUSBIPServer(device *USBDevice) *USBIPServer {
 	server := new(USBIPServer)
 	server.device = device
 	server.responseMutex = &sync.Mutex{}
@@ -81,14 +81,12 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 	onReturnSubmit := func() {
 		server.responseMutex.Lock()
 		replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
-		fmt.Printf("RETURN SUBMIT: %v %#v", replyHeader, replyBody)
+		fmt.Printf("RETURN SUBMIT: %v %#v %#v\n\n", replyHeader, replyBody, transferBuffer)
 		write(*conn, toBE(replyHeader))
 		write(*conn, toBE(replyBody))
 		if header.Direction == USBIP_DIR_IN {
-			fmt.Printf(" %#v", transferBuffer)
 			write(*conn, transferBuffer)
 		}
-		fmt.Printf("\n\n")
 		server.responseMutex.Unlock()
 	}
 	server.device.handleMessage(onReturnSubmit, header.Endpoint, setup, transferBuffer)
