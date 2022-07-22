@@ -1,8 +1,9 @@
 package main
 
 func main() {
-	ctapServer := NewCTAPHIDServer()
-	device := NewFIDODevice(ctapServer)
+	ctapServer := CTAPServer{}
+	ctapHIDServer := NewCTAPHIDServer(&ctapServer)
+	device := NewFIDODevice(ctapHIDServer)
 	server := NewUSBIPServer(device)
 	server.start()
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"io"
 )
@@ -91,46 +90,44 @@ type CTAPHIDInitReponse struct {
 type CTAPHIDChannel struct{}
 
 type CTAPHIDServer struct {
+	ctapServer   *CTAPServer
 	maxChannelID CTAPHIDChannelID
 	channels     map[CTAPHIDChannelID]CTAPHIDChannel
-	responses    *list.List
+	responses    chan []byte
 }
 
-func NewCTAPHIDServer() *CTAPHIDServer {
+func NewCTAPHIDServer(ctapServer *CTAPServer) *CTAPHIDServer {
 	return &CTAPHIDServer{
+		ctapServer:   ctapServer,
 		maxChannelID: 0,
 		channels:     make(map[CTAPHIDChannelID]CTAPHIDChannel),
-		responses:    list.New(),
+		responses:    make(chan []byte, 100),
 	}
 }
 
 func (server *CTAPHIDServer) getResponse() []byte {
-	response := server.responses.Front()
-	if response != nil {
-		server.responses.Remove(response)
-		return response.Value.([]byte)
-	} else {
-		return nil
-	}
+	response := <-server.responses
+	fmt.Printf("CTAPHID RESPONSE: %#v\n\n", response)
+	return response
 }
 
 func (server *CTAPHIDServer) handleInputMessage(input io.Reader) {
-	response := new(bytes.Buffer)
+	var response []byte
 	header := readCTAPHIDMessageHeader(input)
 	fmt.Printf("CTAPHID MESSAGE: %s\n\n", header)
 	if header.ChannelID == CTAPHID_BROADCAST_CHANNEL {
-		server.handleBroadcastMessage(input, response, header)
+		response = server.handleBroadcastMessage(input, header)
 	} else {
 		channel, exists := server.channels[header.ChannelID]
 		if !exists {
 			panic(fmt.Sprintf("Invalid Channel ID: %#v", header))
 		}
-		channel.handleMessage(input, response, header)
+		response = channel.handleMessage(server, input, header)
 	}
-	server.responses.PushBack(response.Bytes())
+	server.responses <- response
 }
 
-func (server *CTAPHIDServer) handleBroadcastMessage(input io.Reader, output io.Writer, header CTAPHIDMessageHeader) {
+func (server *CTAPHIDServer) handleBroadcastMessage(input io.Reader, header CTAPHIDMessageHeader) []byte {
 	switch header.Command {
 	case CTAPHID_COMMAND_INIT:
 		nonce := read(input, 8)
@@ -146,13 +143,27 @@ func (server *CTAPHIDServer) handleBroadcastMessage(input io.Reader, output io.W
 		server.maxChannelID += 1
 		server.channels[response.NewChannelID] = CTAPHIDChannel{}
 		fmt.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
-		writeCTAPHIDMessageHeader(output, CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_INIT, 17)
-		write(output, toLE(response))
+		return newCTAPHIDReponse(CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_INIT, toLE(response))
 	default:
 		panic(fmt.Sprintf("Invalid CTAPHID Broadcast command: %#v", header))
 	}
 }
 
-func (channel *CTAPHIDChannel) handleMessage(input io.Reader, output io.Writer, header CTAPHIDMessageHeader) {
+func (channel *CTAPHIDChannel) handleMessage(ctapServer *CTAPHIDServer, input io.Reader, header CTAPHIDMessageHeader) []byte {
+	payload := read(input, uint(header.PayloadLength))
+	fmt.Printf("CTAP MESSAGE PAYLOAD: %#v\n\n", payload)
+	switch header.Command {
+	case CTAPHID_COMMAND_MSG:
+		responsePayload := processU2FMessage(payload)
+		return newCTAPHIDReponse(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
+	default:
+		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %#v %#v", header, payload))
+	}
+}
 
+func newCTAPHIDReponse(channelId CTAPHIDChannelID, command CTAPHIDCommand, payload []byte) []byte {
+	output := new(bytes.Buffer)
+	writeCTAPHIDMessageHeader(output, channelId, command, uint16(len(payload)))
+	write(output, payload)
+	return output.Bytes()
 }

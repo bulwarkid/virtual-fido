@@ -7,14 +7,14 @@ import (
 )
 
 type FIDODevice struct {
-	Index      int
-	CTAPServer *CTAPHIDServer
+	Index         int
+	CTAPHIDServer *CTAPHIDServer
 }
 
 func NewFIDODevice(ctapHIDServer *CTAPHIDServer) *FIDODevice {
 	return &FIDODevice{
-		Index:      0,
-		CTAPServer: ctapHIDServer,
+		Index:         0,
+		CTAPHIDServer: ctapHIDServer,
 	}
 }
 
@@ -261,14 +261,11 @@ func (device *FIDODevice) handleControlMessage(setup USBSetupPacket, transferBuf
 
 func (device *FIDODevice) handleInputMessage(setup USBSetupPacket, transferBuffer []byte) {
 	buffer := bytes.NewBuffer(transferBuffer)
-	device.CTAPServer.handleInputMessage(buffer)
+	device.CTAPHIDServer.handleInputMessage(buffer)
 }
 
 func (device *FIDODevice) handleOutputMessage(setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
-	response := device.CTAPServer.getResponse()
-	for response == nil {
-		response = device.CTAPServer.getResponse()
-	}
+	response := device.CTAPHIDServer.getResponse()
 	copy(transferBuffer, response)
 	onFinish()
 }

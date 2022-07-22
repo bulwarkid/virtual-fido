@@ -17,11 +17,24 @@ const (
 	CTAP_COMMAND_GET_NEXT_ASSERTION CTAPCommand = 0x08
 )
 
-func parseMessage(data []byte) {
+var ctapCommandDescriptions = map[CTAPCommand]string{
+	CTAP_COMMAND_MAKE_CREDENTIAL:    "CTAP_COMMAND_MAKE_CREDENTIAL",
+	CTAP_COMMAND_GET_ASSERTION:      "CTAP_COMMAND_GET_ASSERTION",
+	CTAP_COMMAND_GET_INFO:           "CTAP_COMMAND_GET_INFO",
+	CTAP_COMMAND_CLIENT_PIN:         "CTAP_COMMAND_CLIENT_PIN",
+	CTAP_COMMAND_RESET:              "CTAP_COMMAND_RESET",
+	CTAP_COMMAND_GET_NEXT_ASSERTION: "CTAP_COMMAND_GET_NEXT_ASSERTION",
+}
+
+type CTAPServer struct {
+}
+
+func (server *CTAPServer) handleMessage(data []byte) {
 	command := CTAPCommand(data[0])
+	fmt.Printf("CTAP COMMAND: %s\n\n", ctapCommandDescriptions[command])
 	switch command {
 	case CTAP_COMMAND_MAKE_CREDENTIAL:
-		handleMakeCredential(data[1:])
+		server.handleMakeCredential(data[1:])
 	default:
 		panic(fmt.Sprintf("Invalid CTAP Command: %d", command))
 	}
@@ -56,7 +69,7 @@ type CTAPMakeCredentialArgs struct {
 	Options          CTAPMakeCredentialArgsOptions   `cbor:"7,keyasint,omitempty"`
 }
 
-func handleMakeCredential(data []byte) {
+func (server *CTAPServer) handleMakeCredential(data []byte) {
 	var args CTAPMakeCredentialArgs
 	err := cbor.Unmarshal(data, &args)
 	checkErr(err, fmt.Sprintf("Could not decode CBOR for MAKE_CREDENTIAL: %s %v", err, data))

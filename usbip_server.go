@@ -3,15 +3,18 @@ package main
 import (
 	"fmt"
 	"net"
+	"sync"
 )
 
 type USBIPServer struct {
-	device *FIDODevice
+	device        *FIDODevice
+	responseMutex *sync.Mutex
 }
 
 func NewUSBIPServer(device *FIDODevice) *USBIPServer {
 	server := new(USBIPServer)
 	server.device = device
+	server.responseMutex = &sync.Mutex{}
 	return server
 }
 
@@ -51,8 +54,8 @@ func (server *USBIPServer) handleConnection(conn *net.Conn) {
 
 func (server *USBIPServer) handleCommands(conn *net.Conn) {
 	for {
-		header := readBE[USBIPMessageHeader](*conn)
 		fmt.Printf("--------------------------------------------\n")
+		header := readBE[USBIPMessageHeader](*conn)
 		fmt.Printf("MESSAGE HEADER: %s - Direction: %s - Endpoint: %d\n\n", header.CommandName(), header.DirectionName(), header.Endpoint)
 		if header.Command == USBIP_COMMAND_SUBMIT {
 			server.handleCommandSubmit(conn, header)
@@ -76,13 +79,17 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 	}
 	// Getting the reponse may not be immediate, so we need a callback
 	onReturnSubmit := func() {
+		server.responseMutex.Lock()
 		replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
-		fmt.Printf("RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
+		fmt.Printf("RETURN SUBMIT: %v %#v", replyHeader, replyBody)
 		write(*conn, toBE(replyHeader))
 		write(*conn, toBE(replyBody))
 		if header.Direction == USBIP_DIR_IN {
+			fmt.Printf(" %#v", transferBuffer)
 			write(*conn, transferBuffer)
 		}
+		fmt.Printf("\n\n")
+		server.responseMutex.Unlock()
 	}
 	server.device.handleMessage(onReturnSubmit, header.Endpoint, setup, transferBuffer)
 }
