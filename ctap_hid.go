@@ -91,14 +91,16 @@ type CTAPHIDChannel struct{}
 
 type CTAPHIDServer struct {
 	ctapServer   *CTAPServer
+	u2fServer    *U2FServer
 	maxChannelID CTAPHIDChannelID
 	channels     map[CTAPHIDChannelID]CTAPHIDChannel
 	responses    chan []byte
 }
 
-func NewCTAPHIDServer(ctapServer *CTAPServer) *CTAPHIDServer {
+func NewCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServer {
 	return &CTAPHIDServer{
 		ctapServer:   ctapServer,
+		u2fServer:    u2fServer,
 		maxChannelID: 0,
 		channels:     make(map[CTAPHIDChannelID]CTAPHIDChannel),
 		responses:    make(chan []byte, 100),
@@ -154,7 +156,7 @@ func (channel *CTAPHIDChannel) handleMessage(ctapServer *CTAPHIDServer, input io
 	fmt.Printf("CTAP MESSAGE PAYLOAD: %#v\n\n", payload)
 	switch header.Command {
 	case CTAPHID_COMMAND_MSG:
-		responsePayload := processU2FMessage(payload)
+		responsePayload := ctapServer.u2fServer.processU2FMessage(payload)
 		return newCTAPHIDReponse(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	default:
 		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %#v %#v", header, payload))

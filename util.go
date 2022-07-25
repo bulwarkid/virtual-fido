@@ -9,6 +9,12 @@ import (
 	"unicode/utf16"
 )
 
+func assert(val bool, message string) {
+	if !val {
+		panic(message)
+	}
+}
+
 func checkErr(err error, message string) {
 	if err != nil {
 		panic(fmt.Sprintf("ERROR: %v - %v", message, err))
@@ -85,4 +91,12 @@ func sizeOf[T any]() uint8 {
 	buffer := new(bytes.Buffer)
 	binary.Write(buffer, binary.BigEndian, &val)
 	return uint8(buffer.Len())
+}
+
+func flatten[T any](arrays [][]T) []T {
+	output := make([]T, 0)
+	for _, arr := range arrays {
+		output = append(output, arr...)
+	}
+	return output
 }

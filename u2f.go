@@ -2,7 +2,11 @@ package main
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"fmt"
+
+	"github.com/fxamacker/cbor/v2"
 )
 
 type U2FCommand uint8
@@ -45,6 +49,14 @@ func (header U2FMessageHeader) String() string {
 		header.Param2)
 }
 
+type U2FServer struct {
+	client *Client
+}
+
+func NewU2FServer(client *Client) *U2FServer {
+	return &U2FServer{client: client}
+}
+
 func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 	buffer := bytes.NewBuffer(messageBytes)
 	header := readBE[U2FMessageHeader](buffer)
@@ -71,15 +83,44 @@ func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 	return header, request, responseLength
 }
 
-func processU2FMessage(message []byte) []byte {
-	header, _, _ := decodeU2FMessage(message)
+func (server *U2FServer) processU2FMessage(message []byte) []byte {
+	header, request, _ := decodeU2FMessage(message)
 	fmt.Printf("U2F MESSAGE: %s\n\n", header)
 	switch header.Command {
 	case U2F_COMMAND_VERSION:
 		response := append([]byte("U2F_V2"), toBE(U2F_SW_NO_ERROR)...)
 		fmt.Printf("U2F RESPONSE: %#v\n\n", response)
 		return response
+	case U2F_COMMAND_REGISTER:
+		return server.handleU2FRegister(header, request)
 	default:
 		panic(fmt.Sprintf("Invalid U2F Command: %#v", header))
 	}
+}
+
+func encodePublicKey(publicKey *ecdsa.PublicKey) []byte {
+	return elliptic.Marshal(elliptic.P256(), publicKey.X, publicKey.Y)
+}
+
+type KeyHandle struct {
+	WrappedPrivateKey    []byte
+	ApplicationSignature []byte
+}
+
+func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []byte) []byte {
+	challenge := request[:32]
+	application := request[32:]
+
+	privateKey := server.client.newPrivateKey()
+	encodedPublicKey := encodePublicKey(&privateKey.PublicKey)
+
+	keyHandle, err := cbor.Marshal(server.client.keyHandle(privateKey, application))
+	checkErr(err, "Could not wrap private key handle")
+
+	cert := server.client.createAttestationCertificiate(privateKey)
+
+	signatureDataBytes := flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
+	signature := sign(privateKey, signatureDataBytes)
+
+	return flatten([][]byte{{0x05}, {uint8(len(keyHandle))}, keyHandle, cert, signature, toBE(U2F_SW_NO_ERROR)})
 }
