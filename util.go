@@ -48,11 +48,6 @@ func readLE[T any](reader io.Reader) T {
 	return value
 }
 
-func writeBE[T any](writer io.Writer, val T) {
-	beBytes := toBE(val)
-	write(writer, beBytes)
-}
-
 func toLE[T any](val T) []byte {
 	buffer := new(bytes.Buffer)
 	binary.Write(buffer, binary.LittleEndian, val)

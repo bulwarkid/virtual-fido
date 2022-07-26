@@ -242,8 +242,8 @@ func createReponsePackets(channelId CTAPHIDChannelID, command CTAPHIDCommand, pa
 		if sequence < 0 {
 			writeCTAPHIDMessageHeader(output, channelId, command, uint16(len(payload)))
 		} else {
-			writeBE(output, channelId)
-			writeBE(output, uint8(sequence))
+			write(output, toLE(channelId))
+			write(output, toLE(uint8(sequence)))
 		}
 		sequence++
 		bytesLeft := CTAPHIDSERVER_MAX_PACKET_SIZE - output.Len()
