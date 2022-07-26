@@ -83,16 +83,18 @@ func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 	return header, request, responseLength
 }
 
-func (server *U2FServer) processU2FMessage(message []byte) []byte {
-	header, request, _ := decodeU2FMessage(message)
-	fmt.Printf("U2F MESSAGE: %s\n\n", header)
+func (server *U2FServer) handleU2FMessage(message []byte) []byte {
+	header, request, responseLength := decodeU2FMessage(message)
+	fmt.Printf("U2F MESSAGE: Header: %s Request: %#v Reponse Length: %d\n\n", header, request, responseLength)
 	switch header.Command {
 	case U2F_COMMAND_VERSION:
 		response := append([]byte("U2F_V2"), toBE(U2F_SW_NO_ERROR)...)
 		fmt.Printf("U2F RESPONSE: %#v\n\n", response)
 		return response
 	case U2F_COMMAND_REGISTER:
-		return server.handleU2FRegister(header, request)
+		response := server.handleU2FRegister(header, request)
+		fmt.Printf("U2F RESPONSE: %#v\n\n", response)
+		return response
 	default:
 		panic(fmt.Sprintf("Invalid U2F Command: %#v", header))
 	}
@@ -110,6 +112,8 @@ type KeyHandle struct {
 func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []byte) []byte {
 	challenge := request[:32]
 	application := request[32:]
+	assert(len(challenge) == 32, "Challenge is not 32 bytes")
+	assert(len(application) == 32, "Application is not 32 bytes")
 
 	privateKey := server.client.newPrivateKey()
 	encodedPublicKey := encodePublicKey(&privateKey.PublicKey)
@@ -122,5 +126,5 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 	signatureDataBytes := flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
 	signature := sign(privateKey, signatureDataBytes)
 
-	return flatten([][]byte{{0x05}, {uint8(len(keyHandle))}, keyHandle, cert, signature, toBE(U2F_SW_NO_ERROR)})
+	return flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, toBE(U2F_SW_NO_ERROR)})
 }

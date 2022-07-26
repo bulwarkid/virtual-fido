@@ -261,8 +261,8 @@ func (device *USBDevice) handleControlMessage(setup USBSetupPacket, transferBuff
 
 func (device *USBDevice) handleInputMessage(setup USBSetupPacket, transferBuffer []byte) {
 	buffer := bytes.NewBuffer(transferBuffer)
-	fmt.Printf("Transfer Buffer: %#v\n\n", transferBuffer)
-	device.CTAPHIDServer.handleInputMessage(buffer)
+	fmt.Printf("USB ENDPOINT TRANSFER BUFFER: %#v\n\n", transferBuffer)
+	device.CTAPHIDServer.handleMessage(buffer)
 }
 
 func (device *USBDevice) handleOutputMessage(setup USBSetupPacket, transferBuffer []byte, onFinish func()) {

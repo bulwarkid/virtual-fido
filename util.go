@@ -78,6 +78,13 @@ func read(reader io.Reader, length uint) []byte {
 	return output
 }
 
+func fill(buffer *bytes.Buffer, length int) {
+	if buffer.Len() < length {
+		zeroes := make([]byte, length-buffer.Len())
+		write(buffer, zeroes)
+	}
+}
+
 func utf16encode(message string) []byte {
 	buffer := new(bytes.Buffer)
 	for _, val := range utf16.Encode([]rune(message)) {

@@ -57,7 +57,6 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 		fmt.Printf("--------------------------------------------\n")
 		header := readBE[USBIPMessageHeader](*conn)
 		fmt.Printf("USBIP MESSAGE HEADER: %s\n\n", header)
-		//fmt.Printf("MESSAGE HEADER: %s - Direction: %s - Endpoint: %d\n\n", header.CommandName(), header.DirectionName(), header.Endpoint)
 		if header.Command == USBIP_COMMAND_SUBMIT {
 			server.handleCommandSubmit(conn, header)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
