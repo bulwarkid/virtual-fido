@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
@@ -13,9 +14,11 @@ import (
 type Client struct {
 	deviceEncryptionKey  []byte
 	certificateAuthority *x509.Certificate
+	caPrivateKey         *ecdsa.PrivateKey
 }
 
 func NewClient() *Client {
+	// ALL OF THIS IS INSECURE, FOR TESTING PURPOSES ONLY
 	authority := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
 		Subject: pkix.Name{
@@ -31,13 +34,15 @@ func NewClient() *Client {
 	}
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate attestation CA private key")
-	authorityCertBytes, err := x509.CreateCertificate(rand.Reader, authority, authority, privateKey.PublicKey, privateKey)
+	authorityCertBytes, err := x509.CreateCertificate(rand.Reader, authority, authority, &privateKey.PublicKey, privateKey)
 	checkErr(err, "Could not generate attestation CA cert bytes")
 	authorityCert, err := x509.ParseCertificate(authorityCertBytes)
 	checkErr(err, "Could not parse authority CA cert")
+	encryptionKey := sha256.Sum256([]byte("test"))
 	return &Client{
-		deviceEncryptionKey:  []byte("test"),
+		deviceEncryptionKey:  encryptionKey[:],
 		certificateAuthority: authorityCert,
+		caPrivateKey:         privateKey,
 	}
 }
 
@@ -68,7 +73,7 @@ func (client *Client) createAttestationCertificiate(privateKey *ecdsa.PrivateKey
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:    x509.KeyUsageDigitalSignature,
 	}
-	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, privateKey.PublicKey, privateKey)
+	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.caPrivateKey)
 	checkErr(err, "Could not generate attestation certificate")
 	return certBytes
 }

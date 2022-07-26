@@ -12,10 +12,14 @@ type USBSetupPacket struct {
 
 func (setup USBSetupPacket) String() string {
 	var requestDescription string
+	var ok bool
 	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
-		requestDescription = deviceRequestDescriptons[setup.BRequest]
+		requestDescription, ok = deviceRequestDescriptons[setup.BRequest]
 	} else {
-		requestDescription = interfaceRequestDescriptions[USBHIDRequestType(setup.BRequest)]
+		requestDescription, ok = interfaceRequestDescriptions[USBHIDRequestType(setup.BRequest)]
+	}
+	if !ok {
+		requestDescription = fmt.Sprintf("0x%x", setup.BRequest)
 	}
 	return fmt.Sprintf("USBSetupPacket{ Direction: %s, RequestType: %s, Recipient: %s, BRequest: %s, WValue: 0x%x, WIndex: %d, WLength: %d }",
 		requestDirectionDescriptions[setup.direction()],

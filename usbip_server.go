@@ -56,7 +56,8 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 	for {
 		fmt.Printf("--------------------------------------------\n")
 		header := readBE[USBIPMessageHeader](*conn)
-		fmt.Printf("MESSAGE HEADER: %s - Direction: %s - Endpoint: %d\n\n", header.CommandName(), header.DirectionName(), header.Endpoint)
+		fmt.Printf("USBIP MESSAGE HEADER: %s\n\n", header)
+		//fmt.Printf("MESSAGE HEADER: %s - Direction: %s - Endpoint: %d\n\n", header.CommandName(), header.DirectionName(), header.Endpoint)
 		if header.Command == USBIP_COMMAND_SUBMIT {
 			server.handleCommandSubmit(conn, header)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
@@ -71,7 +72,7 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader) {
 	command := readBE[USBIPCommandSubmitBody](*conn)
 	setup := command.Setup()
-	fmt.Printf("COMMAND SUBMIT: %s\n\n", setup)
+	fmt.Printf("USBIP COMMAND SUBMIT: %s\n\n", setup)
 	transferBuffer := make([]byte, command.TransferBufferLength)
 	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)
@@ -81,7 +82,7 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 	onReturnSubmit := func() {
 		server.responseMutex.Lock()
 		replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
-		fmt.Printf("RETURN SUBMIT: %v %#v %#v\n\n", replyHeader, replyBody, transferBuffer)
+		fmt.Printf("USBIP RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
 		write(*conn, toBE(replyHeader))
 		write(*conn, toBE(replyBody))
 		if header.Direction == USBIP_DIR_IN {

@@ -54,9 +54,13 @@ type CTAPHIDMessageHeader struct {
 }
 
 func (header CTAPHIDMessageHeader) String() string {
+	description, ok := ctapHIDCommandDescriptions[header.Command]
+	if !ok {
+		description = fmt.Sprintf("0x%x", header.Command)
+	}
 	return fmt.Sprintf("CTAPHIDMessageHeader{ ChannelID: 0x%x, Command: %s, PayloadLength: %d }",
 		header.ChannelID,
-		ctapHIDCommandDescriptions[header.Command],
+		description,
 		header.PayloadLength)
 }
 
@@ -153,13 +157,13 @@ func (server *CTAPHIDServer) handleBroadcastMessage(input io.Reader, header CTAP
 
 func (channel *CTAPHIDChannel) handleMessage(ctapServer *CTAPHIDServer, input io.Reader, header CTAPHIDMessageHeader) []byte {
 	payload := read(input, uint(header.PayloadLength))
-	fmt.Printf("CTAP MESSAGE PAYLOAD: %#v\n\n", payload)
+	//fmt.Printf("CTAP MESSAGE PAYLOAD: %#v\n\n", payload)
 	switch header.Command {
 	case CTAPHID_COMMAND_MSG:
 		responsePayload := ctapServer.u2fServer.processU2FMessage(payload)
 		return newCTAPHIDReponse(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	default:
-		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %#v %#v", header, payload))
+		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %#v", header))
 	}
 }
 

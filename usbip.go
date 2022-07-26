@@ -44,7 +44,7 @@ type USBIPControlHeader struct {
 }
 
 func (header *USBIPControlHeader) String() string {
-	return fmt.Sprintf("USBIPHeader{ Version: 0x%04x, Command: 0x%04x, Status: 0x%08x }", header.Version, header.CommandCode, header.Status)
+	return fmt.Sprintf("USBIPControlHeader{ Version: 0x%04x, Command: 0x%04x, Status: 0x%08x }", header.Version, header.CommandCode, header.Status)
 }
 
 type USBIPOpRepDevlist struct {
