@@ -12,9 +12,10 @@ import (
 )
 
 type Client struct {
-	deviceEncryptionKey  []byte
-	certificateAuthority *x509.Certificate
-	caPrivateKey         *ecdsa.PrivateKey
+	deviceEncryptionKey   []byte
+	certificateAuthority  *x509.Certificate
+	caPrivateKey          *ecdsa.PrivateKey
+	authenticationCounter uint32
 }
 
 func NewClient() *Client {
@@ -40,9 +41,10 @@ func NewClient() *Client {
 	checkErr(err, "Could not parse authority CA cert")
 	encryptionKey := sha256.Sum256([]byte("test"))
 	return &Client{
-		deviceEncryptionKey:  encryptionKey[:],
-		certificateAuthority: authorityCert,
-		caPrivateKey:         privateKey,
+		deviceEncryptionKey:   encryptionKey[:],
+		certificateAuthority:  authorityCert,
+		caPrivateKey:          privateKey,
+		authenticationCounter: 1,
 	}
 }
 
@@ -58,6 +60,19 @@ func (client *Client) keyHandle(privateKey *ecdsa.PrivateKey, applicationId []by
 	wrappedPrivateKey := encrypt(client.deviceEncryptionKey, privateKeyBytes)
 	signature := sign(privateKey, applicationId)
 	return KeyHandle{WrappedPrivateKey: wrappedPrivateKey, ApplicationSignature: signature}
+}
+
+func (client *Client) decodeKeyHandle(keyHandle *KeyHandle, application []byte) *ecdsa.PrivateKey {
+	// TODO: Return error instead of panicing on invalid inputs
+	privateKeyBytes := decrypt(client.deviceEncryptionKey, keyHandle.WrappedPrivateKey)
+	privateKey, err := x509.ParseECPrivateKey(privateKeyBytes)
+	checkErr(err, "Could not decode private key")
+	verified := verify(&privateKey.PublicKey, application, keyHandle.ApplicationSignature)
+	if verified {
+		return privateKey
+	} else {
+		return nil
+	}
 }
 
 func (client *Client) createAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
@@ -76,4 +91,10 @@ func (client *Client) createAttestationCertificiate(privateKey *ecdsa.PrivateKey
 	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.caPrivateKey)
 	checkErr(err, "Could not generate attestation certificate")
 	return certBytes
+}
+
+func (client *Client) newAuthenticationCounterId() uint32 {
+	num := client.authenticationCounter
+	client.authenticationCounter++
+	return num
 }

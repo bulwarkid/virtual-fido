@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
 
@@ -32,6 +31,14 @@ const (
 	U2F_SW_WRONG_LENGTH             U2FStatusWord = 0x6700
 	U2F_SW_CLA_NOT_SUPPORTED        U2FStatusWord = 0x6E00
 	U2F_SW_INS_NOT_SUPPORTED        U2FStatusWord = 0x6D00
+)
+
+type U2FAuthenticateControl uint8
+
+const (
+	U2F_AUTH_CONTROL_CHECK_ONLY                     U2FAuthenticateControl = 0x07
+	U2F_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN U2FAuthenticateControl = 0x03
+	U2F_AUTH_CONTROL_SIGN                           U2FAuthenticateControl = 0x08
 )
 
 type U2FMessageHeader struct {
@@ -100,10 +107,6 @@ func (server *U2FServer) handleU2FMessage(message []byte) []byte {
 	}
 }
 
-func encodePublicKey(publicKey *ecdsa.PublicKey) []byte {
-	return elliptic.Marshal(elliptic.P256(), publicKey.X, publicKey.Y)
-}
-
 type KeyHandle struct {
 	WrappedPrivateKey    []byte
 	ApplicationSignature []byte
@@ -116,7 +119,7 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 	assert(len(application) == 32, "Application is not 32 bytes")
 
 	privateKey := server.client.newPrivateKey()
-	encodedPublicKey := encodePublicKey(&privateKey.PublicKey)
+	encodedPublicKey := elliptic.Marshal(elliptic.P256(), privateKey.PublicKey.X, privateKey.PublicKey.Y)
 
 	keyHandle, err := cbor.Marshal(server.client.keyHandle(privateKey, application))
 	checkErr(err, "Could not wrap private key handle")
@@ -127,4 +130,27 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 	signature := sign(privateKey, signatureDataBytes)
 
 	return flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, toBE(U2F_SW_NO_ERROR)})
+}
+
+func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request []byte) []byte {
+	// TODO: Check user presence
+	requestReader := bytes.NewBuffer(request)
+	readLE[U2FAuthenticateControl](requestReader)
+	challenge := read(requestReader, 32)
+	application := read(requestReader, 32)
+
+	keyHandleLength := readLE[uint8](requestReader)
+	keyHandleBytes := read(requestReader, uint(keyHandleLength))
+	keyHandle := KeyHandle{}
+	err := cbor.Unmarshal(keyHandleBytes, &keyHandle)
+	checkErr(err, "Could not decode key handle")
+	privateKey := server.client.decodeKeyHandle(&keyHandle, application)
+	if privateKey == nil {
+		return flatten([][]byte{toBE(U2F_SW_WRONG_DATA)})
+	}
+
+	counter := server.client.newAuthenticationCounterId()
+	signatureDataBytes := flatten([][]byte{application, {1}, toBE(counter), challenge})
+	signature := sign(privateKey, signatureDataBytes)
+	return flatten([][]byte{{1}, toBE(counter), signature, toBE(U2F_SW_NO_ERROR)})
 }

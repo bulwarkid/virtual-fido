@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 )
 
 type CTAPHIDChannelID uint32
@@ -68,21 +67,8 @@ func (header CTAPHIDMessageHeader) isFollowupMessage() bool {
 	return (header.Command & (1 << 7)) != 0
 }
 
-func readCTAPHIDMessageHeader(reader io.Reader) CTAPHIDMessageHeader {
-	channelID := readLE[CTAPHIDChannelID](reader)
-	command := readLE[CTAPHIDCommand](reader)
-	payloadLength := readBE[uint16](reader)
-	return CTAPHIDMessageHeader{
-		ChannelID:     channelID,
-		Command:       command,
-		PayloadLength: payloadLength,
-	}
-}
-
-func writeCTAPHIDMessageHeader(writer io.Writer, channelID CTAPHIDChannelID, command CTAPHIDCommand, length uint16) {
-	write(writer, toLE(channelID))
-	write(writer, toLE(command))
-	write(writer, toBE(length))
+func newCTAPHIDMessageHeader(channelID CTAPHIDChannelID, command CTAPHIDCommand, length uint16) []byte {
+	return flatten([][]byte{toLE(channelID), toLE(command), toBE(length)})
 }
 
 type CTAPHIDInitReponse struct {
@@ -140,14 +126,14 @@ func (server *CTAPHIDServer) getResponse() []byte {
 	return response
 }
 
-func (server *CTAPHIDServer) handleMessage(input io.Reader) {
-	channelId := readLE[CTAPHIDChannelID](input)
-	data := read(input, uint(CTAPHIDSERVER_MAX_PACKET_SIZE)-uint(sizeOf[CTAPHIDChannelID]()))
+func (server *CTAPHIDServer) handleMessage(message []byte) {
+	buffer := bytes.NewBuffer(message)
+	channelId := readLE[CTAPHIDChannelID](buffer)
 	channel, exists := server.channels[channelId]
 	if !exists {
 		panic(fmt.Sprintf("Invalid Channel ID: %d", channelId))
 	}
-	response := channel.handleMessage(server, data)
+	response := channel.handleMessage(server, message)
 	if response != nil {
 		for _, packet := range response {
 			server.responses <- packet
@@ -155,10 +141,11 @@ func (server *CTAPHIDServer) handleMessage(input io.Reader) {
 	}
 }
 
-func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, data []byte) [][]byte {
+func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []byte) [][]byte {
 	if channel.inProgressPayload != nil {
 		payloadLeft := int(channel.inProgressHeader.PayloadLength) - len(channel.inProgressPayload)
-		payload := data[1:] // Ignore sequence number
+		payloadIndex := sizeOf[CTAPHIDChannelID]() + 1
+		payload := message[payloadIndex:] // Ignore sequence number and channel ID
 		if payloadLeft > len(payload) {
 			// We need another followup message
 			fmt.Printf("CTAPHID: Read %d bytes, Need %d more\n\n", len(payload), payloadLeft-len(payload))
@@ -172,14 +159,17 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, data []byte)
 			return response
 		}
 	} else {
-		command := CTAPHIDCommand(data[0])
-		payloadLength := uint16(data[1])<<8 + uint16(data[2])
+		buffer := bytes.NewBuffer(message)
+		readLE[CTAPHIDChannelID](buffer)
+		command := readLE[CTAPHIDCommand](buffer)
+		payloadLength := readBE[uint16](buffer)
 		header := CTAPHIDMessageHeader{
 			ChannelID:     channel.channelId,
 			Command:       command,
 			PayloadLength: payloadLength,
 		}
-		payload := data[3:]
+		payloadIndex := sizeOf[CTAPHIDChannelID]() + sizeOf[CTAPHIDCommand]() + sizeOf[uint16]()
+		payload := message[payloadIndex:]
 		if payloadLength > uint16(len(payload)) {
 			fmt.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
 				len(payload), int(payloadLength)-len(payload))
@@ -238,22 +228,22 @@ func createReponsePackets(channelId CTAPHIDChannelID, command CTAPHIDCommand, pa
 	packets := [][]byte{}
 	sequence := -1
 	for len(payload) > 0 {
-		output := new(bytes.Buffer)
+		packet := []byte{}
 		if sequence < 0 {
-			writeCTAPHIDMessageHeader(output, channelId, command, uint16(len(payload)))
+			packet = append(packet, newCTAPHIDMessageHeader(channelId, command, uint16(len(payload)))...)
 		} else {
-			write(output, toLE(channelId))
-			write(output, toLE(uint8(sequence)))
+			packet = append(packet, toLE(channelId)...)
+			packet = append(packet, byte(uint8(sequence)))
 		}
 		sequence++
-		bytesLeft := CTAPHIDSERVER_MAX_PACKET_SIZE - output.Len()
+		bytesLeft := CTAPHIDSERVER_MAX_PACKET_SIZE - len(packet)
 		if bytesLeft > len(payload) {
 			bytesLeft = len(payload)
 		}
-		write(output, payload[:bytesLeft])
+		packet = append(packet, payload[:bytesLeft]...)
 		payload = payload[bytesLeft:]
-		fill(output, CTAPHIDSERVER_MAX_PACKET_SIZE)
-		packets = append(packets, output.Bytes())
+		packet = pad(packet, CTAPHIDSERVER_MAX_PACKET_SIZE)
+		packets = append(packets, packet)
 	}
 	return packets
 }
