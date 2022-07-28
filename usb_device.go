@@ -228,13 +228,12 @@ func (device *USBDevice) handleDeviceRequest(
 }
 
 func (device *USBDevice) handleInterfaceRequest(setup USBSetupPacket, transferBuffer []byte) {
-
 	switch USBHIDRequestType(setup.BRequest) {
 	case USB_HID_REQUEST_SET_IDLE:
 		// No-op since we are made in software
 		fmt.Printf("SET IDLE: No-op\n\n")
 		return
-	case USBHIDRequestType(USB_REQUEST_GET_DESCRIPTOR):
+	case USB_HID_REQUEST_GET_DESCRIPTOR:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
 		fmt.Printf("GET INTERFACE DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], descriptorIndex)
 		switch descriptorType {

@@ -93,22 +93,24 @@ func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 func (server *U2FServer) handleU2FMessage(message []byte) []byte {
 	header, request, responseLength := decodeU2FMessage(message)
 	fmt.Printf("U2F MESSAGE: Header: %s Request: %#v Reponse Length: %d\n\n", header, request, responseLength)
+	var response []byte
 	switch header.Command {
 	case U2F_COMMAND_VERSION:
-		response := append([]byte("U2F_V2"), toBE(U2F_SW_NO_ERROR)...)
-		fmt.Printf("U2F RESPONSE: %#v\n\n", response)
-		return response
+		response = append([]byte("U2F_V2"), toBE(U2F_SW_NO_ERROR)...)
 	case U2F_COMMAND_REGISTER:
-		response := server.handleU2FRegister(header, request)
-		fmt.Printf("U2F RESPONSE: %#v\n\n", response)
-		return response
+		response = server.handleU2FRegister(header, request)
+	case U2F_COMMAND_AUTHENTICATE:
+		response = server.handleU2FAuthenticate(header, request)
 	default:
 		panic(fmt.Sprintf("Invalid U2F Command: %#v", header))
 	}
+	fmt.Printf("U2F RESPONSE: %#v\n\n", response)
+	return response
 }
 
 type KeyHandle struct {
 	WrappedPrivateKey    []byte
+	WrappedKeyIv         []byte
 	ApplicationSignature []byte
 }
 
@@ -135,13 +137,13 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request []byte) []byte {
 	// TODO: Check user presence
 	requestReader := bytes.NewBuffer(request)
-	control := readLE[U2FAuthenticateControl](requestReader)
+	control := U2FAuthenticateControl(header.Param1)
 	challenge := read(requestReader, 32)
 	application := read(requestReader, 32)
 
 	keyHandleLength := readLE[uint8](requestReader)
 	keyHandleBytes := read(requestReader, uint(keyHandleLength))
-	keyHandle := KeyHandle{}
+	var keyHandle KeyHandle
 	err := cbor.Unmarshal(keyHandleBytes, &keyHandle)
 	checkErr(err, "Could not decode key handle")
 	privateKey := server.client.decodeKeyHandle(&keyHandle, application)
