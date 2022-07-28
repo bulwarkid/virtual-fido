@@ -57,8 +57,12 @@ func (header CTAPHIDMessageHeader) String() string {
 	if !ok {
 		description = fmt.Sprintf("0x%x", header.Command)
 	}
-	return fmt.Sprintf("CTAPHIDMessageHeader{ ChannelID: 0x%x, Command: %s, PayloadLength: %d }",
-		header.ChannelID,
+	channelDesc := fmt.Sprintf("0x%x", header.ChannelID)
+	if header.ChannelID == CTAPHID_BROADCAST_CHANNEL {
+		channelDesc = "CTAPHID_BROADCAST_CHANNEL"
+	}
+	return fmt.Sprintf("CTAPHIDMessageHeader{ ChannelID: %s, Command: %s, PayloadLength: %d }",
+		channelDesc,
 		description,
 		header.PayloadLength)
 }
@@ -100,30 +104,48 @@ const (
 )
 
 type CTAPHIDServer struct {
-	ctapServer   *CTAPServer
-	u2fServer    *U2FServer
-	maxChannelID CTAPHIDChannelID
-	channels     map[CTAPHIDChannelID]*CTAPHIDChannel
-	responses    chan []byte
+	ctapServer          *CTAPServer
+	u2fServer           *U2FServer
+	maxChannelID        CTAPHIDChannelID
+	channels            map[CTAPHIDChannelID]*CTAPHIDChannel
+	responses           chan []byte
+	waitingForResponses map[uint32]chan bool
 }
 
 func NewCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServer {
 	server := &CTAPHIDServer{
-		ctapServer:   ctapServer,
-		u2fServer:    u2fServer,
-		maxChannelID: 0,
-		channels:     make(map[CTAPHIDChannelID]*CTAPHIDChannel),
-		responses:    make(chan []byte, 100),
+		ctapServer:          ctapServer,
+		u2fServer:           u2fServer,
+		maxChannelID:        0,
+		channels:            make(map[CTAPHIDChannelID]*CTAPHIDChannel),
+		responses:           make(chan []byte, 100),
+		waitingForResponses: make(map[uint32]chan bool),
 	}
 	server.channels[CTAPHID_BROADCAST_CHANNEL] = NewCTAPHIDChannel(CTAPHID_BROADCAST_CHANNEL)
 	return server
 }
 
-func (server *CTAPHIDServer) getResponse() []byte {
+func (server *CTAPHIDServer) getResponse(id uint32) []byte {
 	fmt.Printf("CTAPHID: Getting Response\n\n")
-	response := <-server.responses
-	fmt.Printf("CTAPHID RESPONSE: %#v\n\n", response)
-	return response
+	killSwitch := make(chan bool)
+	server.waitingForResponses[id] = killSwitch
+	select {
+	case response := <-server.responses:
+		fmt.Printf("CTAPHID RESPONSE: %#v\n\n", response)
+		return response
+	case <-killSwitch:
+		return nil
+	}
+}
+
+func (server *CTAPHIDServer) removeWaitingRequest(id uint32) bool {
+	killSwitch, ok := server.waitingForResponses[id]
+	if ok {
+		killSwitch <- true
+		return true
+	} else {
+		return false
+	}
 }
 
 func (server *CTAPHIDServer) handleMessage(message []byte) {

@@ -264,17 +264,23 @@ func (device *USBDevice) handleInputMessage(setup USBSetupPacket, transferBuffer
 	device.CTAPHIDServer.handleMessage(transferBuffer)
 }
 
-func (device *USBDevice) handleOutputMessage(setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
-	response := device.CTAPHIDServer.getResponse()
-	copy(transferBuffer, response)
-	onFinish()
+func (device *USBDevice) handleOutputMessage(id uint32, setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
+	response := device.CTAPHIDServer.getResponse(id)
+	if response != nil {
+		copy(transferBuffer, response)
+		onFinish()
+	}
 }
 
-func (device *USBDevice) handleMessage(onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
+func (device *USBDevice) removeWaitingRequest(id uint32) bool {
+	return device.CTAPHIDServer.removeWaitingRequest(id)
+}
+
+func (device *USBDevice) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
 	} else if endpoint == 1 {
-		go device.handleOutputMessage(setup, transferBuffer, onFinish)
+		go device.handleOutputMessage(id, setup, transferBuffer, onFinish)
 		return // handleOutputMessage should handle calling onFinish
 	} else if endpoint == 2 {
 		device.handleInputMessage(setup, transferBuffer)

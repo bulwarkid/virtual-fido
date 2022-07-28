@@ -135,7 +135,7 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request []byte) []byte {
 	// TODO: Check user presence
 	requestReader := bytes.NewBuffer(request)
-	readLE[U2FAuthenticateControl](requestReader)
+	control := readLE[U2FAuthenticateControl](requestReader)
 	challenge := read(requestReader, 32)
 	application := read(requestReader, 32)
 
@@ -149,8 +149,12 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 		return flatten([][]byte{toBE(U2F_SW_WRONG_DATA)})
 	}
 
-	counter := server.client.newAuthenticationCounterId()
-	signatureDataBytes := flatten([][]byte{application, {1}, toBE(counter), challenge})
-	signature := sign(privateKey, signatureDataBytes)
-	return flatten([][]byte{{1}, toBE(counter), signature, toBE(U2F_SW_NO_ERROR)})
+	if control == U2F_AUTH_CONTROL_CHECK_ONLY {
+		return flatten([][]byte{toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)})
+	} else {
+		counter := server.client.newAuthenticationCounterId()
+		signatureDataBytes := flatten([][]byte{application, {1}, toBE(counter), challenge})
+		signature := sign(privateKey, signatureDataBytes)
+		return flatten([][]byte{{1}, toBE(counter), signature, toBE(U2F_SW_NO_ERROR)})
+	}
 }

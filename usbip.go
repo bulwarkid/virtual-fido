@@ -8,11 +8,6 @@ import (
 const (
 	USBIP_VERSION = 0x0111
 
-	USBIP_COMMAND_OP_REQ_DEVLIST = 0x8005
-	USBIP_COMMAND_OP_REP_DEVLIST = 0x0005
-	USBIP_COMMAND_OP_REQ_IMPORT  = 0x8003
-	USBIP_COMMAND_OP_REP_IMPORT  = 0x0003
-
 	USBIP_COMMAND_SUBMIT     = 0x1
 	USBIP_COMMAND_UNLINK     = 0x2
 	USBIP_COMMAND_RET_SUBMIT = 0x3
@@ -21,6 +16,22 @@ const (
 	USBIP_DIR_OUT = 0x0
 	USBIP_DIR_IN  = 0x1
 )
+
+type USBIPControlCommand uint16
+
+const (
+	USBIP_COMMAND_OP_REQ_DEVLIST USBIPControlCommand = 0x8005
+	USBIP_COMMAND_OP_REP_DEVLIST USBIPControlCommand = 0x0005
+	USBIP_COMMAND_OP_REQ_IMPORT  USBIPControlCommand = 0x8003
+	USBIP_COMMAND_OP_REP_IMPORT  USBIPControlCommand = 0x0003
+)
+
+var usbipControlCommandDescriptions = map[USBIPControlCommand]string{
+	USBIP_COMMAND_OP_REQ_DEVLIST: "USBIP_COMMAND_OP_REQ_DEVLIST",
+	USBIP_COMMAND_OP_REP_DEVLIST: "USBIP_COMMAND_OP_REP_DEVLIST",
+	USBIP_COMMAND_OP_REQ_IMPORT:  "USBIP_COMMAND_OP_REQ_IMPORT",
+	USBIP_COMMAND_OP_REP_IMPORT:  "USBIP_COMMAND_OP_REP_IMPORT",
+}
 
 func commandString(command uint32) string {
 	switch command {
@@ -39,12 +50,16 @@ func commandString(command uint32) string {
 
 type USBIPControlHeader struct {
 	Version     uint16
-	CommandCode uint16
+	CommandCode USBIPControlCommand
 	Status      uint32
 }
 
 func (header *USBIPControlHeader) String() string {
-	return fmt.Sprintf("USBIPControlHeader{ Version: 0x%04x, Command: 0x%04x, Status: 0x%08x }", header.Version, header.CommandCode, header.Status)
+	commandDesc, ok := usbipControlCommandDescriptions[USBIPControlCommand(header.CommandCode)]
+	if !ok {
+		commandDesc = fmt.Sprintf("0x%x", header.CommandCode)
+	}
+	return fmt.Sprintf("USBIPControlHeader{ Version: 0x%04x, Command: %s, Status: 0x%08x }", header.Version, commandDesc, header.Status)
 }
 
 type USBIPOpRepDevlist struct {
@@ -177,23 +192,8 @@ func newReturnSubmit(senderHeader USBIPMessageHeader, command USBIPCommandSubmit
 }
 
 type USBIPReturnUnlinkBody struct {
-	Status  uint32
+	Status  int32
 	Padding [24]byte
-}
-
-func newReturnUnlink(senderHeader USBIPMessageHeader) (USBIPMessageHeader, USBIPReturnUnlinkBody) {
-	header := USBIPMessageHeader{
-		Command:        USBIP_COMMAND_RET_UNLINK,
-		SequenceNumber: senderHeader.SequenceNumber,
-		DeviceId:       senderHeader.DeviceId,
-		Direction:      USBIP_DIR_OUT,
-		Endpoint:       senderHeader.Endpoint,
-	}
-	body := USBIPReturnUnlinkBody{
-		Status:  0,
-		Padding: [24]byte{},
-	}
-	return header, body
 }
 
 type USBIPDeviceSummary struct {

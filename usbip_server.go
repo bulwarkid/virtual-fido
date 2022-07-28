@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"syscall"
 )
 
 type USBIPServer struct {
@@ -61,7 +62,6 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 			server.handleCommandSubmit(conn, header)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
 			server.handleCommandUnlink(conn, header)
-			return
 		} else {
 			panic(fmt.Sprintf("Unsupported Command; %#v", header))
 		}
@@ -89,13 +89,29 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 		}
 		server.responseMutex.Unlock()
 	}
-	server.device.handleMessage(onReturnSubmit, header.Endpoint, setup, transferBuffer)
+	server.device.handleMessage(header.SequenceNumber, onReturnSubmit, header.Endpoint, setup, transferBuffer)
 }
 
 func (server *USBIPServer) handleCommandUnlink(conn *net.Conn, header USBIPMessageHeader) {
 	unlink := readBE[USBIPCommandUnlinkBody](*conn)
 	fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
-	replyHeader, replyBody := newReturnUnlink(header)
+	var status int32
+	if server.device.removeWaitingRequest(unlink.UnlinkSequenceNumber) {
+		status = -int32(syscall.ECONNRESET)
+	} else {
+		status = -int32(syscall.ENOENT)
+	}
+	replyHeader := USBIPMessageHeader{
+		Command:        USBIP_COMMAND_RET_UNLINK,
+		SequenceNumber: header.SequenceNumber,
+		DeviceId:       header.DeviceId,
+		Direction:      USBIP_DIR_OUT,
+		Endpoint:       header.Endpoint,
+	}
+	replyBody := USBIPReturnUnlinkBody{
+		Status:  status,
+		Padding: [24]byte{},
+	}
 	write(*conn, toBE(replyHeader))
 	write(*conn, toBE(replyBody))
 }
