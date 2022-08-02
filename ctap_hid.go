@@ -242,7 +242,7 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 		responsePayload := server.u2fServer.handleU2FMessage(payload)
 		return createReponsePackets(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	default:
-		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %#v", header))
+		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %s", header))
 	}
 }
 

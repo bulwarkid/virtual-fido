@@ -3,9 +3,8 @@ package main
 import (
 	"bytes"
 	"crypto/elliptic"
+	"crypto/x509"
 	"fmt"
-
-	"github.com/fxamacker/cbor/v2"
 )
 
 type U2FCommand uint8
@@ -109,9 +108,8 @@ func (server *U2FServer) handleU2FMessage(message []byte) []byte {
 }
 
 type KeyHandle struct {
-	WrappedPrivateKey    []byte
-	WrappedKeyIv         []byte
-	ApplicationSignature []byte
+	PrivateKey    []byte
+	ApplicationID []byte
 }
 
 func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []byte) []byte {
@@ -122,9 +120,12 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 
 	privateKey := server.client.newPrivateKey()
 	encodedPublicKey := elliptic.Marshal(elliptic.P256(), privateKey.PublicKey.X, privateKey.PublicKey.Y)
+	encodedPrivateKey, err := x509.MarshalECPrivateKey(privateKey)
+	checkErr(err, "Could not encode private key")
 
-	keyHandle, err := cbor.Marshal(server.client.keyHandle(privateKey, application))
-	checkErr(err, "Could not wrap private key handle")
+	unencryptedKeyHandle := KeyHandle{PrivateKey: encodedPrivateKey, ApplicationID: application}
+	keyHandle := server.client.sealKeyHandle(&unencryptedKeyHandle)
+	fmt.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
 
 	cert := server.client.createAttestationCertificiate(privateKey)
 
@@ -142,14 +143,14 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 	application := read(requestReader, 32)
 
 	keyHandleLength := readLE[uint8](requestReader)
-	keyHandleBytes := read(requestReader, uint(keyHandleLength))
-	var keyHandle KeyHandle
-	err := cbor.Unmarshal(keyHandleBytes, &keyHandle)
-	checkErr(err, "Could not decode key handle")
-	privateKey := server.client.decodeKeyHandle(&keyHandle, application)
-	if privateKey == nil {
+	encryptedKeyHandleBytes := read(requestReader, uint(keyHandleLength))
+	keyHandle := server.client.openKeyHandle(encryptedKeyHandleBytes)
+	if keyHandle.PrivateKey == nil || bytes.Compare(keyHandle.ApplicationID, application) != 0 {
+		fmt.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
 		return flatten([][]byte{toBE(U2F_SW_WRONG_DATA)})
 	}
+	privateKey, err := x509.ParseECPrivateKey(keyHandle.PrivateKey)
+	checkErr(err, "Could not decode private key")
 
 	if control == U2F_AUTH_CONTROL_CHECK_ONLY {
 		return flatten([][]byte{toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)})

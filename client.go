@@ -9,6 +9,8 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"time"
+
+	"github.com/fxamacker/cbor/v2"
 )
 
 type Client struct {
@@ -54,25 +56,24 @@ func (client *Client) newPrivateKey() *ecdsa.PrivateKey {
 	return privateKey
 }
 
-func (client *Client) keyHandle(privateKey *ecdsa.PrivateKey, applicationId []byte) KeyHandle {
-	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
-	checkErr(err, "Could not encode private key")
-	wrappedPrivateKey := encrypt(client.deviceEncryptionKey, privateKeyBytes)
-	signature := sign(privateKey, applicationId)
-	return KeyHandle{WrappedPrivateKey: wrappedPrivateKey, ApplicationSignature: signature}
+func (client *Client) sealKeyHandle(keyHandle *KeyHandle) []byte {
+	data, err := cbor.Marshal(keyHandle)
+	checkErr(err, "Could not encode key handle")
+	box := seal(client.deviceEncryptionKey, data)
+	boxBytes, err := cbor.Marshal(box)
+	checkErr(err, "Could not encode encrypted box")
+	return boxBytes
 }
 
-func (client *Client) decodeKeyHandle(keyHandle *KeyHandle, application []byte) *ecdsa.PrivateKey {
-	// TODO: Return error instead of panicing on invalid inputs
-	privateKeyBytes := decrypt(client.deviceEncryptionKey, keyHandle.WrappedPrivateKey)
-	privateKey, err := x509.ParseECPrivateKey(privateKeyBytes)
-	checkErr(err, "Could not decode private key")
-	verified := verify(&privateKey.PublicKey, application, keyHandle.ApplicationSignature)
-	if verified {
-		return privateKey
-	} else {
-		return nil
-	}
+func (client *Client) openKeyHandle(boxBytes []byte) *KeyHandle {
+	var box EncryptedBox
+	err := cbor.Unmarshal(boxBytes, &box)
+	checkErr(err, "Could not decode encrypted box")
+	data := open(client.deviceEncryptionKey, box)
+	var keyHandle KeyHandle
+	err = cbor.Unmarshal(data, &keyHandle)
+	checkErr(err, "Could not decode key handle")
+	return &keyHandle
 }
 
 func (client *Client) createAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
