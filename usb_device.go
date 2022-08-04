@@ -125,11 +125,11 @@ func (device *USBDevice) getStringDescriptor(index uint8) []byte {
 }
 
 func (device *USBDevice) getDescriptor(descriptorType USBDescriptorType, index uint8) []byte {
-	fmt.Printf("GET DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], index)
+	//fmt.Printf("GET DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], index)
 	switch descriptorType {
 	case USB_DESCRIPTOR_DEVICE:
 		descriptor := device.getDeviceDescriptor()
-		fmt.Printf("DEVICE DESCRIPTOR: %#v\n\n", descriptor)
+		//fmt.Printf("DEVICE DESCRIPTOR: %#v\n\n", descriptor)
 		return toLE(descriptor)
 	case USB_DESCRIPTOR_CONFIGURATION:
 		hidReport := device.getHIDReport()
@@ -137,13 +137,13 @@ func (device *USBDevice) getDescriptor(descriptorType USBDescriptorType, index u
 		config := device.getConfigurationDescriptor()
 		interfaceDescriptor := device.getInterfaceDescriptor()
 		hid := device.getHIDDescriptor(hidReport)
-		fmt.Printf("CONFIGURATION: %#v\n\nINTERFACE: %#v\n\nHID: %#v\n\n", config, interfaceDescriptor, hid)
+		//fmt.Printf("CONFIGURATION: %#v\n\nINTERFACE: %#v\n\nHID: %#v\n\n", config, interfaceDescriptor, hid)
 		buffer.Write(toLE(config))
 		buffer.Write(toLE(interfaceDescriptor))
 		buffer.Write(toLE(hid))
 		endpoints := device.getEndpointDescriptors()
 		for _, endpoint := range endpoints {
-			fmt.Printf("ENDPOINT: %#v\n\n", endpoint)
+			//fmt.Printf("ENDPOINT: %#v\n\n", endpoint)
 			buffer.Write(toLE(endpoint))
 		}
 		return buffer.Bytes()
@@ -163,7 +163,7 @@ func (device *USBDevice) getDescriptor(descriptorType USBDescriptorType, index u
 		buffer := new(bytes.Buffer)
 		buffer.Write(toLE(header))
 		buffer.Write([]byte(message))
-		fmt.Printf("STRING: Length: %d Message: \"%s\" Bytes: %v\n\n", header.BLength, message, buffer.Bytes())
+		//fmt.Printf("STRING: Length: %d Message: \"%s\" Bytes: %v\n\n", header.BLength, message, buffer.Bytes())
 		return buffer.Bytes()
 	default:
 		panic(fmt.Sprintf("Invalid Descriptor type: %d", descriptorType))
@@ -217,7 +217,7 @@ func (device *USBDevice) handleDeviceRequest(
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
 	case USB_REQUEST_SET_CONFIGURATION:
-		fmt.Printf("SET_CONFIGURATION: No-op\n\n")
+		//fmt.Printf("SET_CONFIGURATION: No-op\n\n")
 		// No-op since we can't change configuration
 		return
 	case USB_REQUEST_GET_STATUS:
@@ -231,14 +231,14 @@ func (device *USBDevice) handleInterfaceRequest(setup USBSetupPacket, transferBu
 	switch USBHIDRequestType(setup.BRequest) {
 	case USB_HID_REQUEST_SET_IDLE:
 		// No-op since we are made in software
-		fmt.Printf("SET IDLE: No-op\n\n")
+		//fmt.Printf("SET IDLE: No-op\n\n")
 		return
 	case USB_HID_REQUEST_GET_DESCRIPTOR:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
-		fmt.Printf("GET INTERFACE DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], descriptorIndex)
+		//fmt.Printf("GET INTERFACE DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], descriptorIndex)
 		switch descriptorType {
 		case USB_DESCRIPTOR_HID_REPORT:
-			fmt.Printf("HID REPORT: %v\n\n", device.getHIDReport())
+			//fmt.Printf("HID REPORT: %v\n\n", device.getHIDReport())
 			copy(transferBuffer, device.getHIDReport())
 		default:
 			panic(fmt.Sprintf("Invalid USB Interface descriptor: %d - %d", descriptorType, descriptorIndex))
@@ -259,7 +259,7 @@ func (device *USBDevice) handleControlMessage(setup USBSetupPacket, transferBuff
 }
 
 func (device *USBDevice) handleInputMessage(setup USBSetupPacket, transferBuffer []byte) {
-	fmt.Printf("USB ENDPOINT TRANSFER BUFFER: %#v\n\n", transferBuffer)
+	//fmt.Printf("USB ENDPOINT TRANSFER BUFFER: %#v\n\n", transferBuffer)
 	device.CTAPHIDServer.handleMessage(transferBuffer)
 }
 

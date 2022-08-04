@@ -33,7 +33,7 @@ func (server *USBIPServer) start() {
 func (server *USBIPServer) handleConnection(conn *net.Conn) {
 	for {
 		header := readBE[USBIPControlHeader](*conn)
-		fmt.Printf("USBIP CONTROL MESSAGE: %#v\n\n", header)
+		//fmt.Printf("USBIP CONTROL MESSAGE: %#v\n\n", header)
 		if header.CommandCode == USBIP_COMMAND_OP_REQ_DEVLIST {
 			reply := newOpRepDevlist(server.device)
 			fmt.Printf("OP_REP_DEVLIST: %#v\n\n", reply)
@@ -55,9 +55,9 @@ func (server *USBIPServer) handleConnection(conn *net.Conn) {
 
 func (server *USBIPServer) handleCommands(conn *net.Conn) {
 	for {
-		fmt.Printf("--------------------------------------------\n")
+		//fmt.Printf("--------------------------------------------\n")
 		header := readBE[USBIPMessageHeader](*conn)
-		fmt.Printf("USBIP MESSAGE HEADER: %s\n\n", header)
+		//fmt.Printf("USBIP MESSAGE HEADER: %s\n\n", header)
 		if header.Command == USBIP_COMMAND_SUBMIT {
 			server.handleCommandSubmit(conn, header)
 		} else if header.Command == USBIP_COMMAND_UNLINK {
@@ -71,7 +71,7 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader) {
 	command := readBE[USBIPCommandSubmitBody](*conn)
 	setup := command.Setup()
-	fmt.Printf("USBIP COMMAND SUBMIT: %s\n\n", setup)
+	//fmt.Printf("USBIP COMMAND SUBMIT: %s\n\n", setup)
 	transferBuffer := make([]byte, command.TransferBufferLength)
 	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)
@@ -81,7 +81,7 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 	onReturnSubmit := func() {
 		server.responseMutex.Lock()
 		replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
-		fmt.Printf("USBIP RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
+		//fmt.Printf("USBIP RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
 		write(*conn, toBE(replyHeader))
 		write(*conn, toBE(replyBody))
 		if header.Direction == USBIP_DIR_IN {
