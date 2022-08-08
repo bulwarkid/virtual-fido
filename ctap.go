@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 
@@ -39,23 +41,15 @@ const (
 	CTAP1_ERR_INVALID_SEQ       CTAPStatusCode = 0x04
 	CTAP1_ERR_TIMEOUT           CTAPStatusCode = 0x05
 	CTAP1_ERR_CHANNEL_BUSY      CTAPStatusCode = 0x06
+
+	CTAP2_ERR_UNSUPPORTED_ALGORITHM CTAPStatusCode = 0x26
 )
 
-type CTAPServer struct {
-}
+type COSEAlgorithmID int32
 
-func (server *CTAPServer) handleMessage(data []byte) []byte {
-	command := CTAPCommand(data[0])
-	fmt.Printf("CTAP COMMAND: %s\n\n", ctapCommandDescriptions[command])
-	switch command {
-	case CTAP_COMMAND_MAKE_CREDENTIAL:
-		return server.handleMakeCredential(data[1:])
-	case CTAP_COMMAND_GET_INFO:
-		return server.handleGetInfo(data[1:])
-	default:
-		panic(fmt.Sprintf("Invalid CTAP Command: %d", command))
-	}
-}
+const (
+	COSE_ALGORITHM_ID_ES256 COSEAlgorithmID = -7
+)
 
 type PublicKeyCredentialRpEntity struct {
 	Id   string `cbor:"id"`
@@ -87,14 +81,57 @@ type PublicKeyCredentialDescriptor struct {
 }
 
 type PublicKeyCredentialParams struct {
-	Type      string `cbor:"type"`
-	Algorithm int32  `cbor:"alg"`
+	Type      string          `cbor:"type"`
+	Algorithm COSEAlgorithmID `cbor:"alg"`
 }
 
-type CTAPAuthenticatorData struct {
-	RpIdHash         [32]byte
-	Flags            uint8
-	SignatureCounter uint32
+type CTAPCOSEPublicKey struct {
+	Kty int8   `cbor:"1,keyasint"`
+	Alg int8   `cbor:"3,keyasint"`
+	Crv int8   `cbor:"-1,keyasint"`
+	X   []byte `cbor:"-2,keyasint"`
+	Y   []byte `cbor:"-3,keyasint"`
+}
+
+func ctapEncodeKeyAsCOSE(publicKey *ecdsa.PublicKey) []byte {
+	key := CTAPCOSEPublicKey{
+		Kty: 2,
+		Alg: int8(COSE_ALGORITHM_ID_ES256),
+		Crv: 1,
+		X:   publicKey.X.Bytes(),
+		Y:   publicKey.Y.Bytes(),
+	}
+	keyBytes, err := cbor.Marshal(key)
+	checkErr(err, "Could not encode public key in COSE CBOR")
+	return keyBytes
+}
+
+const (
+	CTAP_AUTH_DATA_FLAG_USER_PRESENT            uint8 = 0b00000001
+	CTAP_AUTH_DATA_FLAG_USER_VERIFIED           uint8 = 0b00000100
+	CTAP_AUTH_DATA_FLAG_ATTESTED_DATA_INCLUDED  uint8 = 0b01000000
+	CTAP_AUTH_DATA_FLAG_EXTENSION_DATA_INCLUDED uint8 = 0b10000000
+)
+
+type CTAPServer struct {
+	client *Client
+}
+
+func NewCTAPServer(client *Client) *CTAPServer {
+	return &CTAPServer{client: client}
+}
+
+func (server *CTAPServer) handleMessage(data []byte) []byte {
+	command := CTAPCommand(data[0])
+	fmt.Printf("CTAP COMMAND: %s\n\n", ctapCommandDescriptions[command])
+	switch command {
+	case CTAP_COMMAND_MAKE_CREDENTIAL:
+		return server.handleMakeCredential(data[1:])
+	case CTAP_COMMAND_GET_INFO:
+		return server.handleGetInfo(data[1:])
+	default:
+		panic(fmt.Sprintf("Invalid CTAP Command: %d", command))
+	}
 }
 
 type CTAPMakeCredentialArgsOptions struct {
@@ -122,9 +159,9 @@ func (args CTAPMakeCredentialArgs) String() string {
 }
 
 type CTAPMakeCredentialReponse struct {
-	AuthData             []byte `cbor:"1,keyasint"`
-	FormatIdentifer      string `cbor:"2,keyasint"`
-	AttestationStatement []byte `cbor:"3,keyasint"`
+	FormatIdentifer      string                      `cbor:"1,keyasint"`
+	AuthData             []byte                      `cbor:"2,keyasint"`
+	AttestationStatement map[interface{}]interface{} `cbor:"3,keyasint"`
 }
 
 func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
@@ -132,8 +169,36 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	err := cbor.Unmarshal(data, &args)
 	checkErr(err, fmt.Sprintf("Could not decode CBOR for MAKE_CREDENTIAL: %s %v", err, data))
 	fmt.Printf("MAKE CREDENTIAL: %s\n\n", args)
-	panic("Done")
-	return nil
+
+	supported := false
+	for _, param := range args.PubKeyCredParams {
+		if param.Algorithm == COSE_ALGORITHM_ID_ES256 && param.Type == "public-key" {
+			supported = true
+		}
+	}
+	if !supported {
+		return []byte{byte(CTAP2_ERR_UNSUPPORTED_ALGORITHM)}
+	}
+
+	// TODO: Verify user presence and user identity (e.g. PIN, password)
+
+	credentialSource := server.client.newCredentialSource(args.Rp.Id, args.User.Id)
+	encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
+	attestedCredentialData := flatten([][]byte{AAGUID[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
+	rpIdHash := sha256.Sum256([]byte(args.Rp.Id))
+	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT | CTAP_AUTH_DATA_FLAG_USER_VERIFIED | CTAP_AUTH_DATA_FLAG_ATTESTED_DATA_INCLUDED
+	authenticatorData := flatten([][]byte{rpIdHash[:], {flags}, toBE(credentialSource.SignatureCounter), attestedCredentialData})
+
+	response := CTAPMakeCredentialReponse{
+		AuthData:             authenticatorData,
+		FormatIdentifer:      "none",
+		AttestationStatement: make(map[interface{}]interface{}),
+	}
+	responseBytes, err := cbor.Marshal(response)
+	checkErr(err, "Could not encode MakeAssertion response in CBOR")
+	b := append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
+	fmt.Printf("MAKE_CRED: %v\n\n", b)
+	return b
 }
 
 type CTAPGetInfoOptions struct {

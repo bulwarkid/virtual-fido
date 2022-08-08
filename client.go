@@ -13,11 +13,21 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
+type ClientCredentialSource struct {
+	Type             string
+	ID               []byte
+	PrivateKey       *ecdsa.PrivateKey
+	RelyingPartyID   string
+	UserHandle       []byte
+	SignatureCounter int32
+}
+
 type Client struct {
 	deviceEncryptionKey   []byte
 	certificateAuthority  *x509.Certificate
 	caPrivateKey          *ecdsa.PrivateKey
 	authenticationCounter uint32
+	credentialSources     []*ClientCredentialSource
 }
 
 func NewClient() *Client {
@@ -48,6 +58,22 @@ func NewClient() *Client {
 		caPrivateKey:          privateKey,
 		authenticationCounter: 1,
 	}
+}
+
+func (client *Client) newCredentialSource(relyingPartyID string, userHandle []byte) *ClientCredentialSource {
+	credentialID := read(rand.Reader, 16)
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	checkErr(err, "Could not generate private key")
+	credentialSource := ClientCredentialSource{
+		Type:             "public-key",
+		ID:               credentialID,
+		PrivateKey:       privateKey,
+		RelyingPartyID:   relyingPartyID,
+		UserHandle:       userHandle,
+		SignatureCounter: 0,
+	}
+	client.credentialSources = append(client.credentialSources, &credentialSource)
+	return &credentialSource
 }
 
 func (client *Client) newPrivateKey() *ecdsa.PrivateKey {
