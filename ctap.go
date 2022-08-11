@@ -31,7 +31,7 @@ var ctapCommandDescriptions = map[CTAPCommand]string{
 	CTAP_COMMAND_GET_NEXT_ASSERTION: "CTAP_COMMAND_GET_NEXT_ASSERTION",
 }
 
-type CTAPStatusCode uint8
+type CTAPStatusCode byte
 
 const (
 	CTAP1_ERR_SUCCESS           CTAPStatusCode = 0x00
@@ -43,6 +43,8 @@ const (
 	CTAP1_ERR_CHANNEL_BUSY      CTAPStatusCode = 0x06
 
 	CTAP2_ERR_UNSUPPORTED_ALGORITHM CTAPStatusCode = 0x26
+	CTAP2_ERR_INVALID_CBOR          CTAPStatusCode = 0x12
+	CTAP2_ERR_NO_CREDENTIALS        CTAPStatusCode = 0x2E
 )
 
 type COSEAlgorithmID int32
@@ -85,6 +87,12 @@ type PublicKeyCredentialParams struct {
 	Algorithm COSEAlgorithmID `cbor:"alg"`
 }
 
+type CTAPCommandOptions struct {
+	ResidentKey      bool `cbor:"rk,omitempty"`
+	UserVerification bool `cbor:"uv,omitempty"`
+	UserPresence     bool `cbor:"up,omitempty"`
+}
+
 type CTAPCOSEPublicKey struct {
 	Kty int8   `cbor:"1,keyasint"`
 	Alg int8   `cbor:"3,keyasint"`
@@ -113,6 +121,19 @@ const (
 	CTAP_AUTH_DATA_FLAG_EXTENSION_DATA_INCLUDED uint8 = 0b10000000
 )
 
+func ctapMakeAuthData(rpID string, credentialSource *ClientCredentialSource, includeCredentialData bool) []byte {
+	rpIdHash := sha256.Sum256([]byte(rpID))
+	// TODO: Set flags according to actual user presence
+	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
+	attestedCredentialData := []byte{}
+	if includeCredentialData {
+		encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
+		attestedCredentialData = flatten([][]byte{AAGUID[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
+		flags = flags | CTAP_AUTH_DATA_FLAG_ATTESTED_DATA_INCLUDED
+	}
+	return flatten([][]byte{rpIdHash[:], {flags}, toBE(credentialSource.SignatureCounter), attestedCredentialData})
+}
+
 type CTAPServer struct {
 	client *Client
 }
@@ -129,14 +150,11 @@ func (server *CTAPServer) handleMessage(data []byte) []byte {
 		return server.handleMakeCredential(data[1:])
 	case CTAP_COMMAND_GET_INFO:
 		return server.handleGetInfo(data[1:])
+	case CTAP_COMMAND_GET_ASSERTION:
+		return server.handleGetAssertion(data[1:])
 	default:
 		panic(fmt.Sprintf("Invalid CTAP Command: %d", command))
 	}
-}
-
-type CTAPMakeCredentialArgsOptions struct {
-	ResidentKey      bool `cbor:"rk"`
-	UserVerification bool `cbor:"uv"`
 }
 
 type CTAPMakeCredentialArgs struct {
@@ -145,7 +163,7 @@ type CTAPMakeCredentialArgs struct {
 	User             PublicKeyCrendentialUserEntity  `cbor:"3,keyasint,omitempty"`
 	PubKeyCredParams []PublicKeyCredentialParams     `cbor:"4,keyasint,omitempty"`
 	ExcludeList      []PublicKeyCredentialDescriptor `cbor:"5,keyasint,omitempty"`
-	Options          CTAPMakeCredentialArgsOptions   `cbor:"7,keyasint,omitempty"`
+	Options          CTAPCommandOptions              `cbor:"7,keyasint,omitempty"`
 }
 
 func (args CTAPMakeCredentialArgs) String() string {
@@ -182,12 +200,8 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 
 	// TODO: Verify user presence and user identity (e.g. PIN, password)
 
-	credentialSource := server.client.newCredentialSource(args.Rp.Id, args.User.Id)
-	encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
-	attestedCredentialData := flatten([][]byte{AAGUID[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
-	rpIdHash := sha256.Sum256([]byte(args.Rp.Id))
-	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT | CTAP_AUTH_DATA_FLAG_USER_VERIFIED | CTAP_AUTH_DATA_FLAG_ATTESTED_DATA_INCLUDED
-	authenticatorData := flatten([][]byte{rpIdHash[:], {flags}, toBE(credentialSource.SignatureCounter), attestedCredentialData})
+	credentialSource := server.client.newCredentialSource(args.Rp.Id, args.User)
+	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, true)
 
 	response := CTAPMakeCredentialReponse{
 		AuthData:             authenticatorData,
@@ -226,5 +240,55 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 	responseBytes, err := cbor.Marshal(response)
 	checkErr(err, "Could not encode GET_INFO in CBOR")
 	fmt.Printf("CTAP GET_INFO RESPONSE: %v\n\n", responseBytes)
+	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
+}
+
+type CTAPGetAssertionArgs struct {
+	RpID           string                          `cbor:"1,keyasint"`
+	ClientDataHash []byte                          `cbor:"2,keyasint"`
+	AllowList      []PublicKeyCredentialDescriptor `cbor:"3,keyasint"`
+	Options        CTAPCommandOptions              `cbor:"5,keyasint"`
+}
+
+type CTAPGetAssertionResponse struct {
+	//Credential          *PublicKeyCredentialDescriptor  `cbor:"1,keyasint,omitempty"`
+	AuthenticatorData []byte `cbor:"2,keyasint"`
+	Signature         []byte `cbor:"3,keyasint"`
+	//User                *PublicKeyCrendentialUserEntity `cbor:"4,keyasint,omitempty"`
+	//NumberOfCredentials int32 `cbor:"5,keyasint"`
+}
+
+func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
+	var args CTAPGetAssertionArgs
+	err := cbor.Unmarshal(data, &args)
+	if err != nil {
+		fmt.Printf("ERROR: %s", err)
+		return []byte{byte(CTAP2_ERR_INVALID_CBOR)}
+	}
+	fmt.Printf("GET ASSERTION: %#v\n\n", args)
+	sources := server.client.getMatchingCredentialSources(args.RpID, args.AllowList)
+	if len(sources) == 0 {
+		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
+	}
+	// TODO: Verify user and user presence
+	// TODO: Allow user to choose credential source
+	credentialSource := sources[0]
+	credentialSource.SignatureCounter++
+	authData := ctapMakeAuthData(args.RpID, credentialSource, false)
+
+	signature := sign(credentialSource.PrivateKey, flatten([][]byte{authData, args.ClientDataHash}))
+
+	response := CTAPGetAssertionResponse{
+		//Credential:          credentialSource.ctapDescriptor(),
+		AuthenticatorData: authData,
+		Signature:         signature,
+		//User:                credentialSource.User,
+		//NumberOfCredentials: 1,
+	}
+	responseBytes, err := cbor.Marshal(response)
+	checkErr(err, "Could not encode response in CBOR")
+
+	fmt.Printf("RESPONSE: %v\n\n", responseBytes)
+
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
 }

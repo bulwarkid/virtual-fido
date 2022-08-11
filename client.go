@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -18,8 +19,16 @@ type ClientCredentialSource struct {
 	ID               []byte
 	PrivateKey       *ecdsa.PrivateKey
 	RelyingPartyID   string
-	UserHandle       []byte
+	User             PublicKeyCrendentialUserEntity
 	SignatureCounter int32
+}
+
+func (source *ClientCredentialSource) ctapDescriptor() PublicKeyCredentialDescriptor {
+	return PublicKeyCredentialDescriptor{
+		Type:       "public-key",
+		Id:         source.ID,
+		Transports: []string{},
+	}
 }
 
 type Client struct {
@@ -60,7 +69,7 @@ func NewClient() *Client {
 	}
 }
 
-func (client *Client) newCredentialSource(relyingPartyID string, userHandle []byte) *ClientCredentialSource {
+func (client *Client) newCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource {
 	credentialID := read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
@@ -69,11 +78,30 @@ func (client *Client) newCredentialSource(relyingPartyID string, userHandle []by
 		ID:               credentialID,
 		PrivateKey:       privateKey,
 		RelyingPartyID:   relyingPartyID,
-		UserHandle:       userHandle,
+		User:             user,
 		SignatureCounter: 0,
 	}
 	client.credentialSources = append(client.credentialSources, &credentialSource)
 	return &credentialSource
+}
+
+func (client *Client) getMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
+	sources := make([]*ClientCredentialSource, 0)
+	for _, credentialSource := range client.credentialSources {
+		if credentialSource.RelyingPartyID == relyingPartyID {
+			if allowList != nil {
+				for _, allowedSource := range allowList {
+					if bytes.Equal(allowedSource.Id, credentialSource.ID) {
+						sources = append(sources, credentialSource)
+						break
+					}
+				}
+			} else {
+				sources = append(sources, credentialSource)
+			}
+		}
+	}
+	return sources
 }
 
 func (client *Client) newPrivateKey() *ecdsa.PrivateKey {
