@@ -152,6 +152,8 @@ func (server *CTAPServer) handleMessage(data []byte) []byte {
 		return server.handleGetInfo(data[1:])
 	case CTAP_COMMAND_GET_ASSERTION:
 		return server.handleGetAssertion(data[1:])
+	case CTAP_COMMAND_CLIENT_PIN:
+		return server.handleClientPIN(data[1:])
 	default:
 		panic(fmt.Sprintf("Invalid CTAP Command: %d", command))
 	}
@@ -216,26 +218,32 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 }
 
 type CTAPGetInfoOptions struct {
-	IsPlatform          bool `cbor:"plat,omitempty"`
-	CanResidentKey      bool `cbor:"rk,omitempty"`
-	CanClientPin        bool `cbor:"clientPin,omitempty"`
+	IsPlatform     bool `cbor:"plat,omitempty"`
+	CanResidentKey bool `cbor:"rk,omitempty"`
+	//CanClientPin        bool `cbor:"clientPin,omitempty"`
 	CanUserPresence     bool `cbor:"up,omitempty"`
 	CanUserVerification bool `cbor:"uv,omitempty"`
 }
 
 type CTAPGetInfoResponse struct {
-	Versions       []string           `cbor:"1,keyasint,omitempty"`
-	Extensions     []string           `cbor:"2,keyasint,omitempty"`
-	AAGUID         [16]byte           `cbor:"3,keyasint,omitempty"`
-	Options        CTAPGetInfoOptions `cbor:"4,keyasint,omitempty"`
-	MaxMessageSize uint32             `cbor:"5,keyasint,omitempty"`
-	PinProtocols   []uint32           `cbor:"6,keyasint,omitempty"`
+	Versions []string `cbor:"1,keyasint,omitempty"`
+	//Extensions []string `cbor:"2,keyasint,omitempty"`
+	AAGUID  [16]byte           `cbor:"3,keyasint,omitempty"`
+	Options CTAPGetInfoOptions `cbor:"4,keyasint,omitempty"`
+	//MaxMessageSize uint32   `cbor:"5,keyasint,omitempty"`
+	//PinProtocols   []uint32 `cbor:"6,keyasint,omitempty"`
 }
 
 func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 	response := CTAPGetInfoResponse{
 		Versions: []string{"FIDO_2_0", "U2F_V2"},
 		AAGUID:   AAGUID,
+		Options: CTAPGetInfoOptions{
+			IsPlatform:          false,
+			CanResidentKey:      true,
+			CanUserPresence:     true,
+			CanUserVerification: true,
+		},
 	}
 	responseBytes, err := cbor.Marshal(response)
 	checkErr(err, "Could not encode GET_INFO in CBOR")
@@ -291,4 +299,17 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	fmt.Printf("RESPONSE: %v\n\n", responseBytes)
 
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
+}
+
+type CTAPClientPINArgs struct {
+	PinProtocol     uint32            `cbor:"1,keyasint"`
+	SubCommand      uint32            `cbor:"2,keyasint"`
+	KeyAgreement    CTAPCOSEPublicKey `cbor:"3,keyasint"`
+	PINAuth         []byte            `cbor:"4,keyasint"`
+	NewPINEncoding  []byte            `cbor:"5,keyasint"`
+	PINHashEncoding []byte            `cbor:"6,keyasint"`
+}
+
+func (server *CTAPServer) handleClientPIN(data []byte) []byte {
+	return nil
 }

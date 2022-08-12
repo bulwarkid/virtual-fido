@@ -36,7 +36,7 @@ func (server *USBIPServer) handleConnection(conn *net.Conn) {
 		//fmt.Printf("USBIP CONTROL MESSAGE: %#v\n\n", header)
 		if header.CommandCode == USBIP_COMMAND_OP_REQ_DEVLIST {
 			reply := newOpRepDevlist(server.device)
-			fmt.Printf("OP_REP_DEVLIST: %#v\n\n", reply)
+			//fmt.Printf("OP_REP_DEVLIST: %#v\n\n", reply)
 			write(*conn, toBE(reply))
 		} else if header.CommandCode == USBIP_COMMAND_OP_REQ_IMPORT {
 			busId := make([]byte, 32)
@@ -46,7 +46,7 @@ func (server *USBIPServer) handleConnection(conn *net.Conn) {
 			}
 			fmt.Println("BUS_ID: ", string(busId))
 			reply := newOpRepImport(server.device)
-			fmt.Printf("OP_REP_IMPORT: %s\n\n", reply)
+			//fmt.Printf("OP_REP_IMPORT: %s\n\n", reply)
 			write(*conn, toBE(reply))
 			server.handleCommands(conn)
 		}
@@ -94,7 +94,7 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 
 func (server *USBIPServer) handleCommandUnlink(conn *net.Conn, header USBIPMessageHeader) {
 	unlink := readBE[USBIPCommandUnlinkBody](*conn)
-	fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
+	//fmt.Printf("COMMAND UNLINK: %#v\n\n", unlink)
 	var status int32
 	if server.device.removeWaitingRequest(unlink.UnlinkSequenceNumber) {
 		status = -int32(syscall.ECONNRESET)

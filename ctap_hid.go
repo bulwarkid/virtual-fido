@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"sync"
 )
 
 type CTAPHIDChannelID uint32
@@ -109,7 +110,7 @@ type CTAPHIDServer struct {
 	maxChannelID        CTAPHIDChannelID
 	channels            map[CTAPHIDChannelID]*CTAPHIDChannel
 	responses           chan []byte
-	waitingForResponses map[uint32]chan bool
+	waitingForResponses *sync.Map
 }
 
 func NewCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServer {
@@ -119,7 +120,7 @@ func NewCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServ
 		maxChannelID:        0,
 		channels:            make(map[CTAPHIDChannelID]*CTAPHIDChannel),
 		responses:           make(chan []byte, 100),
-		waitingForResponses: make(map[uint32]chan bool),
+		waitingForResponses: &sync.Map{},
 	}
 	server.channels[CTAPHID_BROADCAST_CHANNEL] = NewCTAPHIDChannel(CTAPHID_BROADCAST_CHANNEL)
 	return server
@@ -128,20 +129,21 @@ func NewCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServ
 func (server *CTAPHIDServer) getResponse(id uint32) []byte {
 	//fmt.Printf("CTAPHID: Getting Response\n\n")
 	killSwitch := make(chan bool)
-	server.waitingForResponses[id] = killSwitch
+	server.waitingForResponses.Store(id, killSwitch)
 	select {
 	case response := <-server.responses:
 		//fmt.Printf("CTAPHID RESPONSE: %#v\n\n", response)
 		return response
 	case <-killSwitch:
+		server.waitingForResponses.Delete(id)
 		return nil
 	}
 }
 
 func (server *CTAPHIDServer) removeWaitingRequest(id uint32) bool {
-	killSwitch, ok := server.waitingForResponses[id]
+	killSwitch, ok := server.waitingForResponses.Load(id)
 	if ok {
-		killSwitch <- true
+		killSwitch.(chan bool) <- true
 		return true
 	} else {
 		return false

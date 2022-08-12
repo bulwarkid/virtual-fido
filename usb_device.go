@@ -181,12 +181,12 @@ func (device *USBDevice) usbipSummaryHeader() USBIPDeviceSummaryHeader {
 	path := [256]byte{}
 	copy(path[:], []byte("/device/"+fmt.Sprint(device.Index)))
 	busId := [32]byte{}
-	copy(busId[:], []byte("1-1"))
+	copy(busId[:], []byte("2-2"))
 	return USBIPDeviceSummaryHeader{
 		Path:                path,
 		BusId:               busId,
-		Busnum:              1,
-		Devnum:              1,
+		Busnum:              2,
+		Devnum:              2,
 		Speed:               2,
 		IdVendor:            0,
 		IdProduct:           0,
@@ -218,6 +218,7 @@ func (device *USBDevice) handleDeviceRequest(
 		copy(transferBuffer, descriptor)
 	case USB_REQUEST_SET_CONFIGURATION:
 		//fmt.Printf("SET_CONFIGURATION: No-op\n\n")
+		// TODO: Handle configuration changes
 		// No-op since we can't change configuration
 		return
 	case USB_REQUEST_GET_STATUS:
@@ -232,7 +233,8 @@ func (device *USBDevice) handleInterfaceRequest(setup USBSetupPacket, transferBu
 	case USB_HID_REQUEST_SET_IDLE:
 		// No-op since we are made in software
 		//fmt.Printf("SET IDLE: No-op\n\n")
-		return
+	case USB_HID_REQUEST_SET_PROTOCOL:
+		// No-op since we are always in report protocol, no boot protocol
 	case USB_HID_REQUEST_GET_DESCRIPTOR:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
 		//fmt.Printf("GET INTERFACE DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], descriptorIndex)
@@ -278,13 +280,14 @@ func (device *USBDevice) removeWaitingRequest(id uint32) bool {
 func (device *USBDevice) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
+		onFinish()
 	} else if endpoint == 1 {
 		go device.handleOutputMessage(id, setup, transferBuffer, onFinish)
-		return // handleOutputMessage should handle calling onFinish
+		// handleOutputMessage should handle calling onFinish
 	} else if endpoint == 2 {
 		device.handleInputMessage(setup, transferBuffer)
+		onFinish()
 	} else {
 		panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
 	}
-	onFinish()
 }
