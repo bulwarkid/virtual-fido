@@ -121,10 +121,23 @@ const (
 	CTAP_AUTH_DATA_FLAG_EXTENSION_DATA_INCLUDED uint8 = 0b10000000
 )
 
+type CTAPAttestedCredentialData struct {
+	AAGUID             []byte
+	CredentialIDLength uint16
+	CredentialID       []byte
+	EncodedPublicKey   []byte
+}
+
+type CTAPAuthData struct {
+	RelyingPartyIDHash     []byte
+	Flags                  uint8
+	AttestedCredentialData *CTAPAttestedCredentialData
+}
+
 func ctapMakeAuthData(rpID string, credentialSource *ClientCredentialSource, includeCredentialData bool) []byte {
 	rpIdHash := sha256.Sum256([]byte(rpID))
 	// TODO: Set flags according to actual user presence
-	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
+	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT // | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
 	attestedCredentialData := []byte{}
 	if includeCredentialData {
 		encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
@@ -165,7 +178,7 @@ type CTAPMakeCredentialArgs struct {
 	User             PublicKeyCrendentialUserEntity  `cbor:"3,keyasint,omitempty"`
 	PubKeyCredParams []PublicKeyCredentialParams     `cbor:"4,keyasint,omitempty"`
 	ExcludeList      []PublicKeyCredentialDescriptor `cbor:"5,keyasint,omitempty"`
-	Options          CTAPCommandOptions              `cbor:"7,keyasint,omitempty"`
+	Options          *CTAPCommandOptions             `cbor:"7,keyasint,omitempty"`
 }
 
 func (args CTAPMakeCredentialArgs) String() string {
@@ -212,9 +225,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	}
 	responseBytes, err := cbor.Marshal(response)
 	checkErr(err, "Could not encode MakeAssertion response in CBOR")
-	b := append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
-	fmt.Printf("MAKE_CRED: %v\n\n", b)
-	return b
+	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
 }
 
 type CTAPGetInfoOptions struct {
@@ -311,5 +322,11 @@ type CTAPClientPINArgs struct {
 }
 
 func (server *CTAPServer) handleClientPIN(data []byte) []byte {
+	var args CTAPClientPINArgs
+	err := cbor.Unmarshal(data, &args)
+	if err != nil {
+		fmt.Printf("ERROR: %s", err)
+		return []byte{byte(CTAP2_ERR_INVALID_CBOR)}
+	}
 	return nil
 }
