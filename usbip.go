@@ -172,25 +172,6 @@ type USBIPReturnSubmitBody struct {
 	Padding         uint64
 }
 
-func newReturnSubmit(senderHeader USBIPMessageHeader, command USBIPCommandSubmitBody, data []byte) (USBIPMessageHeader, USBIPReturnSubmitBody) {
-	header := USBIPMessageHeader{
-		Command:        USBIP_COMMAND_RET_SUBMIT,
-		SequenceNumber: senderHeader.SequenceNumber,
-		DeviceId:       senderHeader.DeviceId,
-		Direction:      USBIP_DIR_OUT,
-		Endpoint:       senderHeader.Endpoint,
-	}
-	body := USBIPReturnSubmitBody{
-		Status:          0,
-		ActualLength:    uint32(len(data)),
-		StartFrame:      0,
-		NumberOfPackets: 0,
-		ErrorCount:      0,
-		Padding:         0,
-	}
-	return header, body
-}
-
 type USBIPReturnUnlinkBody struct {
 	Status  int32
 	Padding [24]byte

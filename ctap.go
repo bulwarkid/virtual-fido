@@ -134,15 +134,19 @@ type CTAPAuthData struct {
 	AttestedCredentialData *CTAPAttestedCredentialData
 }
 
-func ctapMakeAuthData(rpID string, credentialSource *ClientCredentialSource, includeCredentialData bool) []byte {
+func ctapMakeAttestedCredentialData(credentialSource *ClientCredentialSource) []byte {
+	encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
+	return flatten([][]byte{AAGUID[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
+}
+
+func ctapMakeAuthData(rpID string, credentialSource *ClientCredentialSource, attestedCredentialData []byte) []byte {
 	rpIdHash := sha256.Sum256([]byte(rpID))
 	// TODO: Set flags according to actual user presence
-	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT // | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
-	attestedCredentialData := []byte{}
-	if includeCredentialData {
-		encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
-		attestedCredentialData = flatten([][]byte{AAGUID[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
+	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT
+	if attestedCredentialData != nil {
 		flags = flags | CTAP_AUTH_DATA_FLAG_ATTESTED_DATA_INCLUDED
+	} else {
+		attestedCredentialData = []byte{}
 	}
 	return flatten([][]byte{rpIdHash[:], {flags}, toBE(credentialSource.SignatureCounter), attestedCredentialData})
 }
@@ -216,7 +220,8 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	// TODO: Verify user presence and user identity (e.g. PIN, password)
 
 	credentialSource := server.client.newCredentialSource(args.Rp.Id, args.User)
-	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, true)
+	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
+	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, attestedCredentialData)
 
 	response := CTAPMakeCredentialReponse{
 		AuthData:             authenticatorData,
@@ -293,7 +298,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	// TODO: Allow user to choose credential source
 	credentialSource := sources[0]
 	credentialSource.SignatureCounter++
-	authData := ctapMakeAuthData(args.RpID, credentialSource, false)
+	authData := ctapMakeAuthData(args.RpID, credentialSource, nil)
 
 	signature := sign(credentialSource.PrivateKey, flatten([][]byte{authData, args.ClientDataHash}))
 

@@ -44,7 +44,7 @@ func (server *USBIPServer) handleConnection(conn *net.Conn) {
 			if bytesRead != 32 {
 				panic(fmt.Sprintf("Could not read busId for OP_REQ_IMPORT: %v", err))
 			}
-			fmt.Println("BUS_ID: ", string(busId))
+			//fmt.Println("BUS_ID: ", string(busId))
 			reply := newOpRepImport(server.device)
 			//fmt.Printf("OP_REP_IMPORT: %s\n\n", reply)
 			write(*conn, toBE(reply))
@@ -71,7 +71,7 @@ func (server *USBIPServer) handleCommands(conn *net.Conn) {
 func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader) {
 	command := readBE[USBIPCommandSubmitBody](*conn)
 	setup := command.Setup()
-	//fmt.Printf("USBIP COMMAND SUBMIT: %s\n\n", setup)
+	//fmt.Printf("USBIP COMMAND SUBMIT: %s\n\n", command)
 	transferBuffer := make([]byte, command.TransferBufferLength)
 	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)
@@ -80,7 +80,21 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 	// Getting the reponse may not be immediate, so we need a callback
 	onReturnSubmit := func() {
 		server.responseMutex.Lock()
-		replyHeader, replyBody := newReturnSubmit(header, command, transferBuffer)
+		replyHeader := USBIPMessageHeader{
+			Command:        USBIP_COMMAND_RET_SUBMIT,
+			SequenceNumber: header.SequenceNumber,
+			DeviceId:       header.DeviceId,
+			Direction:      USBIP_DIR_OUT,
+			Endpoint:       header.Endpoint,
+		}
+		replyBody := USBIPReturnSubmitBody{
+			Status:          0,
+			ActualLength:    uint32(len(transferBuffer)),
+			StartFrame:      0,
+			NumberOfPackets: 0,
+			ErrorCount:      0,
+			Padding:         0,
+		}
 		//fmt.Printf("USBIP RETURN SUBMIT: %v %#v\n\n", replyHeader, replyBody)
 		write(*conn, toBE(replyHeader))
 		write(*conn, toBE(replyBody))

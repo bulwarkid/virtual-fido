@@ -278,6 +278,10 @@ func (device *USBDevice) removeWaitingRequest(id uint32) bool {
 }
 
 func (device *USBDevice) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
+	//fmt.Printf("USB SETUP (%d): %s\n\n", endpoint, setup)
+	if setup.direction() == USB_HOST_TO_DEVICE {
+		//fmt.Printf("TRANSFER BUFFER: %v\n\n", transferBuffer)
+	}
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
 		onFinish()
