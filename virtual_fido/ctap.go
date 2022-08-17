@@ -223,6 +223,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
 	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, attestedCredentialData)
 
+	// TODO: Add support for attestation to response
 	response := CTAPMakeCredentialReponse{
 		AuthData:             authenticatorData,
 		FormatIdentifer:      "none",

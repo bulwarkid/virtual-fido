@@ -207,6 +207,7 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 }
 
 func (channel *CTAPHIDChannel) handleFinalizedMessage(server *CTAPHIDServer, header CTAPHIDMessageHeader, payload []byte) [][]byte {
+	// TODO: Handle cancel message
 	fmt.Printf("CTAPHID FINALIZED MESSAGE: %s %#v\n\n", header, payload)
 	if channel.channelId == CTAPHID_BROADCAST_CHANNEL {
 		return channel.handleBroadcastMessage(server, header, payload)

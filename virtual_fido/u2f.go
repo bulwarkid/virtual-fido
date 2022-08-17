@@ -110,8 +110,8 @@ func (server *U2FServer) handleU2FMessage(message []byte) []byte {
 }
 
 type KeyHandle struct {
-	PrivateKey    []byte
-	ApplicationID []byte
+	PrivateKey    []byte `cbor:"1,keyasint"`
+	ApplicationID []byte `cbor:"2,keyasint"`
 }
 
 func (server *U2FServer) sealKeyHandle(keyHandle *KeyHandle) []byte {

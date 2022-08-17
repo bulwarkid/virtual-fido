@@ -41,8 +41,8 @@ func verify(key *ecdsa.PublicKey, data []byte, signature []byte) bool {
 }
 
 type EncryptedBox struct {
-	Data []byte
-	IV   []byte
+	Data []byte `cbor:"1,keyasint"`
+	IV   []byte `cbor:"2,keyasint"`
 }
 
 func seal(key []byte, data []byte) EncryptedBox {
