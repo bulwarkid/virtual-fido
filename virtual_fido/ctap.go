@@ -1,4 +1,4 @@
-package main
+package virtual_fido
 
 import (
 	"crypto/ecdsa"
@@ -155,7 +155,7 @@ type CTAPServer struct {
 	client *Client
 }
 
-func NewCTAPServer(client *Client) *CTAPServer {
+func newCTAPServer(client *Client) *CTAPServer {
 	return &CTAPServer{client: client}
 }
 

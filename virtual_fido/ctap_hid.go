@@ -1,4 +1,4 @@
-package main
+package virtual_fido
 
 import (
 	"bytes"
@@ -113,7 +113,7 @@ type CTAPHIDServer struct {
 	waitingForResponses *sync.Map
 }
 
-func NewCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServer {
+func newCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServer {
 	server := &CTAPHIDServer{
 		ctapServer:          ctapServer,
 		u2fServer:           u2fServer,

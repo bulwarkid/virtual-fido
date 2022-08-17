@@ -1,4 +1,4 @@
-package main
+package virtual_fido
 
 import (
 	"bytes"
@@ -59,7 +59,7 @@ type U2FServer struct {
 	client *Client
 }
 
-func NewU2FServer(client *Client) *U2FServer {
+func newU2FServer(client *Client) *U2FServer {
 	return &U2FServer{client: client}
 }
 

@@ -1,4 +1,4 @@
-package main
+package virtual_fido
 
 import (
 	"bytes"

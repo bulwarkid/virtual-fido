@@ -1,4 +1,4 @@
-package main
+package virtual_fido
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ type USBDevice struct {
 	CTAPHIDServer *CTAPHIDServer
 }
 
-func NewUSBDevice(ctapHIDServer *CTAPHIDServer) *USBDevice {
+func newUSBDevice(ctapHIDServer *CTAPHIDServer) *USBDevice {
 	return &USBDevice{
 		Index:         0,
 		CTAPHIDServer: ctapHIDServer,

@@ -1,4 +1,4 @@
-package main
+package virtual_fido
 
 import (
 	"bytes"
@@ -39,7 +39,7 @@ type Client struct {
 	credentialSources     []*ClientCredentialSource
 }
 
-func NewClient() *Client {
+func newClient() *Client {
 	// ALL OF THIS IS INSECURE, FOR TESTING PURPOSES ONLY
 	authority := &x509.Certificate{
 		SerialNumber: big.NewInt(0),

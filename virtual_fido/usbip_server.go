@@ -1,4 +1,4 @@
-package main
+package virtual_fido
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type USBIPServer struct {
 	responseMutex *sync.Mutex
 }
 
-func NewUSBIPServer(device *USBDevice) *USBIPServer {
+func newUSBIPServer(device *USBDevice) *USBIPServer {
 	server := new(USBIPServer)
 	server.device = device
 	server.responseMutex = &sync.Mutex{}
