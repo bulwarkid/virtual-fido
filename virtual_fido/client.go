@@ -10,8 +10,6 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"time"
-
-	"github.com/fxamacker/cbor/v2"
 )
 
 type ClientCredentialSource struct {
@@ -31,7 +29,17 @@ func (source *ClientCredentialSource) ctapDescriptor() PublicKeyCredentialDescri
 	}
 }
 
-type Client struct {
+type Client interface {
+	NewCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource
+	SealingEncryptionKey() []byte
+	GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource
+
+	NewPrivateKey() *ecdsa.PrivateKey
+	NewAuthenticationCounterId() uint32
+	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
+}
+
+type ClientImpl struct {
 	deviceEncryptionKey   []byte
 	certificateAuthority  *x509.Certificate
 	caPrivateKey          *ecdsa.PrivateKey
@@ -39,7 +47,7 @@ type Client struct {
 	credentialSources     []*ClientCredentialSource
 }
 
-func newClient() *Client {
+func newClient() *ClientImpl {
 	// ALL OF THIS IS INSECURE, FOR TESTING PURPOSES ONLY
 	authority := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
@@ -61,7 +69,7 @@ func newClient() *Client {
 	authorityCert, err := x509.ParseCertificate(authorityCertBytes)
 	checkErr(err, "Could not parse authority CA cert")
 	encryptionKey := sha256.Sum256([]byte("test"))
-	return &Client{
+	return &ClientImpl{
 		deviceEncryptionKey:   encryptionKey[:],
 		certificateAuthority:  authorityCert,
 		caPrivateKey:          privateKey,
@@ -69,7 +77,11 @@ func newClient() *Client {
 	}
 }
 
-func (client *Client) newCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource {
+func (client ClientImpl) SealingEncryptionKey() []byte {
+	return client.deviceEncryptionKey
+}
+
+func (client ClientImpl) NewCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource {
 	credentialID := read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
@@ -85,7 +97,7 @@ func (client *Client) newCredentialSource(relyingPartyID string, user PublicKeyC
 	return &credentialSource
 }
 
-func (client *Client) getMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
+func (client ClientImpl) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
 	sources := make([]*ClientCredentialSource, 0)
 	for _, credentialSource := range client.credentialSources {
 		if credentialSource.RelyingPartyID == relyingPartyID {
@@ -104,33 +116,23 @@ func (client *Client) getMatchingCredentialSources(relyingPartyID string, allowL
 	return sources
 }
 
-func (client *Client) newPrivateKey() *ecdsa.PrivateKey {
+// -----------------------------
+// U2F Methods
+// -----------------------------
+
+func (client ClientImpl) NewPrivateKey() *ecdsa.PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
 	return privateKey
 }
 
-func (client *Client) sealKeyHandle(keyHandle *KeyHandle) []byte {
-	data, err := cbor.Marshal(keyHandle)
-	checkErr(err, "Could not encode key handle")
-	box := seal(client.deviceEncryptionKey, data)
-	boxBytes, err := cbor.Marshal(box)
-	checkErr(err, "Could not encode encrypted box")
-	return boxBytes
+func (client ClientImpl) NewAuthenticationCounterId() uint32 {
+	num := client.authenticationCounter
+	client.authenticationCounter++
+	return num
 }
 
-func (client *Client) openKeyHandle(boxBytes []byte) *KeyHandle {
-	var box EncryptedBox
-	err := cbor.Unmarshal(boxBytes, &box)
-	checkErr(err, "Could not decode encrypted box")
-	data := open(client.deviceEncryptionKey, box)
-	var keyHandle KeyHandle
-	err = cbor.Unmarshal(data, &keyHandle)
-	checkErr(err, "Could not decode key handle")
-	return &keyHandle
-}
-
-func (client *Client) createAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
+func (client ClientImpl) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
 	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
 	templateCert := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
@@ -146,10 +148,4 @@ func (client *Client) createAttestationCertificiate(privateKey *ecdsa.PrivateKey
 	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.caPrivateKey)
 	checkErr(err, "Could not generate attestation certificate")
 	return certBytes
-}
-
-func (client *Client) newAuthenticationCounterId() uint32 {
-	num := client.authenticationCounter
-	client.authenticationCounter++
-	return num
 }

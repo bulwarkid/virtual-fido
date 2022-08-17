@@ -5,6 +5,8 @@ import (
 	"crypto/elliptic"
 	"crypto/x509"
 	"fmt"
+
+	"github.com/fxamacker/cbor/v2"
 )
 
 type U2FCommand uint8
@@ -56,10 +58,10 @@ func (header U2FMessageHeader) String() string {
 }
 
 type U2FServer struct {
-	client *Client
+	client Client
 }
 
-func newU2FServer(client *Client) *U2FServer {
+func newU2FServer(client Client) *U2FServer {
 	return &U2FServer{client: client}
 }
 
@@ -112,22 +114,42 @@ type KeyHandle struct {
 	ApplicationID []byte
 }
 
+func (server *U2FServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
+	data, err := cbor.Marshal(keyHandle)
+	checkErr(err, "Could not encode key handle")
+	box := seal(server.client.SealingEncryptionKey(), data)
+	boxBytes, err := cbor.Marshal(box)
+	checkErr(err, "Could not encode encrypted box")
+	return boxBytes
+}
+
+func (server *U2FServer) openKeyHandle(boxBytes []byte) *KeyHandle {
+	var box EncryptedBox
+	err := cbor.Unmarshal(boxBytes, &box)
+	checkErr(err, "Could not decode encrypted box")
+	data := open(server.client.SealingEncryptionKey(), box)
+	var keyHandle KeyHandle
+	err = cbor.Unmarshal(data, &keyHandle)
+	checkErr(err, "Could not decode key handle")
+	return &keyHandle
+}
+
 func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []byte) []byte {
 	challenge := request[:32]
 	application := request[32:]
 	assert(len(challenge) == 32, "Challenge is not 32 bytes")
 	assert(len(application) == 32, "Application is not 32 bytes")
 
-	privateKey := server.client.newPrivateKey()
+	privateKey := server.client.NewPrivateKey()
 	encodedPublicKey := elliptic.Marshal(elliptic.P256(), privateKey.PublicKey.X, privateKey.PublicKey.Y)
 	encodedPrivateKey, err := x509.MarshalECPrivateKey(privateKey)
 	checkErr(err, "Could not encode private key")
 
 	unencryptedKeyHandle := KeyHandle{PrivateKey: encodedPrivateKey, ApplicationID: application}
-	keyHandle := server.client.sealKeyHandle(&unencryptedKeyHandle)
+	keyHandle := server.sealKeyHandle(&unencryptedKeyHandle)
 	fmt.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
 
-	cert := server.client.createAttestationCertificiate(privateKey)
+	cert := server.client.CreateAttestationCertificiate(privateKey)
 
 	signatureDataBytes := flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
 	signature := sign(privateKey, signatureDataBytes)
@@ -144,7 +166,7 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 
 	keyHandleLength := readLE[uint8](requestReader)
 	encryptedKeyHandleBytes := read(requestReader, uint(keyHandleLength))
-	keyHandle := server.client.openKeyHandle(encryptedKeyHandleBytes)
+	keyHandle := server.openKeyHandle(encryptedKeyHandleBytes)
 	if keyHandle.PrivateKey == nil || bytes.Compare(keyHandle.ApplicationID, application) != 0 {
 		fmt.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
 		return flatten([][]byte{toBE(U2F_SW_WRONG_DATA)})
@@ -155,7 +177,7 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 	if control == U2F_AUTH_CONTROL_CHECK_ONLY {
 		return flatten([][]byte{toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)})
 	} else {
-		counter := server.client.newAuthenticationCounterId()
+		counter := server.client.NewAuthenticationCounterId()
 		signatureDataBytes := flatten([][]byte{application, {1}, toBE(counter), challenge})
 		signature := sign(privateKey, signatureDataBytes)
 		return flatten([][]byte{{1}, toBE(counter), signature, toBE(U2F_SW_NO_ERROR)})

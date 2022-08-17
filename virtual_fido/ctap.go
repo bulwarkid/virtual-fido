@@ -152,10 +152,10 @@ func ctapMakeAuthData(rpID string, credentialSource *ClientCredentialSource, att
 }
 
 type CTAPServer struct {
-	client *Client
+	client Client
 }
 
-func newCTAPServer(client *Client) *CTAPServer {
+func newCTAPServer(client Client) *CTAPServer {
 	return &CTAPServer{client: client}
 }
 
@@ -219,7 +219,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 
 	// TODO: Verify user presence and user identity (e.g. PIN, password)
 
-	credentialSource := server.client.newCredentialSource(args.Rp.Id, args.User)
+	credentialSource := server.client.NewCredentialSource(args.Rp.Id, args.User)
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
 	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, attestedCredentialData)
 
@@ -290,7 +290,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_INVALID_CBOR)}
 	}
 	fmt.Printf("GET ASSERTION: %#v\n\n", args)
-	sources := server.client.getMatchingCredentialSources(args.RpID, args.AllowList)
+	sources := server.client.GetMatchingCredentialSources(args.RpID, args.AllowList)
 	if len(sources) == 0 {
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
 	}
