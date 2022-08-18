@@ -117,20 +117,6 @@ type CTAPHIDInitReponse struct {
 	CapabilitiesFlags  uint8
 }
 
-type CTAPHIDChannel struct {
-	channelId         CTAPHIDChannelID
-	inProgressHeader  *CTAPHIDMessageHeader
-	inProgressPayload []byte
-}
-
-func NewCTAPHIDChannel(channelId CTAPHIDChannelID) *CTAPHIDChannel {
-	return &CTAPHIDChannel{
-		channelId:         channelId,
-		inProgressHeader:  nil,
-		inProgressPayload: nil,
-	}
-}
-
 const (
 	CTAPHIDSERVER_MAX_PACKET_SIZE int = 64
 )
@@ -193,6 +179,20 @@ func (server *CTAPHIDServer) handleMessage(message []byte) {
 		for _, packet := range response {
 			server.responses <- packet
 		}
+	}
+}
+
+type CTAPHIDChannel struct {
+	channelId         CTAPHIDChannelID
+	inProgressHeader  *CTAPHIDMessageHeader
+	inProgressPayload []byte
+}
+
+func NewCTAPHIDChannel(channelId CTAPHIDChannelID) *CTAPHIDChannel {
+	return &CTAPHIDChannel{
+		channelId:         channelId,
+		inProgressHeader:  nil,
+		inProgressPayload: nil,
 	}
 }
 
