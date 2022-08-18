@@ -264,6 +264,8 @@ func (channel *CTAPHIDChannel) handleBroadcastMessage(server *CTAPHIDServer, hea
 		server.channels[response.NewChannelID] = NewCTAPHIDChannel(response.NewChannelID)
 		fmt.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
 		return createResponsePackets(CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_INIT, toLE(response))
+	case CTAPHID_COMMAND_PING:
+		return createResponsePackets(CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_PING, payload)
 	default:
 		panic(fmt.Sprintf("Invalid CTAPHID Broadcast command: %#v", header))
 	}
@@ -279,6 +281,8 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 		responsePayload := server.ctapServer.handleMessage(payload)
 		fmt.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_CBOR, responsePayload)
+	case CTAPHID_COMMAND_PING:
+		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_PING, payload)
 	default:
 		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %s", header))
 	}
