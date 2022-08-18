@@ -19,7 +19,7 @@ const (
 	CTAPHID_COMMAND_MSG       CTAPHIDCommand = 0x83
 	CTAPHID_COMMAND_CBOR      CTAPHIDCommand = 0x90
 	CTAPHID_COMMAND_INIT      CTAPHIDCommand = 0x86
-	CTAPHID_COMMAND_ING       CTAPHIDCommand = 0x81
+	CTAPHID_COMMAND_PING      CTAPHIDCommand = 0x81
 	CTAPHID_COMMAND_CANCEL    CTAPHIDCommand = 0x91
 	CTAPHID_COMMAND_ERROR     CTAPHIDCommand = 0xBF
 	CTAPHID_COMMAND_KEEPALIVE CTAPHIDCommand = 0xBB
@@ -31,7 +31,7 @@ var ctapHIDCommandDescriptions = map[CTAPHIDCommand]string{
 	CTAPHID_COMMAND_MSG:       "CTAPHID_COMMAND_MSG",
 	CTAPHID_COMMAND_CBOR:      "CTAPHID_COMMAND_CBOR",
 	CTAPHID_COMMAND_INIT:      "CTAPHID_COMMAND_INIT",
-	CTAPHID_COMMAND_ING:       "CTAPHID_COMMAND_ING",
+	CTAPHID_COMMAND_PING:      "CTAPHID_COMMAND_PING",
 	CTAPHID_COMMAND_CANCEL:    "CTAPHID_COMMAND_CANCEL",
 	CTAPHID_COMMAND_ERROR:     "CTAPHID_COMMAND_ERROR",
 	CTAPHID_COMMAND_KEEPALIVE: "CTAPHID_COMMAND_KEEPALIVE",
@@ -232,7 +232,7 @@ func (channel *CTAPHIDChannel) handleBroadcastMessage(server *CTAPHIDServer, hea
 		server.maxChannelID += 1
 		server.channels[response.NewChannelID] = NewCTAPHIDChannel(response.NewChannelID)
 		fmt.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
-		return createReponsePackets(CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_INIT, toLE(response))
+		return createResponsePackets(CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_INIT, toLE(response))
 	default:
 		panic(fmt.Sprintf("Invalid CTAPHID Broadcast command: %#v", header))
 	}
@@ -243,17 +243,17 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 	case CTAPHID_COMMAND_MSG:
 		responsePayload := server.u2fServer.handleU2FMessage(payload)
 		fmt.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
-		return createReponsePackets(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
+		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	case CTAPHID_COMMAND_CBOR:
 		responsePayload := server.ctapServer.handleMessage(payload)
 		fmt.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
-		return createReponsePackets(header.ChannelID, CTAPHID_COMMAND_CBOR, responsePayload)
+		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_CBOR, responsePayload)
 	default:
 		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %s", header))
 	}
 }
 
-func createReponsePackets(channelId CTAPHIDChannelID, command CTAPHIDCommand, payload []byte) [][]byte {
+func createResponsePackets(channelId CTAPHIDChannelID, command CTAPHIDCommand, payload []byte) [][]byte {
 	packets := [][]byte{}
 	sequence := -1
 	for len(payload) > 0 {
