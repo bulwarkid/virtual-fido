@@ -214,6 +214,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 		}
 	}
 	if !supported {
+		fmt.Printf("ERROR: Unsupported Algorithm\n\n")
 		return []byte{byte(CTAP2_ERR_UNSUPPORTED_ALGORITHM)}
 	}
 
@@ -293,6 +294,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	fmt.Printf("GET ASSERTION: %#v\n\n", args)
 	sources := server.client.GetMatchingCredentialSources(args.RpID, args.AllowList)
 	if len(sources) == 0 {
+		fmt.Printf("ERROR: No Credentials\n\n")
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
 	}
 	// TODO: Verify user and user presence

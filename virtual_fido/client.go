@@ -61,7 +61,7 @@ func (client ClientImpl) SealingEncryptionKey() []byte {
 	return client.deviceEncryptionKey
 }
 
-func (client ClientImpl) NewCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource {
+func (client *ClientImpl) NewCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource {
 	credentialID := read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
@@ -77,7 +77,7 @@ func (client ClientImpl) NewCredentialSource(relyingPartyID string, user PublicK
 	return &credentialSource
 }
 
-func (client ClientImpl) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
+func (client *ClientImpl) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
 	sources := make([]*ClientCredentialSource, 0)
 	for _, credentialSource := range client.credentialSources {
 		if credentialSource.RelyingPartyID == relyingPartyID {
@@ -100,19 +100,19 @@ func (client ClientImpl) GetMatchingCredentialSources(relyingPartyID string, all
 // U2F Methods
 // -----------------------------
 
-func (client ClientImpl) NewPrivateKey() *ecdsa.PrivateKey {
+func (client *ClientImpl) NewPrivateKey() *ecdsa.PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
 	return privateKey
 }
 
-func (client ClientImpl) NewAuthenticationCounterId() uint32 {
+func (client *ClientImpl) NewAuthenticationCounterId() uint32 {
 	num := client.authenticationCounter
 	client.authenticationCounter++
 	return num
 }
 
-func (client ClientImpl) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
+func (client *ClientImpl) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
 	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
 	templateCert := &x509.Certificate{
 		SerialNumber: big.NewInt(0),

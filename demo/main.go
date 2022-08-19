@@ -40,5 +40,5 @@ func main() {
 	}
 	encryptionKey := sha256.Sum256([]byte("test"))
 	client := virtual_fido.NewClient(authorityCertBytes, privateKey, encryptionKey)
-	virtual_fido.Start(*client)
+	virtual_fido.Start(client)
 }
