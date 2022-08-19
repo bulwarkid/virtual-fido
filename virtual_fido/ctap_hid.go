@@ -167,18 +167,24 @@ func (server *CTAPHIDServer) removeWaitingRequest(id uint32) bool {
 	}
 }
 
+func (server *CTAPHIDServer) sendResponse(response [][]byte) {
+	for _, packet := range response {
+		server.responses <- packet
+	}
+}
+
 func (server *CTAPHIDServer) handleMessage(message []byte) {
 	buffer := bytes.NewBuffer(message)
 	channelId := readLE[CTAPHIDChannelID](buffer)
 	channel, exists := server.channels[channelId]
 	if !exists {
-		panic(fmt.Sprintf("Invalid Channel ID: %d", channelId))
+		response := ctapHidError(channelId, CTAPHID_ERR_INVALID_CHANNEL)
+		server.sendResponse(response)
+		return
 	}
 	response := channel.handleMessage(server, message)
 	if response != nil {
-		for _, packet := range response {
-			server.responses <- packet
-		}
+		server.sendResponse(response)
 	}
 }
 
