@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 	"unicode/utf16"
 )
 
@@ -101,4 +102,24 @@ func flatten[T any](arrays [][]T) []T {
 		output = append(output, arr...)
 	}
 	return output
+}
+
+func startRecurringFunction(f func(), interval int64) chan interface{} {
+	stopSignal := make(chan interface{})
+	trigger := make(chan interface{})
+	wait := func() {
+		time.Sleep(time.Millisecond * time.Duration(interval))
+		trigger <- 0
+	}
+	go func() {
+		go wait()
+		switch {
+		case <-trigger:
+			f()
+			go wait()
+		case <-stopSignal:
+			return
+		}
+	}()
+	return stopSignal
 }

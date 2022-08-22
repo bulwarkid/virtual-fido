@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+const CTAPHID_STATUS_UPNEEDED uint8 = 2
+
 type CTAPHIDChannelID uint32
 
 const (
@@ -312,13 +314,22 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 		fmt.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	case CTAPHID_COMMAND_CBOR:
+		stop := startRecurringFunction(keepConnectionAlive(server, channel.channelId, CTAPHID_STATUS_UPNEEDED), 100)
 		responsePayload := server.ctapServer.handleMessage(payload)
+		stop <- 0
 		fmt.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_CBOR, responsePayload)
 	case CTAPHID_COMMAND_PING:
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_PING, payload)
 	default:
 		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %s", header))
+	}
+}
+
+func keepConnectionAlive(server *CTAPHIDServer, channelId CTAPHIDChannelID, status uint8) func() {
+	return func() {
+		response := createResponsePackets(channelId, CTAPHID_COMMAND_KEEPALIVE, []byte{byte(status)})
+		server.sendResponse(response)
 	}
 }
 

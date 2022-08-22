@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+type ClientRequestApprover interface {
+	ApproveLogin(relyingParty string, username string) bool
+	ApproveAccountCreation(relyingParty string) bool
+}
+
 type ClientCredentialSource struct {
 	Type             string
 	ID               []byte
@@ -44,9 +49,10 @@ type ClientImpl struct {
 	certPrivateKey        *ecdsa.PrivateKey
 	authenticationCounter uint32
 	credentialSources     []*ClientCredentialSource
+	requestApprover       ClientRequestApprover
 }
 
-func NewClient(attestationCertificate []byte, certificatePrivateKey *ecdsa.PrivateKey, secretEncryptionKey [32]byte) *ClientImpl {
+func NewClient(attestationCertificate []byte, certificatePrivateKey *ecdsa.PrivateKey, secretEncryptionKey [32]byte, requestApprover ClientRequestApprover) *ClientImpl {
 	authorityCert, err := x509.ParseCertificate(attestationCertificate)
 	checkErr(err, "Could not parse authority CA cert")
 	return &ClientImpl{
@@ -54,6 +60,7 @@ func NewClient(attestationCertificate []byte, certificatePrivateKey *ecdsa.Priva
 		certificateAuthority:  authorityCert,
 		certPrivateKey:        certificatePrivateKey,
 		authenticationCounter: 1,
+		requestApprover:       requestApprover,
 	}
 }
 
@@ -94,6 +101,10 @@ func (client *ClientImpl) GetMatchingCredentialSources(relyingPartyID string, al
 		}
 	}
 	return sources
+}
+
+func (client ClientImpl) ApproveAccountCreation(relyingParty string) bool {
+	return client.requestApprover.ApproveAccountCreation(relyingParty)
 }
 
 // -----------------------------

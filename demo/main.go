@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -9,9 +10,36 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
+	"os"
+	"strings"
 	"time"
 	"virtual_fido"
 )
+
+func prompt(prompt string) string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println(prompt)
+	fmt.Print("--> ")
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+	return response
+}
+
+type Approver struct{}
+
+func (approver *Approver) ApproveAccountCreation(relyingParty string) bool {
+	response := strings.ToLower(prompt(fmt.Sprintf("Approve account creation for %s (Y/n)?", relyingParty)))
+	if response == "y" || response == "yes" {
+		return true
+	}
+	return false
+}
+
+func (approver *Approver) ApproveLogin(relyingParty string, username string) bool {
+	return false
+}
 
 func main() {
 	// ALL OF THIS IS INSECURE, FOR TESTING PURPOSES ONLY
@@ -39,6 +67,7 @@ func main() {
 		return
 	}
 	encryptionKey := sha256.Sum256([]byte("test"))
-	client := virtual_fido.NewClient(authorityCertBytes, privateKey, encryptionKey)
+	approver := Approver{}
+	client := virtual_fido.NewClient(authorityCertBytes, privateKey, encryptionKey, &approver)
 	virtual_fido.Start(client)
 }
