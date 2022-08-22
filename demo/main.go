@@ -30,7 +30,8 @@ func prompt(prompt string) string {
 type Approver struct{}
 
 func (approver *Approver) ApproveAccountCreation(relyingParty string) bool {
-	response := strings.ToLower(prompt(fmt.Sprintf("Approve account creation for %s (Y/n)?", relyingParty)))
+	response := prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", relyingParty))
+	response = strings.ToLower(strings.TrimSpace(response))
 	if response == "y" || response == "yes" {
 		return true
 	}
@@ -38,6 +39,11 @@ func (approver *Approver) ApproveAccountCreation(relyingParty string) bool {
 }
 
 func (approver *Approver) ApproveLogin(relyingParty string, username string) bool {
+	response := prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", relyingParty, username))
+	response = strings.ToLower(strings.TrimSpace(response))
+	if response == "y" || response == "yes" {
+		return true
+	}
 	return false
 }
 
