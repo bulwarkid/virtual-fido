@@ -41,6 +41,8 @@ type Client interface {
 	NewPrivateKey() *ecdsa.PrivateKey
 	NewAuthenticationCounterId() uint32
 	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
+
+	ApproveAccountCreation(relyingParty string) bool
 }
 
 type ClientImpl struct {

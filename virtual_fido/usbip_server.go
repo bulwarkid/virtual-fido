@@ -8,11 +8,11 @@ import (
 )
 
 type USBIPServer struct {
-	device        *USBDevice
+	device        USBDevice
 	responseMutex *sync.Mutex
 }
 
-func newUSBIPServer(device *USBDevice) *USBIPServer {
+func newUSBIPServer(device USBDevice) *USBIPServer {
 	server := new(USBIPServer)
 	server.device = device
 	server.responseMutex = &sync.Mutex{}

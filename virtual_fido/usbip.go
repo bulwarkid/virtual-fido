@@ -68,7 +68,7 @@ type USBIPOpRepDevlist struct {
 	Devices    []USBIPDeviceSummary
 }
 
-func newOpRepDevlist(device *USBDevice) USBIPOpRepDevlist {
+func newOpRepDevlist(device USBDevice) USBIPOpRepDevlist {
 	return USBIPOpRepDevlist{
 		Header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
@@ -91,7 +91,7 @@ func (reply USBIPOpRepImport) String() string {
 	return fmt.Sprintf("USBIPOpRepImport{ Header: %#v, Device: %s }", reply.header, reply.device)
 }
 
-func newOpRepImport(device *USBDevice) USBIPOpRepImport {
+func newOpRepImport(device USBDevice) USBIPOpRepImport {
 	return USBIPOpRepImport{
 		header: USBIPControlHeader{
 			Version:     USBIP_VERSION,

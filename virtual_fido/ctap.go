@@ -45,6 +45,7 @@ const (
 	CTAP2_ERR_UNSUPPORTED_ALGORITHM CTAPStatusCode = 0x26
 	CTAP2_ERR_INVALID_CBOR          CTAPStatusCode = 0x12
 	CTAP2_ERR_NO_CREDENTIALS        CTAPStatusCode = 0x2E
+	CTAP2_ERR_OPERATION_DENIED      CTAPStatusCode = 0x27
 )
 
 type COSEAlgorithmID int32
@@ -218,7 +219,11 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_UNSUPPORTED_ALGORITHM)}
 	}
 
-	// TODO: Verify user presence and user identity (e.g. PIN, password)
+	// TODO: Verify user identity (e.g. PIN, password)
+	if !server.client.ApproveAccountCreation(args.Rp.Name) {
+		fmt.Printf("ERROR: Unapproved action (Create account)")
+		return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
+	}
 
 	credentialSource := server.client.NewCredentialSource(args.Rp.Id, args.User)
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
