@@ -9,7 +9,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-var ctapLogger = newLogger("[CTAP]")
+var ctapLogger = newLogger("[CTAP] ", true)
 
 var AAGUID = [16]byte{117, 108, 90, 245, 236, 166, 1, 163, 47, 198, 211, 12, 226, 242, 1, 197}
 
@@ -222,10 +222,10 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	}
 
 	// TODO: Verify user identity (e.g. PIN, password)
-	if !server.client.ApproveAccountCreation(args.Rp.Name) {
-		fmt.Printf("ERROR: Unapproved action (Create account)")
-		return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
-	}
+	// if !server.client.ApproveAccountCreation(args.Rp.Name) {
+	// 	fmt.Printf("ERROR: Unapproved action (Create account)")
+	// 	return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
+	// }
 
 	credentialSource := server.client.NewCredentialSource(args.Rp.Id, args.User)
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)

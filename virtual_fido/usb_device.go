@@ -13,7 +13,7 @@ type USBDevice interface {
 	usbipSummaryHeader() USBIPDeviceSummaryHeader
 }
 
-var usbLogger = newLogger("[USB] ")
+var usbLogger = newLogger("[USB] ", false)
 
 type USBDeviceImpl struct {
 	Index         int
@@ -260,6 +260,10 @@ func (device *USBDeviceImpl) handleInterfaceRequest(setup USBSetupPacket, transf
 }
 
 func (device *USBDeviceImpl) handleControlMessage(setup USBSetupPacket, transferBuffer []byte) {
+	usbLogger.Printf("CONTROL MESSAGE: %s\n\n", setup)
+	if setup.direction() == USB_HOST_TO_DEVICE {
+		usbLogger.Printf("TRANSFER BUFFER: %v\n\n", transferBuffer)
+	}
 	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
 		device.handleDeviceRequest(setup, transferBuffer)
 	} else if setup.recipient() == USB_REQUEST_RECIPIENT_INTERFACE {
@@ -270,12 +274,12 @@ func (device *USBDeviceImpl) handleControlMessage(setup USBSetupPacket, transfer
 }
 
 func (device *USBDeviceImpl) handleInputMessage(setup USBSetupPacket, transferBuffer []byte) {
-	usbLogger.Printf("USB ENDPOINT TRANSFER BUFFER: %#v\n\n", transferBuffer)
-	device.CTAPHIDServer.handleMessage(transferBuffer)
+	usbLogger.Printf("INPUT TRANSFER BUFFER: %#v\n\n", transferBuffer)
+	go device.CTAPHIDServer.handleMessage(transferBuffer)
 }
 
 func (device *USBDeviceImpl) handleOutputMessage(id uint32, setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
-	response := device.CTAPHIDServer.getResponse(id)
+	response := device.CTAPHIDServer.getResponse(id, 0)
 	if response != nil {
 		copy(transferBuffer, response)
 		onFinish()
@@ -287,10 +291,7 @@ func (device *USBDeviceImpl) removeWaitingRequest(id uint32) bool {
 }
 
 func (device *USBDeviceImpl) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
-	usbLogger.Printf("USB SETUP (%d): %s\n\n", endpoint, setup)
-	if setup.direction() == USB_HOST_TO_DEVICE {
-		usbLogger.Printf("TRANSFER BUFFER: %v\n\n", transferBuffer)
-	}
+	usbLogger.Printf("USB MESSAGE - ENDPOINT %d\n\n", endpoint)
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
 		onFinish()

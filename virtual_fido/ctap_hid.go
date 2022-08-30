@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"time"
 )
 
-var ctapHIDLogger = newLogger("[CTAPHID] ")
+var ctapHIDLogger = newLogger("[CTAPHID] ", true)
 
 const CTAPHID_STATUS_UPNEEDED uint8 = 2
 
@@ -147,10 +148,16 @@ func newCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServ
 	return server
 }
 
-func (server *CTAPHIDServer) getResponse(id uint32) []byte {
-	ctapHIDLogger.Printf("CTAPHID: Getting Response\n\n")
+func (server *CTAPHIDServer) getResponse(id uint32, timeout int64) []byte {
 	killSwitch := make(chan bool)
+	timeoutSwitch := make(chan interface{})
 	server.waitingForResponses.Store(id, killSwitch)
+	if timeout > 0 {
+		go func() {
+			time.Sleep(time.Millisecond * time.Duration(timeout))
+			timeoutSwitch <- nil
+		}()
+	}
 	select {
 	case response := <-server.responses:
 		ctapHIDLogger.Printf("CTAPHID RESPONSE: %#v\n\n", response)
@@ -158,6 +165,8 @@ func (server *CTAPHIDServer) getResponse(id uint32) []byte {
 	case <-killSwitch:
 		server.waitingForResponses.Delete(id)
 		return nil
+	case <-timeoutSwitch:
+		return []byte{}
 	}
 }
 
@@ -316,9 +325,9 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	case CTAPHID_COMMAND_CBOR:
-		stop := startRecurringFunction(keepConnectionAlive(server, channel.channelId, CTAPHID_STATUS_UPNEEDED), 100)
+		//stop := startRecurringFunction(keepConnectionAlive(server, channel.channelId, CTAPHID_STATUS_UPNEEDED), 100)
 		responsePayload := server.ctapServer.handleMessage(payload)
-		stop <- 0
+		//stop <- 0
 		ctapHIDLogger.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_CBOR, responsePayload)
 	case CTAPHID_COMMAND_PING:
@@ -330,6 +339,7 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 
 func keepConnectionAlive(server *CTAPHIDServer, channelId CTAPHIDChannelID, status uint8) func() {
 	return func() {
+		ctapHIDLogger.Printf("SENDING KEEPALIVE\n\n")
 		response := createResponsePackets(channelId, CTAPHID_COMMAND_KEEPALIVE, []byte{byte(status)})
 		server.sendResponse(response)
 	}

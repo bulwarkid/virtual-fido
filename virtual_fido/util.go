@@ -106,23 +106,35 @@ func flatten[T any](arrays [][]T) []T {
 }
 
 func startRecurringFunction(f func(), interval int64) chan interface{} {
+	fmt.Printf("START RECURRING FUNCTION\n\n")
 	stopSignal := make(chan interface{})
 	trigger := make(chan interface{})
 	wait := func() {
+		fmt.Printf("WAIT FUNCTION START\n\n")
 		time.Sleep(time.Millisecond * time.Duration(interval))
-		trigger <- 0
+		fmt.Printf("SENDING TRIGGER\n\n")
+		trigger <- nil
 	}
 	go func() {
-		go wait()
-		switch {
-		case <-trigger:
-			f()
+		for {
 			go wait()
-		case <-stopSignal:
-			return
+			switch {
+			case <-trigger:
+				fmt.Println("TRIGGER RECURRING FUNCTION")
+				f()
+			case <-stopSignal:
+				return
+			}
 		}
 	}()
 	return stopSignal
+}
+
+func delay(f func(), interval int64) {
+	go func() {
+		time.Sleep(time.Millisecond * time.Duration(interval))
+		f()
+	}()
 }
 
 // Not sure if there is a standard library way to do this,
@@ -161,6 +173,10 @@ func SetLogOutput(out io.Writer) {
 	logOutput.setOutput(out)
 }
 
-func newLogger(prefix string) *log.Logger {
-	return log.New(logOutput, prefix, 0)
+func newLogger(prefix string, enabled bool) *log.Logger {
+	if enabled {
+		return log.New(logOutput, prefix, 0)
+	} else {
+		return log.New(io.Discard, prefix, 0)
+	}
 }
