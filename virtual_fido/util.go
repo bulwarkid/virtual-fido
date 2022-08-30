@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"time"
 	"unicode/utf16"
@@ -122,4 +123,44 @@ func startRecurringFunction(f func(), interval int64) chan interface{} {
 		}
 	}()
 	return stopSignal
+}
+
+// Not sure if there is a standard library way to do this,
+// but I couldn't find any at the moment
+type logBuffer struct {
+	buffer *bytes.Buffer
+	output io.Writer
+}
+
+func newLogBuffer() *logBuffer {
+	return &logBuffer{
+		buffer: new(bytes.Buffer),
+		output: nil,
+	}
+}
+
+func (logBuf *logBuffer) Write(p []byte) (n int, err error) {
+	if logBuf.output == nil {
+		return logBuf.buffer.Write(p)
+	} else {
+		return logBuf.output.Write(p)
+	}
+}
+
+func (logBuf *logBuffer) setOutput(output io.Writer) {
+	if logBuf.buffer.Len() > 0 {
+		b, _ := io.ReadAll(logBuf.buffer)
+		output.Write(b)
+	}
+	logBuf.output = output
+}
+
+var logOutput *logBuffer = newLogBuffer()
+
+func SetLogOutput(out io.Writer) {
+	logOutput.setOutput(out)
+}
+
+func newLogger(prefix string) *log.Logger {
+	return log.New(logOutput, prefix, 0)
 }

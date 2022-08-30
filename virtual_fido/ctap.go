@@ -9,6 +9,8 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
+var ctapLogger = newLogger("[CTAP]")
+
 var AAGUID = [16]byte{117, 108, 90, 245, 236, 166, 1, 163, 47, 198, 211, 12, 226, 242, 1, 197}
 
 type CTAPCommand uint8
@@ -162,7 +164,7 @@ func newCTAPServer(client Client) *CTAPServer {
 
 func (server *CTAPServer) handleMessage(data []byte) []byte {
 	command := CTAPCommand(data[0])
-	fmt.Printf("CTAP COMMAND: %s\n\n", ctapCommandDescriptions[command])
+	ctapLogger.Printf("CTAP COMMAND: %s\n\n", ctapCommandDescriptions[command])
 	switch command {
 	case CTAP_COMMAND_MAKE_CREDENTIAL:
 		return server.handleMakeCredential(data[1:])
@@ -206,7 +208,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	var args CTAPMakeCredentialArgs
 	err := cbor.Unmarshal(data, &args)
 	checkErr(err, fmt.Sprintf("Could not decode CBOR for MAKE_CREDENTIAL: %s %v", err, data))
-	fmt.Printf("MAKE CREDENTIAL: %s\n\n", args)
+	ctapLogger.Printf("MAKE CREDENTIAL: %s\n\n", args)
 
 	supported := false
 	for _, param := range args.PubKeyCredParams {
@@ -215,7 +217,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 		}
 	}
 	if !supported {
-		fmt.Printf("ERROR: Unsupported Algorithm\n\n")
+		ctapLogger.Printf("ERROR: Unsupported Algorithm\n\n")
 		return []byte{byte(CTAP2_ERR_UNSUPPORTED_ALGORITHM)}
 	}
 
@@ -270,7 +272,7 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 	}
 	responseBytes, err := cbor.Marshal(response)
 	checkErr(err, "Could not encode GET_INFO in CBOR")
-	fmt.Printf("CTAP GET_INFO RESPONSE: %v\n\n", responseBytes)
+	ctapLogger.Printf("CTAP GET_INFO RESPONSE: %v\n\n", responseBytes)
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
 }
 
@@ -293,13 +295,13 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	var args CTAPGetAssertionArgs
 	err := cbor.Unmarshal(data, &args)
 	if err != nil {
-		fmt.Printf("ERROR: %s", err)
+		ctapLogger.Printf("ERROR: %s", err)
 		return []byte{byte(CTAP2_ERR_INVALID_CBOR)}
 	}
-	fmt.Printf("GET ASSERTION: %#v\n\n", args)
+	ctapLogger.Printf("GET ASSERTION: %#v\n\n", args)
 	sources := server.client.GetMatchingCredentialSources(args.RpID, args.AllowList)
 	if len(sources) == 0 {
-		fmt.Printf("ERROR: No Credentials\n\n")
+		ctapLogger.Printf("ERROR: No Credentials\n\n")
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
 	}
 	// TODO: Verify user and user presence
@@ -320,7 +322,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	responseBytes, err := cbor.Marshal(response)
 	checkErr(err, "Could not encode response in CBOR")
 
-	fmt.Printf("RESPONSE: %v\n\n", responseBytes)
+	ctapLogger.Printf("RESPONSE: %v\n\n", responseBytes)
 
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, responseBytes...)
 }
@@ -338,7 +340,7 @@ func (server *CTAPServer) handleClientPIN(data []byte) []byte {
 	var args CTAPClientPINArgs
 	err := cbor.Unmarshal(data, &args)
 	if err != nil {
-		fmt.Printf("ERROR: %s", err)
+		ctapLogger.Printf("ERROR: %s", err)
 		return []byte{byte(CTAP2_ERR_INVALID_CBOR)}
 	}
 	return nil

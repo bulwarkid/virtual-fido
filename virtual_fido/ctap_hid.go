@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+var ctapHIDLogger = newLogger("[CTAPHID] ")
+
 const CTAPHID_STATUS_UPNEEDED uint8 = 2
 
 type CTAPHIDChannelID uint32
@@ -68,7 +70,7 @@ var ctapHIDErrorCodeDescriptions = map[CTAPHIDErrorCode]string{
 }
 
 func ctapHidError(channelId CTAPHIDChannelID, err CTAPHIDErrorCode) [][]byte {
-	fmt.Printf("CTAPHID ERROR: %s\n\n", ctapHIDErrorCodeDescriptions[err])
+	ctapHIDLogger.Printf("CTAPHID ERROR: %s\n\n", ctapHIDErrorCodeDescriptions[err])
 	return createResponsePackets(channelId, CTAPHID_COMMAND_ERROR, []byte{byte(err)})
 }
 
@@ -146,12 +148,12 @@ func newCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServ
 }
 
 func (server *CTAPHIDServer) getResponse(id uint32) []byte {
-	//fmt.Printf("CTAPHID: Getting Response\n\n")
+	ctapHIDLogger.Printf("CTAPHID: Getting Response\n\n")
 	killSwitch := make(chan bool)
 	server.waitingForResponses.Store(id, killSwitch)
 	select {
 	case response := <-server.responses:
-		//fmt.Printf("CTAPHID RESPONSE: %#v\n\n", response)
+		ctapHIDLogger.Printf("CTAPHID RESPONSE: %#v\n\n", response)
 		return response
 	case <-killSwitch:
 		server.waitingForResponses.Delete(id)
@@ -230,7 +232,7 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 		payloadLeft := int(channel.inProgressHeader.PayloadLength) - len(channel.inProgressPayload)
 		if payloadLeft > len(payload) {
 			// We need another followup message
-			//fmt.Printf("CTAPHID: Read %d bytes, Need %d more\n\n", len(payload), payloadLeft-len(payload))
+			ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n", len(payload), payloadLeft-len(payload))
 			channel.inProgressPayload = append(channel.inProgressPayload, payload...)
 			channel.inProgressSequenceNumber += 1
 			return nil
@@ -246,7 +248,7 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 		command := readLE[CTAPHIDCommand](buffer)
 		if command == CTAPHID_COMMAND_CANCEL {
 			channel.clearInProgressMessage()
-			fmt.Printf("CTAPHID COMMAND: CTAPHID_COMMAND_CANCEL\n\n")
+			ctapHIDLogger.Printf("CTAPHID COMMAND: CTAPHID_COMMAND_CANCEL\n\n")
 			return nil // No response to cancel message
 		}
 		if command&(1<<7) == 0 {
@@ -261,8 +263,8 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 		}
 		payload := buffer.Bytes()
 		if payloadLength > uint16(len(payload)) {
-			//fmt.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
-			//	len(payload), int(payloadLength)-len(payload))
+			ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
+				len(payload), int(payloadLength)-len(payload))
 			channel.inProgressHeader = &header
 			channel.inProgressPayload = payload
 			channel.inProgressSequenceNumber = 0
@@ -275,7 +277,7 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 
 func (channel *CTAPHIDChannel) handleFinalizedMessage(server *CTAPHIDServer, header CTAPHIDMessageHeader, payload []byte) [][]byte {
 	// TODO: Handle cancel message
-	fmt.Printf("CTAPHID FINALIZED MESSAGE: %s %#v\n\n", header, payload)
+	ctapHIDLogger.Printf("CTAPHID FINALIZED MESSAGE: %s %#v\n\n", header, payload)
 	if channel.channelId == CTAPHID_BROADCAST_CHANNEL {
 		return channel.handleBroadcastMessage(server, header, payload)
 	} else {
@@ -298,7 +300,7 @@ func (channel *CTAPHIDChannel) handleBroadcastMessage(server *CTAPHIDServer, hea
 		copy(response.Nonce[:], nonce)
 		server.maxChannelID += 1
 		server.channels[response.NewChannelID] = NewCTAPHIDChannel(response.NewChannelID)
-		fmt.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
+		ctapHIDLogger.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
 		return createResponsePackets(CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_INIT, toLE(response))
 	case CTAPHID_COMMAND_PING:
 		return createResponsePackets(CTAPHID_BROADCAST_CHANNEL, CTAPHID_COMMAND_PING, payload)
@@ -311,13 +313,13 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 	switch header.Command {
 	case CTAPHID_COMMAND_MSG:
 		responsePayload := server.u2fServer.handleU2FMessage(payload)
-		fmt.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
+		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	case CTAPHID_COMMAND_CBOR:
 		stop := startRecurringFunction(keepConnectionAlive(server, channel.channelId, CTAPHID_STATUS_UPNEEDED), 100)
 		responsePayload := server.ctapServer.handleMessage(payload)
 		stop <- 0
-		fmt.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
+		ctapHIDLogger.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_CBOR, responsePayload)
 	case CTAPHID_COMMAND_PING:
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_PING, payload)

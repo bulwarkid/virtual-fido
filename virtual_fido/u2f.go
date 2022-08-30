@@ -9,6 +9,8 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
+var u2fLogger = newLogger("[U2F] ")
+
 type U2FCommand uint8
 
 const (
@@ -93,7 +95,7 @@ func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 
 func (server *U2FServer) handleU2FMessage(message []byte) []byte {
 	header, request, responseLength := decodeU2FMessage(message)
-	fmt.Printf("U2F MESSAGE: Header: %s Request: %#v Reponse Length: %d\n\n", header, request, responseLength)
+	u2fLogger.Printf("U2F MESSAGE: Header: %s Request: %#v Reponse Length: %d\n\n", header, request, responseLength)
 	var response []byte
 	switch header.Command {
 	case U2F_COMMAND_VERSION:
@@ -105,7 +107,7 @@ func (server *U2FServer) handleU2FMessage(message []byte) []byte {
 	default:
 		panic(fmt.Sprintf("Invalid U2F Command: %#v", header))
 	}
-	fmt.Printf("U2F RESPONSE: %#v\n\n", response)
+	u2fLogger.Printf("U2F RESPONSE: %#v\n\n", response)
 	return response
 }
 
@@ -147,7 +149,7 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 
 	unencryptedKeyHandle := KeyHandle{PrivateKey: encodedPrivateKey, ApplicationID: application}
 	keyHandle := server.sealKeyHandle(&unencryptedKeyHandle)
-	fmt.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
+	u2fLogger.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
 
 	cert := server.client.CreateAttestationCertificiate(privateKey)
 
@@ -168,7 +170,7 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 	encryptedKeyHandleBytes := read(requestReader, uint(keyHandleLength))
 	keyHandle := server.openKeyHandle(encryptedKeyHandleBytes)
 	if keyHandle.PrivateKey == nil || bytes.Compare(keyHandle.ApplicationID, application) != 0 {
-		fmt.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
+		u2fLogger.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
 		return flatten([][]byte{toBE(U2F_SW_WRONG_DATA)})
 	}
 	privateKey, err := x509.ParseECPrivateKey(keyHandle.PrivateKey)
