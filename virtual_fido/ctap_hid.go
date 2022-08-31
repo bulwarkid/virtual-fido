@@ -132,6 +132,7 @@ type CTAPHIDServer struct {
 	maxChannelID        CTAPHIDChannelID
 	channels            map[CTAPHIDChannelID]*CTAPHIDChannel
 	responses           chan []byte
+	responsesLock       sync.Locker
 	waitingForResponses *sync.Map
 }
 
@@ -142,6 +143,7 @@ func newCTAPHIDServer(ctapServer *CTAPServer, u2fServer *U2FServer) *CTAPHIDServ
 		maxChannelID:        0,
 		channels:            make(map[CTAPHIDChannelID]*CTAPHIDChannel),
 		responses:           make(chan []byte, 100),
+		responsesLock:       &sync.Mutex{},
 		waitingForResponses: &sync.Map{},
 	}
 	server.channels[CTAPHID_BROADCAST_CHANNEL] = NewCTAPHIDChannel(CTAPHID_BROADCAST_CHANNEL)
@@ -181,9 +183,13 @@ func (server *CTAPHIDServer) removeWaitingRequest(id uint32) bool {
 }
 
 func (server *CTAPHIDServer) sendResponse(response [][]byte) {
+	// Packets should be sequential and continuous per transaction
+	server.responsesLock.Lock()
+	ctapHIDLogger.Printf("ADDING MESSAGE: %#v\n\n", response)
 	for _, packet := range response {
 		server.responses <- packet
 	}
+	server.responsesLock.Unlock()
 }
 
 func (server *CTAPHIDServer) handleMessage(message []byte) {
@@ -195,10 +201,9 @@ func (server *CTAPHIDServer) handleMessage(message []byte) {
 		server.sendResponse(response)
 		return
 	}
-	response := channel.handleMessage(server, message)
-	if response != nil {
-		server.sendResponse(response)
-	}
+	channel.messageLock.Lock()
+	channel.handleIntermediateMessage(server, message)
+	channel.messageLock.Unlock()
 }
 
 type CTAPHIDChannel struct {
@@ -206,6 +211,7 @@ type CTAPHIDChannel struct {
 	inProgressHeader         *CTAPHIDMessageHeader
 	inProgressSequenceNumber uint8
 	inProgressPayload        []byte
+	messageLock              sync.Locker
 }
 
 func NewCTAPHIDChannel(channelId CTAPHIDChannelID) *CTAPHIDChannel {
@@ -213,6 +219,7 @@ func NewCTAPHIDChannel(channelId CTAPHIDChannelID) *CTAPHIDChannel {
 		channelId:         channelId,
 		inProgressHeader:  nil,
 		inProgressPayload: nil,
+		messageLock:       &sync.Mutex{},
 	}
 }
 
@@ -222,20 +229,24 @@ func (channel *CTAPHIDChannel) clearInProgressMessage() {
 	channel.inProgressSequenceNumber = 0
 }
 
-func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []byte) [][]byte {
+// This function handles CTAPHID transactions, which can be split into multiple USB messages
+// After the multiple packets are compiled, then a finalized CTAPHID message is created
+func (channel *CTAPHIDChannel) handleIntermediateMessage(server *CTAPHIDServer, message []byte) {
 	buffer := bytes.NewBuffer(message)
 	readLE[CTAPHIDChannelID](buffer) // Consume Channel ID
 	if channel.inProgressHeader != nil {
 		val := readLE[uint8](buffer)
 		if val == uint8(CTAPHID_COMMAND_CANCEL) {
 			channel.clearInProgressMessage()
-			return nil
+			return
 		} else if val&(1<<7) != 0 {
-			return ctapHidError(channel.channelId, CTAPHID_ERR_INVALID_SEQUENCE)
+			server.sendResponse(ctapHidError(channel.channelId, CTAPHID_ERR_INVALID_SEQUENCE))
+			return
 		}
 		sequenceNumber := val
 		if sequenceNumber != channel.inProgressSequenceNumber {
-			return ctapHidError(channel.channelId, CTAPHID_ERR_INVALID_SEQUENCE)
+			server.sendResponse(ctapHidError(channel.channelId, CTAPHID_ERR_INVALID_SEQUENCE))
+			return
 		}
 		payload := buffer.Bytes()
 		payloadLeft := int(channel.inProgressHeader.PayloadLength) - len(channel.inProgressPayload)
@@ -244,13 +255,13 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 			ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n", len(payload), payloadLeft-len(payload))
 			channel.inProgressPayload = append(channel.inProgressPayload, payload...)
 			channel.inProgressSequenceNumber += 1
-			return nil
+			return
 		} else {
 			channel.inProgressPayload = append(channel.inProgressPayload, payload...)
-			response := channel.handleFinalizedMessage(
+			go channel.handleFinalizedMessage(
 				server, *channel.inProgressHeader, channel.inProgressPayload[:channel.inProgressHeader.PayloadLength])
 			channel.clearInProgressMessage()
-			return response
+			return
 		}
 	} else {
 		// Command message
@@ -258,11 +269,12 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 		if command == CTAPHID_COMMAND_CANCEL {
 			channel.clearInProgressMessage()
 			ctapHIDLogger.Printf("CTAPHID COMMAND: CTAPHID_COMMAND_CANCEL\n\n")
-			return nil // No response to cancel message
+			return // No response to cancel message
 		}
 		if command&(1<<7) == 0 {
 			// Non-command (likely a sequence number)
-			return ctapHidError(channel.channelId, CTAPHID_ERR_INVALID_COMMAND)
+			server.sendResponse(ctapHidError(channel.channelId, CTAPHID_ERR_INVALID_COMMAND))
+			return
 		}
 		payloadLength := readBE[uint16](buffer)
 		header := CTAPHIDMessageHeader{
@@ -277,20 +289,25 @@ func (channel *CTAPHIDChannel) handleMessage(server *CTAPHIDServer, message []by
 			channel.inProgressHeader = &header
 			channel.inProgressPayload = payload
 			channel.inProgressSequenceNumber = 0
-			return nil
+			return
 		} else {
-			return channel.handleFinalizedMessage(server, header, payload[:payloadLength])
+			go channel.handleFinalizedMessage(server, header, payload[:payloadLength])
+			return
 		}
 	}
 }
 
-func (channel *CTAPHIDChannel) handleFinalizedMessage(server *CTAPHIDServer, header CTAPHIDMessageHeader, payload []byte) [][]byte {
+func (channel *CTAPHIDChannel) handleFinalizedMessage(server *CTAPHIDServer, header CTAPHIDMessageHeader, payload []byte) {
 	// TODO: Handle cancel message
 	ctapHIDLogger.Printf("CTAPHID FINALIZED MESSAGE: %s %#v\n\n", header, payload)
+	var response [][]byte = nil
 	if channel.channelId == CTAPHID_BROADCAST_CHANNEL {
-		return channel.handleBroadcastMessage(server, header, payload)
+		response = channel.handleBroadcastMessage(server, header, payload)
 	} else {
-		return channel.handleDataMessage(server, header, payload)
+		response = channel.handleDataMessage(server, header, payload)
+	}
+	if response != nil {
+		server.sendResponse(response)
 	}
 }
 

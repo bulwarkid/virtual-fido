@@ -3,6 +3,7 @@ package virtual_fido
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"unsafe"
 )
 
@@ -18,12 +19,14 @@ var usbLogger = newLogger("[USB] ", false)
 type USBDeviceImpl struct {
 	Index         int
 	CTAPHIDServer *CTAPHIDServer
+	outputLock    sync.Locker
 }
 
 func newUSBDevice(ctapHIDServer *CTAPHIDServer) *USBDeviceImpl {
 	return &USBDeviceImpl{
 		Index:         0,
 		CTAPHIDServer: ctapHIDServer,
+		outputLock:    &sync.Mutex{},
 	}
 }
 
@@ -279,11 +282,14 @@ func (device *USBDeviceImpl) handleInputMessage(setup USBSetupPacket, transferBu
 }
 
 func (device *USBDeviceImpl) handleOutputMessage(id uint32, setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
+	// Only process one output message at a time in order to maintain message order
+	device.outputLock.Lock()
 	response := device.CTAPHIDServer.getResponse(id, 0)
 	if response != nil {
 		copy(transferBuffer, response)
 		onFinish()
 	}
+	device.outputLock.Unlock()
 }
 
 func (device *USBDeviceImpl) removeWaitingRequest(id uint32) bool {
