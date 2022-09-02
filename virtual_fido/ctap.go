@@ -222,10 +222,10 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	}
 
 	// TODO: Verify user identity (e.g. PIN, password)
-	// if !server.client.ApproveAccountCreation(args.Rp.Name) {
-	// 	fmt.Printf("ERROR: Unapproved action (Create account)")
-	// 	return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
-	// }
+	if !server.client.ApproveAccountCreation(args.Rp.Name) {
+		fmt.Printf("ERROR: Unapproved action (Create account)")
+		return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
+	}
 
 	credentialSource := server.client.NewCredentialSource(args.Rp.Id, args.User)
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)

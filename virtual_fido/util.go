@@ -106,21 +106,17 @@ func flatten[T any](arrays [][]T) []T {
 }
 
 func startRecurringFunction(f func(), interval int64) chan interface{} {
-	fmt.Printf("START RECURRING FUNCTION\n\n")
-	stopSignal := make(chan interface{})
-	trigger := make(chan interface{})
+	stopSignal := make(chan interface{}, 1)
+	trigger := make(chan interface{}, 1)
 	wait := func() {
-		fmt.Printf("WAIT FUNCTION START\n\n")
 		time.Sleep(time.Millisecond * time.Duration(interval))
-		fmt.Printf("SENDING TRIGGER\n\n")
 		trigger <- nil
 	}
 	go func() {
 		for {
 			go wait()
-			switch {
+			select {
 			case <-trigger:
-				fmt.Println("TRIGGER RECURRING FUNCTION")
 				f()
 			case <-stopSignal:
 				return

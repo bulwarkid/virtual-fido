@@ -284,7 +284,7 @@ func (device *USBDeviceImpl) handleInputMessage(setup USBSetupPacket, transferBu
 func (device *USBDeviceImpl) handleOutputMessage(id uint32, setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
 	// Only process one output message at a time in order to maintain message order
 	device.outputLock.Lock()
-	response := device.CTAPHIDServer.getResponse(id, 0)
+	response := device.CTAPHIDServer.getResponse(id, 1000)
 	if response != nil {
 		copy(transferBuffer, response)
 		onFinish()
