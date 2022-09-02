@@ -20,7 +20,7 @@ type ClientCredentialSource struct {
 	Type             string
 	ID               []byte
 	PrivateKey       *ecdsa.PrivateKey
-	RelyingPartyID   string
+	RelyingParty     PublicKeyCredentialRpEntity
 	User             PublicKeyCrendentialUserEntity
 	SignatureCounter int32
 }
@@ -34,7 +34,7 @@ func (source *ClientCredentialSource) ctapDescriptor() PublicKeyCredentialDescri
 }
 
 type Client interface {
-	NewCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource
+	NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *ClientCredentialSource
 	GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource
 
 	SealingEncryptionKey() []byte
@@ -43,6 +43,7 @@ type Client interface {
 	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
 
 	ApproveAccountCreation(relyingParty string) bool
+	ApproveAccountLogin(relyingParty string, username string) bool
 }
 
 type ClientImpl struct {
@@ -70,7 +71,7 @@ func (client ClientImpl) SealingEncryptionKey() []byte {
 	return client.deviceEncryptionKey
 }
 
-func (client *ClientImpl) NewCredentialSource(relyingPartyID string, user PublicKeyCrendentialUserEntity) *ClientCredentialSource {
+func (client *ClientImpl) NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *ClientCredentialSource {
 	credentialID := read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
@@ -78,7 +79,7 @@ func (client *ClientImpl) NewCredentialSource(relyingPartyID string, user Public
 		Type:             "public-key",
 		ID:               credentialID,
 		PrivateKey:       privateKey,
-		RelyingPartyID:   relyingPartyID,
+		RelyingParty:     relyingParty,
 		User:             user,
 		SignatureCounter: 0,
 	}
@@ -89,7 +90,7 @@ func (client *ClientImpl) NewCredentialSource(relyingPartyID string, user Public
 func (client *ClientImpl) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
 	sources := make([]*ClientCredentialSource, 0)
 	for _, credentialSource := range client.credentialSources {
-		if credentialSource.RelyingPartyID == relyingPartyID {
+		if credentialSource.RelyingParty.Id == relyingPartyID {
 			if allowList != nil {
 				for _, allowedSource := range allowList {
 					if bytes.Equal(allowedSource.Id, credentialSource.ID) {
@@ -107,6 +108,10 @@ func (client *ClientImpl) GetMatchingCredentialSources(relyingPartyID string, al
 
 func (client ClientImpl) ApproveAccountCreation(relyingParty string) bool {
 	return client.requestApprover.ApproveAccountCreation(relyingParty)
+}
+
+func (client ClientImpl) ApproveAccountLogin(relyingParty string, username string) bool {
+	return client.requestApprover.ApproveLogin(relyingParty, username)
 }
 
 // -----------------------------

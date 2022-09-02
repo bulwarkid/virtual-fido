@@ -223,11 +223,11 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 
 	// TODO: Verify user identity (e.g. PIN, password)
 	if !server.client.ApproveAccountCreation(args.Rp.Name) {
-		fmt.Printf("ERROR: Unapproved action (Create account)")
+		ctapLogger.Printf("ERROR: Unapproved action (Create account)")
 		return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
 	}
 
-	credentialSource := server.client.NewCredentialSource(args.Rp.Id, args.User)
+	credentialSource := server.client.NewCredentialSource(args.Rp, args.User)
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
 	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, attestedCredentialData)
 
@@ -304,11 +304,18 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 		ctapLogger.Printf("ERROR: No Credentials\n\n")
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
 	}
-	// TODO: Verify user and user presence
+
 	// TODO: Allow user to choose credential source
 	credentialSource := sources[0]
 	credentialSource.SignatureCounter++
 	authData := ctapMakeAuthData(args.RpID, credentialSource, nil)
+
+	if args.Options.UserPresence {
+		if !server.client.ApproveAccountLogin(credentialSource.RelyingParty.Name, credentialSource.User.DisplayName) {
+			ctapLogger.Printf("ERROR: Unapproved action (Account login)")
+			return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
+		}
+	}
 
 	signature := sign(credentialSource.PrivateKey, flatten([][]byte{authData, args.ClientDataHash}))
 

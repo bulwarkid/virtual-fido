@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var ctapHIDLogger = newLogger("[CTAPHID] ", true)
+var ctapHIDLogger = newLogger("[CTAPHID] ", false)
 
 const CTAPHID_STATUS_UPNEEDED uint8 = 2
 
