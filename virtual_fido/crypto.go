@@ -6,9 +6,12 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
+
+	"golang.org/x/crypto/scrypt"
 )
 
 func encrypt(key []byte, data []byte) ([]byte, []byte) {
+	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)
 	checkErr(err, "Could not create device cipher")
 	nonce := read(rand.Reader, 12)
@@ -19,6 +22,7 @@ func encrypt(key []byte, data []byte) ([]byte, []byte) {
 }
 
 func decrypt(key []byte, data []byte, nonce []byte) []byte {
+	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)
 	checkErr(err, "Could not create device cipher")
 	gcm, err := cipher.NewGCM(block)
@@ -26,6 +30,37 @@ func decrypt(key []byte, data []byte, nonce []byte) []byte {
 	decryptedData, err := gcm.Open(nil, nonce, data, nil)
 	checkErr(err, "Could not decrypt data")
 	return decryptedData
+}
+
+type PassphraseEncryptedBlob struct {
+	Salt          []byte
+	EncryptedKey  []byte
+	KeyNonce      []byte
+	EncryptedData []byte
+	DataNonce     []byte
+}
+
+func encryptWithPassphrase(passphrase string, data []byte) PassphraseEncryptedBlob {
+	salt := read(rand.Reader, 16)
+	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
+	checkErr(err, "Could not create key encryption key")
+	encryptionKey := read(rand.Reader, 32)
+	encryptedKey, keyNonce := encrypt(keyEncryptionKey, encryptionKey)
+	encryptedData, dataNonce := encrypt(encryptionKey, data)
+	return PassphraseEncryptedBlob{
+		Salt:          salt,
+		EncryptedKey:  encryptedKey,
+		KeyNonce:      keyNonce,
+		EncryptedData: encryptedData,
+		DataNonce:     dataNonce,
+	}
+}
+
+func decryptWithPassphrase(passphrase string, blob PassphraseEncryptedBlob) []byte {
+	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), blob.Salt, 32768, 8, 1, 32)
+	checkErr(err, "Could not create key encryption key")
+	encryptionKey := decrypt(keyEncryptionKey, blob.EncryptedKey, blob.KeyNonce)
+	return decrypt(encryptionKey, blob.EncryptedData, blob.DataNonce)
 }
 
 func sign(key *ecdsa.PrivateKey, data []byte) []byte {

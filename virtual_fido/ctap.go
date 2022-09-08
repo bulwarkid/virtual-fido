@@ -299,24 +299,20 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_INVALID_CBOR)}
 	}
 	ctapLogger.Printf("GET ASSERTION: %#v\n\n", args)
-	sources := server.client.GetMatchingCredentialSources(args.RpID, args.AllowList)
-	if len(sources) == 0 {
+	credentialSource := server.client.GetAssertionSource(args.RpID, args.AllowList)
+	if credentialSource == nil {
 		ctapLogger.Printf("ERROR: No Credentials\n\n")
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
 	}
 
-	// TODO: Allow user to choose credential source
-	credentialSource := sources[0]
-	credentialSource.SignatureCounter++
-	authData := ctapMakeAuthData(args.RpID, credentialSource, nil)
-
 	if args.Options.UserPresence {
-		if !server.client.ApproveAccountLogin(credentialSource.RelyingParty.Name, credentialSource.User.DisplayName) {
+		if !server.client.ApproveAccountLogin(credentialSource) {
 			ctapLogger.Printf("ERROR: Unapproved action (Account login)")
 			return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
 		}
 	}
 
+	authData := ctapMakeAuthData(args.RpID, credentialSource, nil)
 	signature := sign(credentialSource.PrivateKey, flatten([][]byte{authData, args.ClientDataHash}))
 
 	response := CTAPGetAssertionResponse{

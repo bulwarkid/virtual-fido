@@ -7,13 +7,25 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
+	"log"
 	"math/big"
 	"time"
+
+	"github.com/fxamacker/cbor/v2"
 )
+
+var clientLogger *log.Logger = newLogger("[CLIENT] ", true)
 
 type ClientRequestApprover interface {
 	ApproveLogin(relyingParty string, username string) bool
 	ApproveAccountCreation(relyingParty string) bool
+}
+
+type ClientDataSaver interface {
+	SaveData(data []byte)
+	RetrieveData() []byte
+	Passphrase() string
 }
 
 type ClientCredentialSource struct {
@@ -35,7 +47,7 @@ func (source *ClientCredentialSource) ctapDescriptor() PublicKeyCredentialDescri
 
 type Client interface {
 	NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *ClientCredentialSource
-	GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource
+	GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *ClientCredentialSource
 
 	SealingEncryptionKey() []byte
 	NewPrivateKey() *ecdsa.PrivateKey
@@ -43,7 +55,7 @@ type Client interface {
 	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
 
 	ApproveAccountCreation(relyingParty string) bool
-	ApproveAccountLogin(relyingParty string, username string) bool
+	ApproveAccountLogin(credentialSource *ClientCredentialSource) bool
 }
 
 type ClientImpl struct {
@@ -53,9 +65,15 @@ type ClientImpl struct {
 	authenticationCounter uint32
 	credentialSources     []*ClientCredentialSource
 	requestApprover       ClientRequestApprover
+	dataSaver             ClientDataSaver
 }
 
-func NewClient(attestationCertificate []byte, certificatePrivateKey *ecdsa.PrivateKey, secretEncryptionKey [32]byte, requestApprover ClientRequestApprover) *ClientImpl {
+func NewClient(
+	attestationCertificate []byte,
+	certificatePrivateKey *ecdsa.PrivateKey,
+	secretEncryptionKey [32]byte,
+	requestApprover ClientRequestApprover,
+	dataSaver ClientDataSaver) *ClientImpl {
 	authorityCert, err := x509.ParseCertificate(attestationCertificate)
 	checkErr(err, "Could not parse authority CA cert")
 	return &ClientImpl{
@@ -64,6 +82,7 @@ func NewClient(attestationCertificate []byte, certificatePrivateKey *ecdsa.Priva
 		certPrivateKey:        certificatePrivateKey,
 		authenticationCounter: 1,
 		requestApprover:       requestApprover,
+		dataSaver:             dataSaver,
 	}
 }
 
@@ -84,10 +103,11 @@ func (client *ClientImpl) NewCredentialSource(relyingParty PublicKeyCredentialRp
 		SignatureCounter: 0,
 	}
 	client.credentialSources = append(client.credentialSources, &credentialSource)
+	client.saveData()
 	return &credentialSource
 }
 
-func (client *ClientImpl) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
+func (client *ClientImpl) getMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*ClientCredentialSource {
 	sources := make([]*ClientCredentialSource, 0)
 	for _, credentialSource := range client.credentialSources {
 		if credentialSource.RelyingParty.Id == relyingPartyID {
@@ -106,12 +126,26 @@ func (client *ClientImpl) GetMatchingCredentialSources(relyingPartyID string, al
 	return sources
 }
 
+func (client *ClientImpl) GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *ClientCredentialSource {
+	sources := client.getMatchingCredentialSources(relyingPartyID, allowList)
+	if len(sources) == 0 {
+		clientLogger.Printf("ERROR: No Credentials\n\n")
+		return nil
+	}
+
+	// TODO: Allow user to choose credential source
+	credentialSource := sources[0]
+	credentialSource.SignatureCounter++
+	client.saveData()
+	return credentialSource
+}
+
 func (client ClientImpl) ApproveAccountCreation(relyingParty string) bool {
 	return client.requestApprover.ApproveAccountCreation(relyingParty)
 }
 
-func (client ClientImpl) ApproveAccountLogin(relyingParty string, username string) bool {
-	return client.requestApprover.ApproveLogin(relyingParty, username)
+func (client ClientImpl) ApproveAccountLogin(credentialSource *ClientCredentialSource) bool {
+	return client.requestApprover.ApproveLogin(credentialSource.RelyingParty.Name, credentialSource.User.Name)
 }
 
 // -----------------------------
@@ -146,4 +180,100 @@ func (client *ClientImpl) CreateAttestationCertificiate(privateKey *ecdsa.Privat
 	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.certPrivateKey)
 	checkErr(err, "Could not generate attestation certificate")
 	return certBytes
+}
+
+type SavedClientCredentialSource struct {
+	Type             string
+	ID               []byte
+	PrivateKey       []byte
+	RelyingParty     PublicKeyCredentialRpEntity
+	User             PublicKeyCrendentialUserEntity
+	SignatureCounter int32
+}
+
+type SavedClientState struct {
+	DeviceEncryptionKey   []byte
+	CertificateAuthority  []byte
+	CertPrivateKey        []byte
+	AuthenticationCounter uint32
+	CredentialSources     []SavedClientCredentialSource
+}
+
+func (client *ClientImpl) exportData(passphrase string) []byte {
+	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
+	checkErr(err, "Could not marshal private key")
+	sources := make([]SavedClientCredentialSource, 0)
+	for _, source := range client.credentialSources {
+		key, err := x509.MarshalECPrivateKey(source.PrivateKey)
+		checkErr(err, "Could not marshall private key")
+		savedSource := SavedClientCredentialSource{
+			Type:             source.Type,
+			ID:               source.ID,
+			PrivateKey:       key,
+			RelyingParty:     source.RelyingParty,
+			User:             source.User,
+			SignatureCounter: source.SignatureCounter,
+		}
+		sources = append(sources, savedSource)
+	}
+	state := SavedClientState{
+		DeviceEncryptionKey:   client.deviceEncryptionKey,
+		CertificateAuthority:  client.certificateAuthority.Raw,
+		CertPrivateKey:        privKeyBytes,
+		AuthenticationCounter: client.authenticationCounter,
+		CredentialSources:     sources,
+	}
+	stateBytes, err := cbor.Marshal(state)
+	checkErr(err, "Could not encode CBOR")
+	blob := encryptWithPassphrase(passphrase, stateBytes)
+	output, err := cbor.Marshal(blob)
+	checkErr(err, "Could not encode CBOR")
+	return output
+}
+
+func (client *ClientImpl) importData(data []byte, passphrase string) error {
+	blob := PassphraseEncryptedBlob{}
+	err := cbor.Unmarshal(data, &blob)
+	checkErr(err, "Invalid passphrase blob")
+	stateBytes := decryptWithPassphrase(passphrase, blob)
+	state := SavedClientState{}
+	err = cbor.Unmarshal(stateBytes, &state)
+	checkErr(err, "Could not unmarshal saved data")
+	cert, err := x509.ParseCertificate(state.CertificateAuthority)
+	checkErr(err, "Could not parse x509 cert")
+	privateKey, err := x509.ParseECPrivateKey(state.CertPrivateKey)
+	checkErr(err, "Could not parse private key")
+	client.deviceEncryptionKey = state.DeviceEncryptionKey
+	client.certificateAuthority = cert
+	client.certPrivateKey = privateKey
+	client.authenticationCounter = state.AuthenticationCounter
+	client.credentialSources = make([]*ClientCredentialSource, 0)
+	for _, source := range state.CredentialSources {
+		key, err := x509.ParseECPrivateKey(source.PrivateKey)
+		if err != nil {
+			return fmt.Errorf("Invalid private key for source: %w", err)
+		}
+		decodedSource := ClientCredentialSource{
+			Type:             source.Type,
+			ID:               source.ID,
+			PrivateKey:       key,
+			RelyingParty:     source.RelyingParty,
+			User:             source.User,
+			SignatureCounter: source.SignatureCounter,
+		}
+		client.credentialSources = append(client.credentialSources, &decodedSource)
+	}
+	return nil
+}
+
+func (client *ClientImpl) saveData() {
+	data := client.exportData(client.dataSaver.Passphrase())
+	client.dataSaver.SaveData(data)
+}
+
+func (client *ClientImpl) loadData() {
+	data := client.dataSaver.RetrieveData()
+	if data != nil {
+		client.importData(data, client.dataSaver.Passphrase())
+	}
 }

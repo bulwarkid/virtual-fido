@@ -22,14 +22,15 @@ func prompt(prompt string) string {
 	fmt.Print("--> ")
 	response, err := reader.ReadString('\n')
 	if err != nil {
+		fmt.Printf("Could not read user input: %s - %s\n", response, err)
 		panic(err)
 	}
 	return response
 }
 
-type Approver struct{}
+type ClientSupport struct{}
 
-func (approver *Approver) ApproveAccountCreation(relyingParty string) bool {
+func (support *ClientSupport) ApproveAccountCreation(relyingParty string) bool {
 	response := prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", relyingParty))
 	response = strings.ToLower(strings.TrimSpace(response))
 	if response == "y" || response == "yes" {
@@ -38,13 +39,27 @@ func (approver *Approver) ApproveAccountCreation(relyingParty string) bool {
 	return false
 }
 
-func (approver *Approver) ApproveLogin(relyingParty string, username string) bool {
+func (support *ClientSupport) ApproveLogin(relyingParty string, username string) bool {
 	response := prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", relyingParty, username))
 	response = strings.ToLower(strings.TrimSpace(response))
 	if response == "y" || response == "yes" {
 		return true
 	}
 	return false
+}
+
+func (support *ClientSupport) SaveData(data []byte) {
+	// TODO: Implement
+}
+
+func (support *ClientSupport) RetrieveData() []byte {
+	// TODO: Implement
+	return nil
+}
+
+func (support *ClientSupport) Passphrase() string {
+	// TODO: Implement
+	return "test passphrase"
 }
 
 func main() {
@@ -75,7 +90,7 @@ func main() {
 	encryptionKey := sha256.Sum256([]byte("test"))
 
 	virtual_fido.SetLogOutput(os.Stdout)
-	approver := Approver{}
-	client := virtual_fido.NewClient(authorityCertBytes, privateKey, encryptionKey, &approver)
+	support := ClientSupport{}
+	client := virtual_fido.NewClient(authorityCertBytes, privateKey, encryptionKey, &support, &support)
 	virtual_fido.Start(client)
 }

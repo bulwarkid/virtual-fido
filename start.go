@@ -11,9 +11,9 @@ import (
 var wait *sync.WaitGroup = nil
 
 func run(args ...string) {
-	fmt.Printf("Starting program %#v\n", args)
 	prog := exec.Command(args[0], args[1:]...)
 	fmt.Printf("%#v %#v\n", prog, args[1:])
+	prog.Stdin = os.Stdin
 	prog.Stdout = os.Stdout
 	prog.Stderr = os.Stderr
 	err := prog.Run()
@@ -24,6 +24,7 @@ func run(args ...string) {
 }
 
 func main() {
+	wait = &sync.WaitGroup{}
 	wait.Add(2)
 	go run("go", "run", "demo/main.go")
 	time.Sleep(time.Millisecond * 500)
