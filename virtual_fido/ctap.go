@@ -137,12 +137,12 @@ type CTAPAuthData struct {
 	AttestedCredentialData *CTAPAttestedCredentialData
 }
 
-func ctapMakeAttestedCredentialData(credentialSource *ClientCredentialSource) []byte {
+func ctapMakeAttestedCredentialData(credentialSource *CredentialSource) []byte {
 	encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
 	return flatten([][]byte{AAGUID[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
 }
 
-func ctapMakeAuthData(rpID string, credentialSource *ClientCredentialSource, attestedCredentialData []byte) []byte {
+func ctapMakeAuthData(rpID string, credentialSource *CredentialSource, attestedCredentialData []byte) []byte {
 	rpIdHash := sha256.Sum256([]byte(rpID))
 	// TODO: Set flags according to actual user presence
 	flags := CTAP_AUTH_DATA_FLAG_USER_PRESENT
