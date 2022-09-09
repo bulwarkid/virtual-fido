@@ -37,6 +37,8 @@ type Client interface {
 
 	ApproveAccountCreation(relyingParty string) bool
 	ApproveAccountLogin(credentialSource *CredentialSource) bool
+
+	Identities() []CredentialSource
 }
 
 type ClientImpl struct {
@@ -214,4 +216,12 @@ func (client *ClientImpl) loadData() {
 	if data != nil {
 		client.importData(data, client.dataSaver.Passphrase())
 	}
+}
+
+func (client *ClientImpl) Identities() []CredentialSource {
+	sources := make([]CredentialSource, 0)
+	for _, source := range client.vault.credentialSources {
+		sources = append(sources, *source)
+	}
+	return sources
 }
