@@ -1,4 +1,4 @@
-package main
+package demo
 
 import (
 	"crypto/ecdsa"
@@ -14,9 +14,14 @@ import (
 	"strings"
 	"time"
 	"virtual_fido"
+
+	"github.com/spf13/cobra"
 )
 
-var vaultFilename string = "vault.data"
+var client virtual_fido.Client
+var vaultFilename string
+var vaultPassphrase string
+var identityID string
 
 func checkErr(err error, message string) {
 	if err != nil {
@@ -24,7 +29,8 @@ func checkErr(err error, message string) {
 	}
 }
 
-func listIdentities(client virtual_fido.Client) {
+func listIdentities(cmd *cobra.Command, args []string) {
+	client := createClient()
 	fmt.Printf("------- Identities in file '%s' -------\n", vaultFilename)
 	sources := client.Identities()
 	for _, source := range sources {
@@ -32,17 +38,17 @@ func listIdentities(client virtual_fido.Client) {
 	}
 }
 
-func deleteIdentity(client virtual_fido.Client, prefix string) {
+func deleteIdentity(cmd *cobra.Command, args []string) {
 	identities := client.Identities()
 	targetIDs := make([]*virtual_fido.CredentialSource, 0)
 	for _, id := range identities {
 		hexString := hex.EncodeToString(id.ID)
-		if strings.HasPrefix(hexString, prefix) {
+		if strings.HasPrefix(hexString, identityID) {
 			targetIDs = append(targetIDs, &id)
 		}
 	}
 	if len(targetIDs) > 1 {
-		fmt.Printf("Multiple identities with prefix (%s):\n", prefix)
+		fmt.Printf("Multiple identities with prefix (%s):\n", identityID)
 		for _, id := range targetIDs {
 			fmt.Printf("- (%s)\n", hex.EncodeToString(id.ID))
 		}
@@ -54,8 +60,13 @@ func deleteIdentity(client virtual_fido.Client, prefix string) {
 			fmt.Printf("Could not find (%s).\n", hex.EncodeToString(targetIDs[0].ID))
 		}
 	} else {
-		fmt.Printf("No identity found with prefix (%s)\n", prefix)
+		fmt.Printf("No identity found with prefix (%s)\n", identityID)
 	}
+}
+
+func start(cmd *cobra.Command, args []string) {
+	client := createClient()
+	runServer(client)
 }
 
 func createClient() virtual_fido.Client {
@@ -80,31 +91,57 @@ func createClient() virtual_fido.Client {
 	encryptionKey := sha256.Sum256([]byte("test"))
 
 	virtual_fido.SetLogOutput(os.Stdout)
-	support := ClientSupport{}
+	support := ClientSupport{vaultFilename: vaultFilename, vaultPassphrase: vaultPassphrase}
 	return virtual_fido.NewClient(authorityCertBytes, privateKey, encryptionKey, &support, &support)
 }
 
 func printUsage(message string) {
-	fmt.Printf("Incorrect Usage: %s", message)
-	fmt.Printf("Usage: go run start.go [command]\n")
+	fmt.Printf("Incorrect Usage: %s\n", message)
+	fmt.Printf("Usage: go run start.go [command] [flags]\n")
 	fmt.Printf("\tCommand: start\n")
 	fmt.Printf("\tCommand: list\n")
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		printUsage("Not enough arguments")
-		return
+var rootCmd = &cobra.Command{
+	Use:   "demo",
+	Short: "Run Virtual FIDO demo",
+	Long:  `demo attaches a virtual FIDO2 device for logging in with WebAuthN`,
+}
+
+func init() {
+	rootCmd.PersistentFlags().StringVarP(&vaultFilename, "vault", "", "vault.data", "Identity vault filename")
+	rootCmd.PersistentFlags().StringVarP(&vaultPassphrase, "passphrase", "", "passphrase", "Identity vault passphrase")
+	rootCmd.MarkFlagRequired("vault")
+	rootCmd.MarkFlagRequired("passphrase")
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	start := &cobra.Command{
+		Use:   "start",
+		Short: "Attach virtual FIDO device",
+		Run:   start,
 	}
-	client := createClient()
-	switch os.Args[1] {
-	case "start":
-		runServer(client)
-	case "list":
-		listIdentities(client)
-	case "delete":
-		deleteIdentity(client, os.Args[2])
-	default:
-		fmt.Printf("Unknown command: \"%s\"", os.Args[1])
+	rootCmd.AddCommand(start)
+
+	list := &cobra.Command{
+		Use:   "list",
+		Short: "List identities in vault",
+		Run:   listIdentities,
+	}
+	rootCmd.AddCommand(list)
+
+	delete := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete identity in vault",
+		Run:   deleteIdentity,
+	}
+	delete.Flags().StringVarP(&identityID, "identity", "", "", "Identity hash to delete")
+	delete.MarkFlagRequired("identity")
+	rootCmd.AddCommand(delete)
+}
+
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

@@ -1,4 +1,4 @@
-package main
+package demo
 
 import (
 	"bufio"
@@ -24,7 +24,10 @@ func prompt(prompt string) string {
 	return response
 }
 
-type ClientSupport struct{}
+type ClientSupport struct {
+	vaultFilename   string
+	vaultPassphrase string
+}
 
 func (support *ClientSupport) ApproveAccountCreation(relyingParty string) bool {
 	response := prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", relyingParty))
@@ -45,16 +48,14 @@ func (support *ClientSupport) ApproveLogin(relyingParty string, username string)
 }
 
 func (support *ClientSupport) SaveData(data []byte) {
-	// TODO: Implement ability to set file name
-	f, err := os.OpenFile(vaultFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	f, err := os.OpenFile(support.vaultFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	checkErr(err, "Could not open vault file")
 	_, err = f.Write(data)
 	checkErr(err, "Could not write vault data")
 }
 
 func (support *ClientSupport) RetrieveData() []byte {
-	// TODO: Implement ability to set file name
-	f, err := os.Open(vaultFilename)
+	f, err := os.Open(support.vaultFilename)
 	if os.IsNotExist(err) {
 		return nil
 	}
@@ -65,8 +66,7 @@ func (support *ClientSupport) RetrieveData() []byte {
 }
 
 func (support *ClientSupport) Passphrase() string {
-	// TODO: Implement
-	return "test passphrase"
+	return support.vaultPassphrase
 }
 
 func runServer(client virtual_fido.Client) {
