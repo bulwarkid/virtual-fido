@@ -18,7 +18,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var client virtual_fido.Client
 var vaultFilename string
 var vaultPassphrase string
 var identityID string
@@ -39,6 +38,7 @@ func listIdentities(cmd *cobra.Command, args []string) {
 }
 
 func deleteIdentity(cmd *cobra.Command, args []string) {
+	client := createClient()
 	identities := client.Identities()
 	targetIDs := make([]*virtual_fido.CredentialSource, 0)
 	for _, id := range identities {
