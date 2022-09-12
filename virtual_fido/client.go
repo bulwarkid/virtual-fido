@@ -39,6 +39,7 @@ type Client interface {
 	ApproveAccountLogin(credentialSource *CredentialSource) bool
 
 	Identities() []CredentialSource
+	DeleteIdentity(id []byte) bool
 }
 
 type ClientImpl struct {
@@ -224,4 +225,12 @@ func (client *ClientImpl) Identities() []CredentialSource {
 		sources = append(sources, *source)
 	}
 	return sources
+}
+
+func (client *ClientImpl) DeleteIdentity(id []byte) bool {
+	success := client.vault.deleteIdentity(id)
+	if success {
+		client.saveData()
+	}
+	return success
 }

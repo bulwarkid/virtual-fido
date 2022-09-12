@@ -39,6 +39,17 @@ func (vault *IdentityVault) addIdentity(source *CredentialSource) {
 	vault.credentialSources = append(vault.credentialSources, source)
 }
 
+func (vault *IdentityVault) deleteIdentity(id []byte) bool {
+	for i, source := range vault.credentialSources {
+		if bytes.Equal(source.ID, id) {
+			vault.credentialSources[i] = vault.credentialSources[len(vault.credentialSources)-1]
+			vault.credentialSources = vault.credentialSources[:len(vault.credentialSources)-1]
+			return true
+		}
+	}
+	return false
+}
+
 func (vault *IdentityVault) getMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*CredentialSource {
 	sources := make([]*CredentialSource, 0)
 	for _, credentialSource := range vault.credentialSources {
