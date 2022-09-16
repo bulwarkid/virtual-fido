@@ -9,7 +9,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-var u2fLogger = newLogger("[U2F] ", true)
+var u2fLogger = newLogger("[U2F] ", false)
 
 type U2FCommand uint8
 

@@ -9,7 +9,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-var ctapLogger = newLogger("[CTAP] ", true)
+var ctapLogger = newLogger("[CTAP] ", false)
 
 var AAGUID = [16]byte{117, 108, 90, 245, 236, 166, 1, 163, 47, 198, 211, 12, 226, 242, 1, 197}
 

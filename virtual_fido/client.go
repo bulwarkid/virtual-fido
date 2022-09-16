@@ -13,7 +13,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-var clientLogger *log.Logger = newLogger("[CLIENT] ", true)
+var clientLogger *log.Logger = newLogger("[CLIENT] ", false)
 
 type ClientRequestApprover interface {
 	ApproveLogin(relyingParty string, username string) bool

@@ -3,6 +3,7 @@ package virtual_fido
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"syscall"
 )
@@ -28,6 +29,11 @@ func (server *USBIPServer) start() {
 	for {
 		connection, err := listener.Accept()
 		checkErr(err, "Connection accept error")
+		if !strings.HasPrefix(connection.RemoteAddr().String(), "127.0.0.1") {
+			usbipLogger.Printf("Connection attempted from non-local address: %s", connection.RemoteAddr().String())
+			connection.Close()
+			continue
+		}
 		server.handleConnection(&connection)
 	}
 }
