@@ -76,10 +76,6 @@ func NewClient(
 	return client
 }
 
-func (client ClientImpl) SealingEncryptionKey() []byte {
-	return client.deviceEncryptionKey
-}
-
 func (client *ClientImpl) NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
 	credentialID := read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -130,6 +126,10 @@ func (client ClientImpl) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
 // -----------------------------
 // U2F Methods
 // -----------------------------
+
+func (client ClientImpl) SealingEncryptionKey() []byte {
+	return client.deviceEncryptionKey
+}
 
 func (client *ClientImpl) NewPrivateKey() *ecdsa.PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

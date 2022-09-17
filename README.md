@@ -1,5 +1,7 @@
 # Virtual FIDO
 
+_Note: Virtual FIDO is currently in beta, so it should not yet be used for security-critical products._
+
 Virtual FIDO is a virtual USB device that implements the FIDO2/U2F protocol (like a YubiKey) in order to support 2FA and WebAuthN.
 
 ## Features
