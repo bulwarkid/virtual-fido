@@ -151,6 +151,10 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 	keyHandle := server.sealKeyHandle(&unencryptedKeyHandle)
 	u2fLogger.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
 
+	if !server.client.ApproveU2FRegistration(&unencryptedKeyHandle) {
+		return toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)
+	}
+
 	cert := server.client.CreateAttestationCertificiate(privateKey)
 
 	signatureDataBytes := flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
@@ -160,7 +164,6 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 }
 
 func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request []byte) []byte {
-	// TODO: Check user presence
 	requestReader := bytes.NewBuffer(request)
 	control := U2FAuthenticateControl(header.Param1)
 	challenge := read(requestReader, 32)
@@ -171,17 +174,25 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 	keyHandle := server.openKeyHandle(encryptedKeyHandleBytes)
 	if keyHandle.PrivateKey == nil || bytes.Compare(keyHandle.ApplicationID, application) != 0 {
 		u2fLogger.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
-		return flatten([][]byte{toBE(U2F_SW_WRONG_DATA)})
+		return toBE(U2F_SW_WRONG_DATA)
 	}
 	privateKey, err := x509.ParseECPrivateKey(keyHandle.PrivateKey)
 	checkErr(err, "Could not decode private key")
 
 	if control == U2F_AUTH_CONTROL_CHECK_ONLY {
-		return flatten([][]byte{toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)})
-	} else {
+		return toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)
+	} else if control == U2F_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN || control == U2F_AUTH_CONTROL_SIGN {
+		if control == U2F_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN {
+			if !server.client.ApproveU2FAuthentication(keyHandle) {
+				return toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)
+			}
+		}
 		counter := server.client.NewAuthenticationCounterId()
 		signatureDataBytes := flatten([][]byte{application, {1}, toBE(counter), challenge})
 		signature := sign(privateKey, signatureDataBytes)
 		return flatten([][]byte{{1}, toBE(counter), signature, toBE(U2F_SW_NO_ERROR)})
+	} else {
+		// No error specific to invalid control byte, so return WRONG_LENGTH to indicate data error
+		return toBE(U2F_SW_WRONG_LENGTH)
 	}
 }

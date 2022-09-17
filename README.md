@@ -12,7 +12,7 @@ Virtual FIDO is a virtual USB device that implements the FIDO2/U2F protocol (lik
 
 ## How it works
 
-Virtual FIDO creates a USB/IP server over local TCP in order to attach a virtual USB device. This USB device then emulates the USB/CTAP protocol to provide U2F/FIDO services to the host computer. In the demo, credentials created by the virtual device are stored to a local file and approvals are done using the terminal.
+Virtual FIDO creates a USB/IP server over local TCP in order to attach a virtual USB device. This USB device then emulates the USB/CTAP protocols to provide U2F/FIDO services to the host computer. In the demo, credentials created by the virtual device are stored to a local file and approvals are done using the terminal.
 
 ## Demo Usage
 

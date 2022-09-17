@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"log"
 	"math/big"
 	"time"
@@ -37,6 +38,8 @@ type Client interface {
 
 	ApproveAccountCreation(relyingParty string) bool
 	ApproveAccountLogin(credentialSource *CredentialSource) bool
+	ApproveU2FRegistration(keyHandle *KeyHandle) bool
+	ApproveU2FAuthentication(keyHandle *KeyHandle) bool
 
 	Identities() []CredentialSource
 	DeleteIdentity(id []byte) bool
@@ -114,6 +117,14 @@ func (client ClientImpl) ApproveAccountCreation(relyingParty string) bool {
 
 func (client ClientImpl) ApproveAccountLogin(credentialSource *CredentialSource) bool {
 	return client.requestApprover.ApproveLogin(credentialSource.RelyingParty.Name, credentialSource.User.Name)
+}
+
+func (client ClientImpl) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
+	return client.requestApprover.ApproveAccountCreation(hex.EncodeToString(keyHandle.ApplicationID))
+}
+
+func (client ClientImpl) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
+	return client.requestApprover.ApproveLogin(hex.EncodeToString(keyHandle.ApplicationID), hex.EncodeToString(keyHandle.PrivateKey))
 }
 
 // -----------------------------
