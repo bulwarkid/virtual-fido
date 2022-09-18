@@ -1,2 +1,8 @@
+go.work
+go.work.sum
+/virtual-fido
+/virtual-fido.exe
+/vfido-demo
+/vfido-demo.exe
 /target
 vault.data

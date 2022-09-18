@@ -1,4 +1,4 @@
-package virtual_fido
+package vfido
 
 import (
 	"crypto/ecdsa"
@@ -245,18 +245,18 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 type CTAPGetInfoOptions struct {
 	IsPlatform     bool `cbor:"plat,omitempty"`
 	CanResidentKey bool `cbor:"rk,omitempty"`
-	//CanClientPin        bool `cbor:"clientPin,omitempty"`
+	// CanClientPin        bool `cbor:"clientPin,omitempty"`
 	CanUserPresence     bool `cbor:"up,omitempty"`
 	CanUserVerification bool `cbor:"uv,omitempty"`
 }
 
 type CTAPGetInfoResponse struct {
 	Versions []string `cbor:"1,keyasint,omitempty"`
-	//Extensions []string `cbor:"2,keyasint,omitempty"`
+	// Extensions []string `cbor:"2,keyasint,omitempty"`
 	AAGUID  [16]byte           `cbor:"3,keyasint,omitempty"`
 	Options CTAPGetInfoOptions `cbor:"4,keyasint,omitempty"`
-	//MaxMessageSize uint32   `cbor:"5,keyasint,omitempty"`
-	//PinProtocols   []uint32 `cbor:"6,keyasint,omitempty"`
+	// MaxMessageSize uint32   `cbor:"5,keyasint,omitempty"`
+	// PinProtocols   []uint32 `cbor:"6,keyasint,omitempty"`
 }
 
 func (server *CTAPServer) handleGetInfo(data []byte) []byte {
@@ -284,11 +284,11 @@ type CTAPGetAssertionArgs struct {
 }
 
 type CTAPGetAssertionResponse struct {
-	//Credential          *PublicKeyCredentialDescriptor  `cbor:"1,keyasint,omitempty"`
+	// Credential          *PublicKeyCredentialDescriptor  `cbor:"1,keyasint,omitempty"`
 	AuthenticatorData []byte `cbor:"2,keyasint"`
 	Signature         []byte `cbor:"3,keyasint"`
-	//User                *PublicKeyCrendentialUserEntity `cbor:"4,keyasint,omitempty"`
-	//NumberOfCredentials int32 `cbor:"5,keyasint"`
+	// User                *PublicKeyCrendentialUserEntity `cbor:"4,keyasint,omitempty"`
+	// NumberOfCredentials int32 `cbor:"5,keyasint"`
 }
 
 func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
@@ -316,11 +316,11 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	signature := sign(credentialSource.PrivateKey, flatten([][]byte{authData, args.ClientDataHash}))
 
 	response := CTAPGetAssertionResponse{
-		//Credential:          credentialSource.ctapDescriptor(),
+		// Credential:          credentialSource.ctapDescriptor(),
 		AuthenticatorData: authData,
 		Signature:         signature,
-		//User:                credentialSource.User,
-		//NumberOfCredentials: 1,
+		// User:                credentialSource.User,
+		// NumberOfCredentials: 1,
 	}
 	responseBytes, err := cbor.Marshal(response)
 	checkErr(err, "Could not encode response in CBOR")

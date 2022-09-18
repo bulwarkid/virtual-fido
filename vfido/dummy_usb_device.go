@@ -1,4 +1,4 @@
-package virtual_fido
+package vfido
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ type DummyUSBDevice struct{}
 func (device *DummyUSBDevice) removeWaitingRequest(id uint32) bool {
 	return false
 }
+
 func (device *DummyUSBDevice) usbipSummary() USBIPDeviceSummary {
 	return USBIPDeviceSummary{
 		Header:          device.usbipSummaryHeader(),
@@ -92,7 +93,7 @@ func (device *DummyUSBDevice) handleControlMessage(setup USBSetupPacket, transfe
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
 	case USB_REQUEST_SET_CONFIGURATION:
-		//fmt.Printf("SET_CONFIGURATION: No-op\n\n")
+		// fmt.Printf("SET_CONFIGURATION: No-op\n\n")
 		// TODO: Handle configuration changes
 		// No-op since we can't change configuration
 		return

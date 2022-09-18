@@ -1,4 +1,4 @@
-package virtual_fido
+package vfido
 
 import (
 	"crypto/ecdsa"
@@ -60,7 +60,8 @@ func NewClient(
 	certificatePrivateKey *ecdsa.PrivateKey,
 	secretEncryptionKey [32]byte,
 	requestApprover ClientRequestApprover,
-	dataSaver ClientDataSaver) *ClientImpl {
+	dataSaver ClientDataSaver,
+) *ClientImpl {
 	authorityCert, err := x509.ParseCertificate(attestationCertificate)
 	checkErr(err, "Could not parse authority CA cert")
 	client := &ClientImpl{

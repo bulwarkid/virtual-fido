@@ -1,4 +1,4 @@
-package virtual_fido
+package vfido
 
 import (
 	"bytes"
@@ -63,7 +63,7 @@ func toBE[T any](val T) []byte {
 }
 
 func write(writer io.Writer, data []byte) {
-	//fmt.Printf("\tWRITE: [%d]byte{%v}\n", len(data), data)
+	// fmt.Printf("\tWRITE: [%d]byte{%v}\n", len(data), data)
 	_, err := writer.Write(data)
 	checkErr(err, "Could not write data")
 }

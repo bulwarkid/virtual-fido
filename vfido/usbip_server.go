@@ -1,4 +1,4 @@
-package virtual_fido
+package vfido
 
 import (
 	"fmt"
@@ -62,7 +62,7 @@ func (server *USBIPServer) handleConnection(conn *net.Conn) {
 
 func (server *USBIPServer) handleCommands(conn *net.Conn) {
 	for {
-		//fmt.Printf("--------------------------------------------\n\n")
+		// fmt.Printf("--------------------------------------------\n\n")
 		header := readBE[USBIPMessageHeader](*conn)
 		usbipLogger.Printf("[MESSAGE HEADER] %s\n\n", header)
 		if header.Command == USBIP_COMMAND_SUBMIT {

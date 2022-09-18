@@ -1,4 +1,4 @@
-package virtual_fido
+package vfido
 
 import (
 	"bytes"
@@ -222,7 +222,8 @@ func (device *USBDeviceImpl) usbipInterfacesSummary() USBIPDeviceInterface {
 
 func (device *USBDeviceImpl) handleDeviceRequest(
 	setup USBSetupPacket,
-	transferBuffer []byte) {
+	transferBuffer []byte,
+) {
 	switch setup.BRequest {
 	case USB_REQUEST_GET_DESCRIPTOR:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)

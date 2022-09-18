@@ -1,4 +1,4 @@
-package virtual_fido
+package vfido
 
 func Start(client Client) {
 	ctapServer := newCTAPServer(client)
