@@ -18,6 +18,14 @@ Virtual FIDO creates a USB/IP server over local TCP to attach a virtual USB devi
 
 ## Demo Usage
 
-The demo is currently set up to run on Windows, though the demo could work on Linux by removing the call to `usbip.exe` and running the USB/IP attachment manually (see https://wiki.archlinux.org/title/USB/IP). Run `go run main.go start` to attach the USB device. Run `go run main.go --help` to see more commands, namely to list or delete credentials from the file.
+Go to the [YubiKey test page](https://demo.yubico.com/webauthn-technical/registration) in order to test WebAuthN.
 
-Go to the [YubiKey test page](https://demo.yubico.com/webauthn-technical/registration) to test WebAuthN.
+### Windows
+
+Run `go run main.go start` to attach the USB device. Run `go run main.go --help` to see more commands, such as to list or delete credentials from the file.
+
+### Linux
+
+1. Run `sudo modprobe vhci-hcd` to
+2. Run `sudo go run main.go start` to start up the USB device server.
+3. Run `sudo usbip attach -r 127.0.0.1 -b 2-2` to attach the USB device.
