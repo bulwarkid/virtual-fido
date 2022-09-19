@@ -26,6 +26,7 @@ Run `go run main.go start` to attach the USB device. Run `go run main.go --help`
 
 ### Linux
 
-1. Run `sudo modprobe vhci-hcd` to
-2. Run `sudo go run main.go start` to start up the USB device server.
-3. Run `sudo usbip attach -r 127.0.0.1 -b 2-2` to attach the USB device.
+Note that this tool requires elevated permissions.
+
+1. Run `sudo modprobe vhci-hcd` to load the necessary drivers.
+2. Run `sudo go run main.go start` to start up the USB device server. Authenticate when `sudo` prompts you; this is necessary to attach the device.
