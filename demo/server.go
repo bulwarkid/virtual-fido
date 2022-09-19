@@ -13,7 +13,7 @@ import (
 	"virtual_fido"
 )
 
-func prompt(prompt string) string {
+func prompt(prompt string) bool {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println(prompt)
 	fmt.Print("--> ")
@@ -22,16 +22,6 @@ func prompt(prompt string) string {
 		fmt.Printf("Could not read user input: %s - %s\n", response, err)
 		panic(err)
 	}
-	return response
-}
-
-type ClientSupport struct {
-	vaultFilename   string
-	vaultPassphrase string
-}
-
-func (support *ClientSupport) ApproveAccountCreation(relyingParty string) bool {
-	response := prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", relyingParty))
 	response = strings.ToLower(strings.TrimSpace(response))
 	if response == "y" || response == "yes" {
 		return true
@@ -39,12 +29,23 @@ func (support *ClientSupport) ApproveAccountCreation(relyingParty string) bool {
 	return false
 }
 
-func (support *ClientSupport) ApproveLogin(relyingParty string, username string) bool {
-	response := prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", relyingParty, username))
-	response = strings.ToLower(strings.TrimSpace(response))
-	if response == "y" || response == "yes" {
-		return true
+type ClientSupport struct {
+	vaultFilename   string
+	vaultPassphrase string
+}
+
+func (support *ClientSupport) ApproveClientAction(action virtual_fido.ClientAction, params virtual_fido.ClientActionRequestParams) bool {
+	switch action {
+	case virtual_fido.CLIENT_ACTION_FIDO_GET_ASSERTION:
+		return prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", params.RelyingParty, params.UserName))
+	case virtual_fido.CLIENT_ACTION_FIDO_MAKE_CREDENTIAL:
+		return prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", params.RelyingParty))
+	case virtual_fido.CLIENT_ACTION_U2F_AUTHENTICATE:
+		return prompt("Approve registration of U2F device (Y/n)?")
+	case virtual_fido.CLIENT_ACTION_U2F_REGISTER:
+		return prompt("Approve use of U2F device (Y/n)?")
 	}
+	fmt.Printf("Unknown client action for approval: %d\n", action)
 	return false
 }
 

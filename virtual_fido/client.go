@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/hex"
 	"log"
 	"math/big"
 	"time"
@@ -14,11 +13,24 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
+type ClientAction uint8
+
+type ClientActionRequestParams struct {
+	RelyingParty string
+	UserName string
+}
+
+const (
+	CLIENT_ACTION_U2F_REGISTER ClientAction = 0
+	CLIENT_ACTION_U2F_AUTHENTICATE ClientAction = 1
+	CLIENT_ACTION_FIDO_MAKE_CREDENTIAL ClientAction = 2
+	CLIENT_ACTION_FIDO_GET_ASSERTION ClientAction = 3
+)
+
 var clientLogger *log.Logger = newLogger("[CLIENT] ", false)
 
 type ClientRequestApprover interface {
-	ApproveLogin(relyingParty string, username string) bool
-	ApproveAccountCreation(relyingParty string) bool
+	ApproveClientAction(action ClientAction, params ClientActionRequestParams) bool
 }
 
 type ClientDataSaver interface {
@@ -108,19 +120,28 @@ func (client *ClientImpl) GetAssertionSource(relyingPartyID string, allowList []
 }
 
 func (client ClientImpl) ApproveAccountCreation(relyingParty string) bool {
-	return client.requestApprover.ApproveAccountCreation(relyingParty)
+	params := ClientActionRequestParams{
+		RelyingParty: relyingParty,
+	}
+	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_FIDO_MAKE_CREDENTIAL, params)
 }
 
 func (client ClientImpl) ApproveAccountLogin(credentialSource *CredentialSource) bool {
-	return client.requestApprover.ApproveLogin(credentialSource.RelyingParty.Name, credentialSource.User.Name)
+	params := ClientActionRequestParams{
+		RelyingParty: credentialSource.RelyingParty.Name,
+		UserName: credentialSource.User.Name,
+	}
+	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_FIDO_GET_ASSERTION, params)
 }
 
 func (client ClientImpl) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
-	return client.requestApprover.ApproveAccountCreation(hex.EncodeToString(keyHandle.ApplicationID))
+	params := ClientActionRequestParams{}
+	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_REGISTER, params)
 }
 
 func (client ClientImpl) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
-	return client.requestApprover.ApproveLogin(hex.EncodeToString(keyHandle.ApplicationID), hex.EncodeToString(keyHandle.PrivateKey))
+	params := ClientActionRequestParams{}
+	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_AUTHENTICATE, params)
 }
 
 // -----------------------------
