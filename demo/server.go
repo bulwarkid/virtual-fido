@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -78,19 +76,17 @@ func runServer(client virtual_fido.Client) {
 		virtual_fido.Start(client)
 		wg.Done()
 	}()
-	if runtime.GOOS == "windows" {
-		go func() {
-			time.Sleep(500 * time.Millisecond)
-			prog := exec.Command("./usbip/usbip.exe", "attach", "-r", "127.0.0.1", "-b", "2-2")
-			prog.Stdin = os.Stdin
-			prog.Stdout = os.Stdout
-			prog.Stderr = os.Stderr
-			err := prog.Run()
-			if err != nil {
-				fmt.Printf("Error: %s\n", err)
-			}
-			wg.Done()
-		}()
-	}
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		prog := platformUsbIPExec()
+		prog.Stdin = os.Stdin
+		prog.Stdout = os.Stdout
+		prog.Stderr = os.Stderr
+		err := prog.Run()
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+		}
+		wg.Done()
+	}()
 	wg.Wait()
 }
