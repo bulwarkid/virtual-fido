@@ -78,7 +78,7 @@ func runServer(client virtual_fido.Client) {
 	}()
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		prog := platformUsbIPExec()
+		prog := platformUSBIPExec()
 		prog.Stdin = os.Stdin
 		prog.Stdout = os.Stdout
 		prog.Stderr = os.Stderr
