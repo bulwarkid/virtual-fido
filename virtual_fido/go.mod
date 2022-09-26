@@ -1,4 +1,4 @@
-module virtual_fido
+module github.com/bulwarkid/virtual-fido/virtual_fido
 
 go 1.18
 
