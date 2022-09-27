@@ -1,4 +1,4 @@
-package demo
+package main
 
 import (
 	"crypto/ecdsa"
@@ -13,8 +13,8 @@ import (
 	"os"
 	"strings"
 	"time"
-	"virtual_fido"
 
+	"github.com/bulwarkid/virtual-fido/virtual_fido"
 	"github.com/spf13/cobra"
 )
 
@@ -139,7 +139,7 @@ func init() {
 	rootCmd.AddCommand(delete)
 }
 
-func Execute() {
+func main() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

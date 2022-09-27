@@ -1,6 +1,8 @@
 //go:build windows
 
-package demo
+package main
+
+import "os/exec"
 
 // Execute USB IP attach for Windows
 func platformUSBIPExec() *exec.Cmd {

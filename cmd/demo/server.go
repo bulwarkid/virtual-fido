@@ -1,4 +1,4 @@
-package demo
+package main
 
 import (
 	"bufio"
@@ -8,7 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"virtual_fido"
+
+	"github.com/bulwarkid/virtual-fido/virtual_fido"
 )
 
 func prompt(prompt string) bool {

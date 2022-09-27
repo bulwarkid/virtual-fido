@@ -1,6 +1,6 @@
-//go:build linux
+//go:build linux || darwin
 
-package demo
+package main
 
 import "os/exec"
 
