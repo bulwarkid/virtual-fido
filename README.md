@@ -22,11 +22,11 @@ Go to the [YubiKey test page](https://demo.yubico.com/webauthn-technical/registr
 
 ### Windows
 
-Run `go run main.go start` to attach the USB device. Run `go run main.go --help` to see more commands, such as to list or delete credentials from the file.
+Run `go run cmd/demo start` to attach the USB device. Run `go run cmd/demo --help` to see more commands, such as to list or delete credentials from the file.
 
 ### Linux
 
 Note that this tool requires elevated permissions.
 
 1. Run `sudo modprobe vhci-hcd` to load the necessary drivers.
-2. Run `sudo go run main.go start` to start up the USB device server. Authenticate when `sudo` prompts you; this is necessary to attach the device.
+2. Run `sudo go run cmd/demo start` to start up the USB device server. Authenticate when `sudo` prompts you; this is necessary to attach the device.

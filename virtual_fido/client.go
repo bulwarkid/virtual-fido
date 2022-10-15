@@ -17,14 +17,14 @@ type ClientAction uint8
 
 type ClientActionRequestParams struct {
 	RelyingParty string
-	UserName string
+	UserName     string
 }
 
 const (
-	CLIENT_ACTION_U2F_REGISTER ClientAction = 0
-	CLIENT_ACTION_U2F_AUTHENTICATE ClientAction = 1
+	CLIENT_ACTION_U2F_REGISTER         ClientAction = 0
+	CLIENT_ACTION_U2F_AUTHENTICATE     ClientAction = 1
 	CLIENT_ACTION_FIDO_MAKE_CREDENTIAL ClientAction = 2
-	CLIENT_ACTION_FIDO_GET_ASSERTION ClientAction = 3
+	CLIENT_ACTION_FIDO_GET_ASSERTION   ClientAction = 3
 )
 
 var clientLogger *log.Logger = newLogger("[CLIENT] ", false)
@@ -129,7 +129,7 @@ func (client ClientImpl) ApproveAccountCreation(relyingParty string) bool {
 func (client ClientImpl) ApproveAccountLogin(credentialSource *CredentialSource) bool {
 	params := ClientActionRequestParams{
 		RelyingParty: credentialSource.RelyingParty.Name,
-		UserName: credentialSource.User.Name,
+		UserName:     credentialSource.User.Name,
 	}
 	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_FIDO_GET_ASSERTION, params)
 }
