@@ -3,6 +3,8 @@ package virtual_fido
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"fmt"
 
@@ -33,6 +35,22 @@ type IdentityVault struct {
 func newIdentityVault() *IdentityVault {
 	sources := make([]*CredentialSource, 0)
 	return &IdentityVault{credentialSources: sources}
+}
+
+func (vault *IdentityVault) newIdentity(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
+	credentialID := read(rand.Reader, 16)
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	checkErr(err, "Could not generate private key")
+	credentialSource := CredentialSource{
+		Type:             "public-key",
+		ID:               credentialID,
+		PrivateKey:       privateKey,
+		RelyingParty:     relyingParty,
+		User:             user,
+		SignatureCounter: 0,
+	}
+	vault.addIdentity(&credentialSource)
+	return &credentialSource
 }
 
 func (vault *IdentityVault) addIdentity(source *CredentialSource) {

@@ -89,20 +89,9 @@ func NewClient(
 }
 
 func (client *ClientImpl) NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
-	credentialID := read(rand.Reader, 16)
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	checkErr(err, "Could not generate private key")
-	credentialSource := CredentialSource{
-		Type:             "public-key",
-		ID:               credentialID,
-		PrivateKey:       privateKey,
-		RelyingParty:     relyingParty,
-		User:             user,
-		SignatureCounter: 0,
-	}
-	client.vault.addIdentity(&credentialSource)
+	newSource := client.vault.newIdentity(relyingParty, user)
 	client.saveData()
-	return &credentialSource
+	return newSource
 }
 
 func (client *ClientImpl) GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *CredentialSource {
@@ -132,16 +121,6 @@ func (client ClientImpl) ApproveAccountLogin(credentialSource *CredentialSource)
 		UserName:     credentialSource.User.Name,
 	}
 	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_FIDO_GET_ASSERTION, params)
-}
-
-func (client ClientImpl) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
-	params := ClientActionRequestParams{}
-	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_REGISTER, params)
-}
-
-func (client ClientImpl) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
-	params := ClientActionRequestParams{}
-	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_AUTHENTICATE, params)
 }
 
 // -----------------------------
@@ -180,6 +159,16 @@ func (client *ClientImpl) CreateAttestationCertificiate(privateKey *ecdsa.Privat
 	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.certPrivateKey)
 	checkErr(err, "Could not generate attestation certificate")
 	return certBytes
+}
+
+func (client ClientImpl) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
+	params := ClientActionRequestParams{}
+	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_REGISTER, params)
+}
+
+func (client ClientImpl) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
+	params := ClientActionRequestParams{}
+	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_AUTHENTICATE, params)
 }
 
 type SavedCredentialSource struct {
