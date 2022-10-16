@@ -70,7 +70,7 @@ func (support *ClientSupport) Passphrase() string {
 	return support.vaultPassphrase
 }
 
-func runServer(client virtual_fido.Client) {
+func runServer(client virtual_fido.FIDOClient) {
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go func() {

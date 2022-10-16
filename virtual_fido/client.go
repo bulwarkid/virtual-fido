@@ -39,7 +39,7 @@ type ClientDataSaver interface {
 	Passphrase() string
 }
 
-type Client interface {
+type FIDOClient interface {
 	NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource
 	GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *CredentialSource
 
@@ -52,12 +52,9 @@ type Client interface {
 	ApproveAccountLogin(credentialSource *CredentialSource) bool
 	ApproveU2FRegistration(keyHandle *KeyHandle) bool
 	ApproveU2FAuthentication(keyHandle *KeyHandle) bool
-
-	Identities() []CredentialSource
-	DeleteIdentity(id []byte) bool
 }
 
-type ClientImpl struct {
+type DefaultFIDOClient struct {
 	deviceEncryptionKey   []byte
 	certificateAuthority  *x509.Certificate
 	certPrivateKey        *ecdsa.PrivateKey
@@ -72,10 +69,10 @@ func NewClient(
 	certificatePrivateKey *ecdsa.PrivateKey,
 	secretEncryptionKey [32]byte,
 	requestApprover ClientRequestApprover,
-	dataSaver ClientDataSaver) *ClientImpl {
+	dataSaver ClientDataSaver) *DefaultFIDOClient {
 	authorityCert, err := x509.ParseCertificate(attestationCertificate)
 	checkErr(err, "Could not parse authority CA cert")
-	client := &ClientImpl{
+	client := &DefaultFIDOClient{
 		deviceEncryptionKey:   secretEncryptionKey[:],
 		certificateAuthority:  authorityCert,
 		certPrivateKey:        certificatePrivateKey,
@@ -88,13 +85,13 @@ func NewClient(
 	return client
 }
 
-func (client *ClientImpl) NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
+func (client *DefaultFIDOClient) NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
 	newSource := client.vault.newIdentity(relyingParty, user)
 	client.saveData()
 	return newSource
 }
 
-func (client *ClientImpl) GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *CredentialSource {
+func (client *DefaultFIDOClient) GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *CredentialSource {
 	sources := client.vault.getMatchingCredentialSources(relyingPartyID, allowList)
 	if len(sources) == 0 {
 		clientLogger.Printf("ERROR: No Credentials\n\n")
@@ -108,14 +105,14 @@ func (client *ClientImpl) GetAssertionSource(relyingPartyID string, allowList []
 	return credentialSource
 }
 
-func (client ClientImpl) ApproveAccountCreation(relyingParty string) bool {
+func (client DefaultFIDOClient) ApproveAccountCreation(relyingParty string) bool {
 	params := ClientActionRequestParams{
 		RelyingParty: relyingParty,
 	}
 	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_FIDO_MAKE_CREDENTIAL, params)
 }
 
-func (client ClientImpl) ApproveAccountLogin(credentialSource *CredentialSource) bool {
+func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *CredentialSource) bool {
 	params := ClientActionRequestParams{
 		RelyingParty: credentialSource.RelyingParty.Name,
 		UserName:     credentialSource.User.Name,
@@ -127,23 +124,23 @@ func (client ClientImpl) ApproveAccountLogin(credentialSource *CredentialSource)
 // U2F Methods
 // -----------------------------
 
-func (client ClientImpl) SealingEncryptionKey() []byte {
+func (client DefaultFIDOClient) SealingEncryptionKey() []byte {
 	return client.deviceEncryptionKey
 }
 
-func (client *ClientImpl) NewPrivateKey() *ecdsa.PrivateKey {
+func (client *DefaultFIDOClient) NewPrivateKey() *ecdsa.PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
 	return privateKey
 }
 
-func (client *ClientImpl) NewAuthenticationCounterId() uint32 {
+func (client *DefaultFIDOClient) NewAuthenticationCounterId() uint32 {
 	num := client.authenticationCounter
 	client.authenticationCounter++
 	return num
 }
 
-func (client *ClientImpl) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
+func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
 	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
 	templateCert := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
@@ -161,12 +158,12 @@ func (client *ClientImpl) CreateAttestationCertificiate(privateKey *ecdsa.Privat
 	return certBytes
 }
 
-func (client ClientImpl) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
+func (client DefaultFIDOClient) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
 	params := ClientActionRequestParams{}
 	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_REGISTER, params)
 }
 
-func (client ClientImpl) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
+func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
 	params := ClientActionRequestParams{}
 	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_AUTHENTICATE, params)
 }
@@ -188,7 +185,7 @@ type SavedClientState struct {
 	CredentialSources     []byte
 }
 
-func (client *ClientImpl) exportData(passphrase string) []byte {
+func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
 	checkErr(err, "Could not marshal private key")
 	identityData := client.vault.exportToBytes()
@@ -207,7 +204,7 @@ func (client *ClientImpl) exportData(passphrase string) []byte {
 	return output
 }
 
-func (client *ClientImpl) importData(data []byte, passphrase string) error {
+func (client *DefaultFIDOClient) importData(data []byte, passphrase string) error {
 	blob := PassphraseEncryptedBlob{}
 	err := cbor.Unmarshal(data, &blob)
 	checkErr(err, "Invalid passphrase blob")
@@ -228,19 +225,19 @@ func (client *ClientImpl) importData(data []byte, passphrase string) error {
 	return nil
 }
 
-func (client *ClientImpl) saveData() {
+func (client *DefaultFIDOClient) saveData() {
 	data := client.exportData(client.dataSaver.Passphrase())
 	client.dataSaver.SaveData(data)
 }
 
-func (client *ClientImpl) loadData() {
+func (client *DefaultFIDOClient) loadData() {
 	data := client.dataSaver.RetrieveData()
 	if data != nil {
 		client.importData(data, client.dataSaver.Passphrase())
 	}
 }
 
-func (client *ClientImpl) Identities() []CredentialSource {
+func (client *DefaultFIDOClient) Identities() []CredentialSource {
 	sources := make([]CredentialSource, 0)
 	for _, source := range client.vault.credentialSources {
 		sources = append(sources, *source)
@@ -248,7 +245,7 @@ func (client *ClientImpl) Identities() []CredentialSource {
 	return sources
 }
 
-func (client *ClientImpl) DeleteIdentity(id []byte) bool {
+func (client *DefaultFIDOClient) DeleteIdentity(id []byte) bool {
 	success := client.vault.deleteIdentity(id)
 	if success {
 		client.saveData()

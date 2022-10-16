@@ -155,10 +155,10 @@ func ctapMakeAuthData(rpID string, credentialSource *CredentialSource, attestedC
 }
 
 type CTAPServer struct {
-	client Client
+	client FIDOClient
 }
 
-func newCTAPServer(client Client) *CTAPServer {
+func newCTAPServer(client FIDOClient) *CTAPServer {
 	return &CTAPServer{client: client}
 }
 

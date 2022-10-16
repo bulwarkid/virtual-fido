@@ -60,10 +60,10 @@ func (header U2FMessageHeader) String() string {
 }
 
 type U2FServer struct {
-	client Client
+	client FIDOClient
 }
 
-func newU2FServer(client Client) *U2FServer {
+func newU2FServer(client FIDOClient) *U2FServer {
 	return &U2FServer{client: client}
 }
 

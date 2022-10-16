@@ -69,7 +69,7 @@ func start(cmd *cobra.Command, args []string) {
 	runServer(client)
 }
 
-func createClient() virtual_fido.Client {
+func createClient() *virtual_fido.DefaultFIDOClient {
 	// ALL OF THIS IS INSECURE, FOR TESTING PURPOSES ONLY
 	authority := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
