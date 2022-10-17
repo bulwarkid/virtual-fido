@@ -88,11 +88,11 @@ func (vault *IdentityVault) getMatchingCredentialSources(relyingPartyID string, 
 }
 
 func (vault *IdentityVault) exportToBytes() []byte {
-	sources := make([]SavedCredentialSource, 0)
+	sources := make([]savedCredentialSource, 0)
 	for _, source := range vault.credentialSources {
 		key, err := x509.MarshalECPrivateKey(source.PrivateKey)
 		checkErr(err, "Could not marshall private key")
-		savedSource := SavedCredentialSource{
+		savedSource := savedCredentialSource{
 			Type:             source.Type,
 			ID:               source.ID,
 			PrivateKey:       key,
@@ -108,7 +108,7 @@ func (vault *IdentityVault) exportToBytes() []byte {
 }
 
 func (vault *IdentityVault) importFromBytes(data []byte) error {
-	sources := make([]SavedCredentialSource, 0)
+	sources := make([]savedCredentialSource, 0)
 	err := cbor.Unmarshal(data, &sources)
 	if err != nil {
 		return fmt.Errorf("Invalid bytes for importing identities: %w", err)

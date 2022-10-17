@@ -32,7 +32,7 @@ func decrypt(key []byte, data []byte, nonce []byte) []byte {
 	return decryptedData
 }
 
-type PassphraseEncryptedBlob struct {
+type passphraseEncryptedBlob struct {
 	Salt          []byte
 	EncryptedKey  []byte
 	KeyNonce      []byte
@@ -40,14 +40,14 @@ type PassphraseEncryptedBlob struct {
 	DataNonce     []byte
 }
 
-func encryptWithPassphrase(passphrase string, data []byte) PassphraseEncryptedBlob {
+func encryptWithPassphrase(passphrase string, data []byte) passphraseEncryptedBlob {
 	salt := read(rand.Reader, 16)
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
 	checkErr(err, "Could not create key encryption key")
 	encryptionKey := read(rand.Reader, 32)
 	encryptedKey, keyNonce := encrypt(keyEncryptionKey, encryptionKey)
 	encryptedData, dataNonce := encrypt(encryptionKey, data)
-	return PassphraseEncryptedBlob{
+	return passphraseEncryptedBlob{
 		Salt:          salt,
 		EncryptedKey:  encryptedKey,
 		KeyNonce:      keyNonce,
@@ -56,7 +56,7 @@ func encryptWithPassphrase(passphrase string, data []byte) PassphraseEncryptedBl
 	}
 }
 
-func decryptWithPassphrase(passphrase string, blob PassphraseEncryptedBlob) []byte {
+func decryptWithPassphrase(passphrase string, blob passphraseEncryptedBlob) []byte {
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), blob.Salt, 32768, 8, 1, 32)
 	checkErr(err, "Could not create key encryption key")
 	encryptionKey := decrypt(keyEncryptionKey, blob.EncryptedKey, blob.KeyNonce)
@@ -75,16 +75,16 @@ func verify(key *ecdsa.PublicKey, data []byte, signature []byte) bool {
 	return ecdsa.VerifyASN1(key, hash[:], signature)
 }
 
-type EncryptedBox struct {
+type encryptedBox struct {
 	Data []byte `cbor:"1,keyasint"`
 	IV   []byte `cbor:"2,keyasint"`
 }
 
-func seal(key []byte, data []byte) EncryptedBox {
+func seal(key []byte, data []byte) encryptedBox {
 	encryptedData, iv := encrypt(key, data)
-	return EncryptedBox{Data: encryptedData, IV: iv}
+	return encryptedBox{Data: encryptedData, IV: iv}
 }
 
-func open(key []byte, box EncryptedBox) []byte {
+func open(key []byte, box encryptedBox) []byte {
 	return decrypt(key, box.Data, box.IV)
 }

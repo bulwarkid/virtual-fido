@@ -35,13 +35,13 @@ type ClientSupport struct {
 
 func (support *ClientSupport) ApproveClientAction(action virtual_fido.ClientAction, params virtual_fido.ClientActionRequestParams) bool {
 	switch action {
-	case virtual_fido.CLIENT_ACTION_FIDO_GET_ASSERTION:
+	case virtual_fido.ClientActionFIDOGetAssertion:
 		return prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", params.RelyingParty, params.UserName))
-	case virtual_fido.CLIENT_ACTION_FIDO_MAKE_CREDENTIAL:
+	case virtual_fido.ClientActionFIDOMakeCredential:
 		return prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", params.RelyingParty))
-	case virtual_fido.CLIENT_ACTION_U2F_AUTHENTICATE:
+	case virtual_fido.ClientActionU2FAuthenticate:
 		return prompt("Approve registration of U2F device (Y/n)?")
-	case virtual_fido.CLIENT_ACTION_U2F_REGISTER:
+	case virtual_fido.ClientActionU2FRegister:
 		return prompt("Approve use of U2F device (Y/n)?")
 	}
 	fmt.Printf("Unknown client action for approval: %d\n", action)

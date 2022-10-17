@@ -21,10 +21,10 @@ type ClientActionRequestParams struct {
 }
 
 const (
-	CLIENT_ACTION_U2F_REGISTER         ClientAction = 0
-	CLIENT_ACTION_U2F_AUTHENTICATE     ClientAction = 1
-	CLIENT_ACTION_FIDO_MAKE_CREDENTIAL ClientAction = 2
-	CLIENT_ACTION_FIDO_GET_ASSERTION   ClientAction = 3
+	ClientActionU2FRegister         ClientAction = 0
+	ClientActionU2FAuthenticate     ClientAction = 1
+	ClientActionFIDOMakeCredential ClientAction = 2
+	ClientActionFIDOGetAssertion   ClientAction = 3
 )
 
 var clientLogger *log.Logger = newLogger("[CLIENT] ", false)
@@ -109,7 +109,7 @@ func (client DefaultFIDOClient) ApproveAccountCreation(relyingParty string) bool
 	params := ClientActionRequestParams{
 		RelyingParty: relyingParty,
 	}
-	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_FIDO_MAKE_CREDENTIAL, params)
+	return client.requestApprover.ApproveClientAction(ClientActionFIDOMakeCredential, params)
 }
 
 func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *CredentialSource) bool {
@@ -117,7 +117,7 @@ func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *Credential
 		RelyingParty: credentialSource.RelyingParty.Name,
 		UserName:     credentialSource.User.Name,
 	}
-	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_FIDO_GET_ASSERTION, params)
+	return client.requestApprover.ApproveClientAction(ClientActionFIDOGetAssertion, params)
 }
 
 // -----------------------------
@@ -160,15 +160,15 @@ func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa
 
 func (client DefaultFIDOClient) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
 	params := ClientActionRequestParams{}
-	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_REGISTER, params)
+	return client.requestApprover.ApproveClientAction(ClientActionU2FRegister, params)
 }
 
 func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
 	params := ClientActionRequestParams{}
-	return client.requestApprover.ApproveClientAction(CLIENT_ACTION_U2F_AUTHENTICATE, params)
+	return client.requestApprover.ApproveClientAction(ClientActionU2FAuthenticate, params)
 }
 
-type SavedCredentialSource struct {
+type savedCredentialSource struct {
 	Type             string
 	ID               []byte
 	PrivateKey       []byte
@@ -177,7 +177,7 @@ type SavedCredentialSource struct {
 	SignatureCounter int32
 }
 
-type SavedClientState struct {
+type savedClientState struct {
 	DeviceEncryptionKey   []byte
 	CertificateAuthority  []byte
 	CertPrivateKey        []byte
@@ -189,7 +189,7 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
 	checkErr(err, "Could not marshal private key")
 	identityData := client.vault.exportToBytes()
-	state := SavedClientState{
+	state := savedClientState{
 		DeviceEncryptionKey:   client.deviceEncryptionKey,
 		CertificateAuthority:  client.certificateAuthority.Raw,
 		CertPrivateKey:        privKeyBytes,
@@ -205,11 +205,11 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 }
 
 func (client *DefaultFIDOClient) importData(data []byte, passphrase string) error {
-	blob := PassphraseEncryptedBlob{}
+	blob := passphraseEncryptedBlob{}
 	err := cbor.Unmarshal(data, &blob)
 	checkErr(err, "Invalid passphrase blob")
 	stateBytes := decryptWithPassphrase(passphrase, blob)
-	state := SavedClientState{}
+	state := savedClientState{}
 	err = cbor.Unmarshal(stateBytes, &state)
 	checkErr(err, "Could not unmarshal saved data")
 	cert, err := x509.ParseCertificate(state.CertificateAuthority)

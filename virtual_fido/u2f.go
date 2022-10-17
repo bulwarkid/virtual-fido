@@ -11,65 +11,65 @@ import (
 
 var u2fLogger = newLogger("[U2F] ", false)
 
-type U2FCommand uint8
+type u2fCommand uint8
 
 const (
-	U2F_COMMAND_REGISTER     U2FCommand = 0x01
-	U2F_COMMAND_AUTHENTICATE U2FCommand = 0x02
-	U2F_COMMAND_VERSION      U2FCommand = 0x03
+	u2f_COMMAND_REGISTER     u2fCommand = 0x01
+	u2f_COMMAND_AUTHENTICATE u2fCommand = 0x02
+	u2f_COMMAND_VERSION      u2fCommand = 0x03
 )
 
-var u2fCommandDescriptions = map[U2FCommand]string{
-	U2F_COMMAND_REGISTER:     "U2F_COMMAND_REGISTER",
-	U2F_COMMAND_AUTHENTICATE: "U2F_COMMAND_AUTHENTICATE",
-	U2F_COMMAND_VERSION:      "U2F_COMMAND_VERSION",
+var u2fCommandDescriptions = map[u2fCommand]string{
+	u2f_COMMAND_REGISTER:     "u2f_COMMAND_REGISTER",
+	u2f_COMMAND_AUTHENTICATE: "u2f_COMMAND_AUTHENTICATE",
+	u2f_COMMAND_VERSION:      "u2f_COMMAND_VERSION",
 }
 
-type U2FStatusWord uint16
+type u2fStatusWord uint16
 
 const (
-	U2F_SW_NO_ERROR                 U2FStatusWord = 0x9000
-	U2F_SW_CONDITIONS_NOT_SATISFIED U2FStatusWord = 0x6985
-	U2F_SW_WRONG_DATA               U2FStatusWord = 0x6A80
-	U2F_SW_WRONG_LENGTH             U2FStatusWord = 0x6700
-	U2F_SW_CLA_NOT_SUPPORTED        U2FStatusWord = 0x6E00
-	U2F_SW_INS_NOT_SUPPORTED        U2FStatusWord = 0x6D00
+	u2f_SW_NO_ERROR                 u2fStatusWord = 0x9000
+	u2f_SW_CONDITIONS_NOT_SATISFIED u2fStatusWord = 0x6985
+	u2f_SW_WRONG_DATA               u2fStatusWord = 0x6A80
+	u2f_SW_WRONG_LENGTH             u2fStatusWord = 0x6700
+	u2f_SW_CLA_NOT_SUPPORTED        u2fStatusWord = 0x6E00
+	u2f_SW_INS_NOT_SUPPORTED        u2fStatusWord = 0x6D00
 )
 
-type U2FAuthenticateControl uint8
+type u2fAuthenticateControl uint8
 
 const (
-	U2F_AUTH_CONTROL_CHECK_ONLY                     U2FAuthenticateControl = 0x07
-	U2F_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN U2FAuthenticateControl = 0x03
-	U2F_AUTH_CONTROL_SIGN                           U2FAuthenticateControl = 0x08
+	u2f_AUTH_CONTROL_CHECK_ONLY                     u2fAuthenticateControl = 0x07
+	u2f_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN u2fAuthenticateControl = 0x03
+	u2f_AUTH_CONTROL_SIGN                           u2fAuthenticateControl = 0x08
 )
 
-type U2FMessageHeader struct {
+type u2fMessageHeader struct {
 	Cla     uint8
-	Command U2FCommand
+	Command u2fCommand
 	Param1  uint8
 	Param2  uint8
 }
 
-func (header U2FMessageHeader) String() string {
-	return fmt.Sprintf("U2FMessageHeader{ Cla: 0x%x, Command: %s, Param1: %d, Param2: %d }",
+func (header u2fMessageHeader) String() string {
+	return fmt.Sprintf("u2fMessageHeader{ Cla: 0x%x, Command: %s, Param1: %d, Param2: %d }",
 		header.Cla,
 		u2fCommandDescriptions[header.Command],
 		header.Param1,
 		header.Param2)
 }
 
-type U2FServer struct {
+type u2fServer struct {
 	client FIDOClient
 }
 
-func newU2FServer(client FIDOClient) *U2FServer {
-	return &U2FServer{client: client}
+func newU2FServer(client FIDOClient) *u2fServer {
+	return &u2fServer{client: client}
 }
 
-func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
+func decodeU2FMessage(messageBytes []byte) (u2fMessageHeader, []byte, uint16) {
 	buffer := bytes.NewBuffer(messageBytes)
-	header := readBE[U2FMessageHeader](buffer)
+	header := readBE[u2fMessageHeader](buffer)
 	if buffer.Len() == 0 {
 		// No reqest length, no reponse length
 		return header, []byte{}, 0
@@ -93,16 +93,16 @@ func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 	return header, request, responseLength
 }
 
-func (server *U2FServer) handleU2FMessage(message []byte) []byte {
+func (server *u2fServer) handleU2FMessage(message []byte) []byte {
 	header, request, responseLength := decodeU2FMessage(message)
 	u2fLogger.Printf("U2F MESSAGE: Header: %s Request: %#v Reponse Length: %d\n\n", header, request, responseLength)
 	var response []byte
 	switch header.Command {
-	case U2F_COMMAND_VERSION:
-		response = append([]byte("U2F_V2"), toBE(U2F_SW_NO_ERROR)...)
-	case U2F_COMMAND_REGISTER:
+	case u2f_COMMAND_VERSION:
+		response = append([]byte("u2f_V2"), toBE(u2f_SW_NO_ERROR)...)
+	case u2f_COMMAND_REGISTER:
 		response = server.handleU2FRegister(header, request)
-	case U2F_COMMAND_AUTHENTICATE:
+	case u2f_COMMAND_AUTHENTICATE:
 		response = server.handleU2FAuthenticate(header, request)
 	default:
 		panic(fmt.Sprintf("Invalid U2F Command: %#v", header))
@@ -116,7 +116,7 @@ type KeyHandle struct {
 	ApplicationID []byte `cbor:"2,keyasint"`
 }
 
-func (server *U2FServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
+func (server *u2fServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
 	data, err := cbor.Marshal(keyHandle)
 	checkErr(err, "Could not encode key handle")
 	box := seal(server.client.SealingEncryptionKey(), data)
@@ -125,8 +125,8 @@ func (server *U2FServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
 	return boxBytes
 }
 
-func (server *U2FServer) openKeyHandle(boxBytes []byte) *KeyHandle {
-	var box EncryptedBox
+func (server *u2fServer) openKeyHandle(boxBytes []byte) *KeyHandle {
+	var box encryptedBox
 	err := cbor.Unmarshal(boxBytes, &box)
 	checkErr(err, "Could not decode encrypted box")
 	data := open(server.client.SealingEncryptionKey(), box)
@@ -136,7 +136,7 @@ func (server *U2FServer) openKeyHandle(boxBytes []byte) *KeyHandle {
 	return &keyHandle
 }
 
-func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []byte) []byte {
+func (server *u2fServer) handleU2FRegister(header u2fMessageHeader, request []byte) []byte {
 	challenge := request[:32]
 	application := request[32:]
 	assert(len(challenge) == 32, "Challenge is not 32 bytes")
@@ -152,7 +152,7 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 	u2fLogger.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
 
 	if !server.client.ApproveU2FRegistration(&unencryptedKeyHandle) {
-		return toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)
+		return toBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
 	}
 
 	cert := server.client.CreateAttestationCertificiate(privateKey)
@@ -160,12 +160,12 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 	signatureDataBytes := flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
 	signature := sign(privateKey, signatureDataBytes)
 
-	return flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, toBE(U2F_SW_NO_ERROR)})
+	return flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, toBE(u2f_SW_NO_ERROR)})
 }
 
-func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request []byte) []byte {
+func (server *u2fServer) handleU2FAuthenticate(header u2fMessageHeader, request []byte) []byte {
 	requestReader := bytes.NewBuffer(request)
-	control := U2FAuthenticateControl(header.Param1)
+	control := u2fAuthenticateControl(header.Param1)
 	challenge := read(requestReader, 32)
 	application := read(requestReader, 32)
 
@@ -174,25 +174,25 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 	keyHandle := server.openKeyHandle(encryptedKeyHandleBytes)
 	if keyHandle.PrivateKey == nil || bytes.Compare(keyHandle.ApplicationID, application) != 0 {
 		u2fLogger.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
-		return toBE(U2F_SW_WRONG_DATA)
+		return toBE(u2f_SW_WRONG_DATA)
 	}
 	privateKey, err := x509.ParseECPrivateKey(keyHandle.PrivateKey)
 	checkErr(err, "Could not decode private key")
 
-	if control == U2F_AUTH_CONTROL_CHECK_ONLY {
-		return toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)
-	} else if control == U2F_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN || control == U2F_AUTH_CONTROL_SIGN {
-		if control == U2F_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN {
+	if control == u2f_AUTH_CONTROL_CHECK_ONLY {
+		return toBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
+	} else if control == u2f_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN || control == u2f_AUTH_CONTROL_SIGN {
+		if control == u2f_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN {
 			if !server.client.ApproveU2FAuthentication(keyHandle) {
-				return toBE(U2F_SW_CONDITIONS_NOT_SATISFIED)
+				return toBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
 			}
 		}
 		counter := server.client.NewAuthenticationCounterId()
 		signatureDataBytes := flatten([][]byte{application, {1}, toBE(counter), challenge})
 		signature := sign(privateKey, signatureDataBytes)
-		return flatten([][]byte{{1}, toBE(counter), signature, toBE(U2F_SW_NO_ERROR)})
+		return flatten([][]byte{{1}, toBE(counter), signature, toBE(u2f_SW_NO_ERROR)})
 	} else {
 		// No error specific to invalid control byte, so return WRONG_LENGTH to indicate data error
-		return toBE(U2F_SW_WRONG_LENGTH)
+		return toBE(u2f_SW_WRONG_LENGTH)
 	}
 }

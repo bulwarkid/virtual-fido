@@ -7,33 +7,33 @@ import (
 	"unsafe"
 )
 
-type USBDevice interface {
-	handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte)
+type usbDevice interface {
+	handleMessage(id uint32, onFinish func(), endpoint uint32, setup usbSetupPacket, transferBuffer []byte)
 	removeWaitingRequest(id uint32) bool
-	usbipSummary() USBIPDeviceSummary
-	usbipSummaryHeader() USBIPDeviceSummaryHeader
+	usbipSummary() usbipDeviceSummary
+	usbipSummaryHeader() usbipDeviceSummaryHeader
 }
 
 var usbLogger = newLogger("[USB] ", false)
 
-type USBDeviceImpl struct {
+type usbDeviceImpl struct {
 	Index         int
-	CTAPHIDServer *CTAPHIDServer
+	ctapHIDServer *ctapHIDServer
 	outputLock    sync.Locker
 }
 
-func newUSBDevice(ctapHIDServer *CTAPHIDServer) *USBDeviceImpl {
-	return &USBDeviceImpl{
+func newUSBDevice(ctapHIDServer *ctapHIDServer) *usbDeviceImpl {
+	return &usbDeviceImpl{
 		Index:         0,
-		CTAPHIDServer: ctapHIDServer,
+		ctapHIDServer: ctapHIDServer,
 		outputLock:    &sync.Mutex{},
 	}
 }
 
-func (device *USBDeviceImpl) getDeviceDescriptor() USBDeviceDescriptor {
-	return USBDeviceDescriptor{
-		BLength:            sizeOf[USBDeviceDescriptor](),
-		BDescriptorType:    USB_DESCRIPTOR_DEVICE,
+func (device *usbDeviceImpl) getDeviceDescriptor() usbDeviceDescriptor {
+	return usbDeviceDescriptor{
+		BLength:            sizeOf[usbDeviceDescriptor](),
+		BDescriptorType:    usb_DESCRIPTOR_DEVICE,
 		BcdUSB:             0x0110,
 		BDeviceClass:       0,
 		BDeviceSubclass:    0,
@@ -49,60 +49,60 @@ func (device *USBDeviceImpl) getDeviceDescriptor() USBDeviceDescriptor {
 	}
 }
 
-func (device *USBDeviceImpl) getConfigurationDescriptor() USBConfigurationDescriptor {
-	totalLength := uint16(sizeOf[USBConfigurationDescriptor]()) +
-		uint16(sizeOf[USBInterfaceDescriptor]()) +
-		uint16(sizeOf[USBHIDDescriptor]()) +
-		uint16(2*sizeOf[USBEndpointDescriptor]())
-	return USBConfigurationDescriptor{
-		BLength:             sizeOf[USBConfigurationDescriptor](),
-		BDescriptorType:     USB_DESCRIPTOR_CONFIGURATION,
+func (device *usbDeviceImpl) getConfigurationDescriptor() usbConfigurationDescriptor {
+	totalLength := uint16(sizeOf[usbConfigurationDescriptor]()) +
+		uint16(sizeOf[usbInterfaceDescriptor]()) +
+		uint16(sizeOf[usbHIDDescriptor]()) +
+		uint16(2*sizeOf[usbEndpointDescriptor]())
+	return usbConfigurationDescriptor{
+		BLength:             sizeOf[usbConfigurationDescriptor](),
+		BDescriptorType:     usb_DESCRIPTOR_CONFIGURATION,
 		WTotalLength:        totalLength,
 		BNumInterfaces:      1,
 		BConfigurationValue: 0,
 		IConfiguration:      4,
-		BmAttributes:        USB_CONFIG_ATTR_BASE | USB_CONFIG_ATTR_SELF_POWERED,
+		BmAttributes:        usb_CONFIG_ATTR_BASE | usb_CONFIG_ATTR_SELF_POWERED,
 		BMaxPower:           0,
 	}
 }
 
-func (device *USBDeviceImpl) getInterfaceDescriptor() USBInterfaceDescriptor {
-	return USBInterfaceDescriptor{
-		BLength:            sizeOf[USBInterfaceDescriptor](),
-		BDescriptorType:    USB_DESCRIPTOR_INTERFACE,
+func (device *usbDeviceImpl) getInterfaceDescriptor() usbInterfaceDescriptor {
+	return usbInterfaceDescriptor{
+		BLength:            sizeOf[usbInterfaceDescriptor](),
+		BDescriptorType:    usb_DESCRIPTOR_INTERFACE,
 		BInterfaceNumber:   0,
 		BAlternateSetting:  0,
 		BNumEndpoints:      2,
-		BInterfaceClass:    USB_INTERFACE_CLASS_HID,
+		BInterfaceClass:    usb_INTERFACE_CLASS_HID,
 		BInterfaceSubclass: 0,
 		BInterfaceProtocol: 0,
 		IInterface:         5,
 	}
 }
 
-func (device *USBDeviceImpl) getHIDDescriptor(hidReportDescriptor []byte) USBHIDDescriptor {
-	return USBHIDDescriptor{
-		BLength:                 sizeOf[USBHIDDescriptor](),
-		BDescriptorType:         USB_DESCRIPTOR_HID,
+func (device *usbDeviceImpl) getHIDDescriptor(hidReportDescriptor []byte) usbHIDDescriptor {
+	return usbHIDDescriptor{
+		BLength:                 sizeOf[usbHIDDescriptor](),
+		BDescriptorType:         usb_DESCRIPTOR_HID,
 		BcdHID:                  0x0101,
 		BCountryCode:            0,
 		BNumDescriptors:         1,
-		BClassDescriptorType:    USB_DESCRIPTOR_HID_REPORT,
+		BClassDescriptorType:    usb_DESCRIPTOR_HID_REPORT,
 		WReportDescriptorLength: uint16(len(hidReportDescriptor)),
 	}
 }
 
-func (device *USBDeviceImpl) getHIDReport() []byte {
+func (device *usbDeviceImpl) getHIDReport() []byte {
 	// Manually calculated using the HID Report calculator for a FIDO device
 	return []byte{6, 208, 241, 9, 1, 161, 1, 9, 32, 20, 37, 255, 117, 8, 149, 64, 129, 2, 9, 33, 20, 37, 255, 117, 8, 149, 64, 145, 2, 192}
 }
 
-func (device *USBDeviceImpl) getEndpointDescriptors() []USBEndpointDescriptor {
-	length := sizeOf[USBEndpointDescriptor]()
-	return []USBEndpointDescriptor{
+func (device *usbDeviceImpl) getEndpointDescriptors() []usbEndpointDescriptor {
+	length := sizeOf[usbEndpointDescriptor]()
+	return []usbEndpointDescriptor{
 		{
 			BLength:          length,
-			BDescriptorType:  USB_DESCRIPTOR_ENDPOINT,
+			BDescriptorType:  usb_DESCRIPTOR_ENDPOINT,
 			BEndpointAddress: 0b10000001,
 			BmAttributes:     0b00000011,
 			WMaxPacketSize:   64,
@@ -110,7 +110,7 @@ func (device *USBDeviceImpl) getEndpointDescriptors() []USBEndpointDescriptor {
 		},
 		{
 			BLength:          length,
-			BDescriptorType:  USB_DESCRIPTOR_ENDPOINT,
+			BDescriptorType:  usb_DESCRIPTOR_ENDPOINT,
 			BEndpointAddress: 0b00000010,
 			BmAttributes:     0b00000011,
 			WMaxPacketSize:   64,
@@ -119,7 +119,7 @@ func (device *USBDeviceImpl) getEndpointDescriptors() []USBEndpointDescriptor {
 	}
 }
 
-func (device *USBDeviceImpl) getStringDescriptor(index uint8) []byte {
+func (device *usbDeviceImpl) getStringDescriptor(index uint8) []byte {
 	switch index {
 	case 1:
 		return utf16encode("No Company")
@@ -136,14 +136,14 @@ func (device *USBDeviceImpl) getStringDescriptor(index uint8) []byte {
 	}
 }
 
-func (device *USBDeviceImpl) getDescriptor(descriptorType USBDescriptorType, index uint8) []byte {
+func (device *usbDeviceImpl) getDescriptor(descriptorType usbDescriptorType, index uint8) []byte {
 	usbLogger.Printf("GET DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], index)
 	switch descriptorType {
-	case USB_DESCRIPTOR_DEVICE:
+	case usb_DESCRIPTOR_DEVICE:
 		descriptor := device.getDeviceDescriptor()
 		usbLogger.Printf("DEVICE DESCRIPTOR: %#v\n\n", descriptor)
 		return toLE(descriptor)
-	case USB_DESCRIPTOR_CONFIGURATION:
+	case usb_DESCRIPTOR_CONFIGURATION:
 		hidReport := device.getHIDReport()
 		buffer := new(bytes.Buffer)
 		config := device.getConfigurationDescriptor()
@@ -159,18 +159,18 @@ func (device *USBDeviceImpl) getDescriptor(descriptorType USBDescriptorType, ind
 			buffer.Write(toLE(endpoint))
 		}
 		return buffer.Bytes()
-	case USB_DESCRIPTOR_STRING:
+	case usb_DESCRIPTOR_STRING:
 		var message []byte
 		if index == 0 {
-			message = toLE[uint16](USB_LANGID_ENG_USA)
+			message = toLE[uint16](usb_LANGID_ENG_USA)
 		} else {
 			message = device.getStringDescriptor(index)
 		}
-		var header USBStringDescriptorHeader
+		var header usbStringDescriptorHeader
 		length := uint8(unsafe.Sizeof(header)) + uint8(len(message))
-		header = USBStringDescriptorHeader{
+		header = usbStringDescriptorHeader{
 			BLength:         length,
-			BDescriptorType: USB_DESCRIPTOR_STRING,
+			BDescriptorType: usb_DESCRIPTOR_STRING,
 		}
 		buffer := new(bytes.Buffer)
 		buffer.Write(toLE(header))
@@ -182,19 +182,19 @@ func (device *USBDeviceImpl) getDescriptor(descriptorType USBDescriptorType, ind
 	}
 }
 
-func (device *USBDeviceImpl) usbipSummary() USBIPDeviceSummary {
-	return USBIPDeviceSummary{
+func (device *usbDeviceImpl) usbipSummary() usbipDeviceSummary {
+	return usbipDeviceSummary{
 		Header:          device.usbipSummaryHeader(),
 		DeviceInterface: device.usbipInterfacesSummary(),
 	}
 }
 
-func (device *USBDeviceImpl) usbipSummaryHeader() USBIPDeviceSummaryHeader {
+func (device *usbDeviceImpl) usbipSummaryHeader() usbipDeviceSummaryHeader {
 	path := [256]byte{}
 	copy(path[:], []byte("/device/"+fmt.Sprint(device.Index)))
 	busId := [32]byte{}
 	copy(busId[:], []byte("2-2"))
-	return USBIPDeviceSummaryHeader{
+	return usbipDeviceSummaryHeader{
 		Path:                path,
 		BusId:               busId,
 		Busnum:              2,
@@ -212,46 +212,46 @@ func (device *USBDeviceImpl) usbipSummaryHeader() USBIPDeviceSummaryHeader {
 	}
 }
 
-func (device *USBDeviceImpl) usbipInterfacesSummary() USBIPDeviceInterface {
-	return USBIPDeviceInterface{
+func (device *usbDeviceImpl) usbipInterfacesSummary() usbipDeviceInterface {
+	return usbipDeviceInterface{
 		BInterfaceClass:    3,
 		BInterfaceSubclass: 0,
 		Padding:            0,
 	}
 }
 
-func (device *USBDeviceImpl) handleDeviceRequest(
-	setup USBSetupPacket,
+func (device *usbDeviceImpl) handleDeviceRequest(
+	setup usbSetupPacket,
 	transferBuffer []byte) {
 	switch setup.BRequest {
-	case USB_REQUEST_GET_DESCRIPTOR:
+	case usb_REQUEST_GET_DESCRIPTOR:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
-	case USB_REQUEST_SET_CONFIGURATION:
+	case usb_REQUEST_SET_CONFIGURATION:
 		usbLogger.Printf("SET_CONFIGURATION: No-op\n\n")
 		// TODO: Handle configuration changes
 		// No-op since we can't change configuration
 		return
-	case USB_REQUEST_GET_STATUS:
+	case usb_REQUEST_GET_STATUS:
 		copy(transferBuffer, []byte{1})
 	default:
 		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
 	}
 }
 
-func (device *USBDeviceImpl) handleInterfaceRequest(setup USBSetupPacket, transferBuffer []byte) {
-	switch USBHIDRequestType(setup.BRequest) {
-	case USB_HID_REQUEST_SET_IDLE:
+func (device *usbDeviceImpl) handleInterfaceRequest(setup usbSetupPacket, transferBuffer []byte) {
+	switch usbHIDRequestType(setup.BRequest) {
+	case usb_HID_REQUEST_SET_IDLE:
 		// No-op since we are made in software
 		usbLogger.Printf("SET IDLE: No-op\n\n")
-	case USB_HID_REQUEST_SET_PROTOCOL:
+	case usb_HID_REQUEST_SET_PROTOCOL:
 		// No-op since we are always in report protocol, no boot protocol
-	case USB_HID_REQUEST_GET_DESCRIPTOR:
+	case usb_HID_REQUEST_GET_DESCRIPTOR:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
 		usbLogger.Printf("GET INTERFACE DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], descriptorIndex)
 		switch descriptorType {
-		case USB_DESCRIPTOR_HID_REPORT:
+		case usb_DESCRIPTOR_HID_REPORT:
 			usbLogger.Printf("HID REPORT: %v\n\n", device.getHIDReport())
 			copy(transferBuffer, device.getHIDReport())
 		default:
@@ -262,29 +262,29 @@ func (device *USBDeviceImpl) handleInterfaceRequest(setup USBSetupPacket, transf
 	}
 }
 
-func (device *USBDeviceImpl) handleControlMessage(setup USBSetupPacket, transferBuffer []byte) {
+func (device *usbDeviceImpl) handleControlMessage(setup usbSetupPacket, transferBuffer []byte) {
 	usbLogger.Printf("CONTROL MESSAGE: %s\n\n", setup)
-	if setup.direction() == USB_HOST_TO_DEVICE {
+	if setup.direction() == usb_HOST_TO_DEVICE {
 		usbLogger.Printf("TRANSFER BUFFER: %v\n\n", transferBuffer)
 	}
-	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
+	if setup.recipient() == usb_REQUEST_RECIPIENT_DEVICE {
 		device.handleDeviceRequest(setup, transferBuffer)
-	} else if setup.recipient() == USB_REQUEST_RECIPIENT_INTERFACE {
+	} else if setup.recipient() == usb_REQUEST_RECIPIENT_INTERFACE {
 		device.handleInterfaceRequest(setup, transferBuffer)
 	} else {
 		panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
 	}
 }
 
-func (device *USBDeviceImpl) handleInputMessage(setup USBSetupPacket, transferBuffer []byte) {
+func (device *usbDeviceImpl) handleInputMessage(setup usbSetupPacket, transferBuffer []byte) {
 	usbLogger.Printf("INPUT TRANSFER BUFFER: %#v\n\n", transferBuffer)
-	go device.CTAPHIDServer.handleMessage(transferBuffer)
+	go device.ctapHIDServer.handleMessage(transferBuffer)
 }
 
-func (device *USBDeviceImpl) handleOutputMessage(id uint32, setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
+func (device *usbDeviceImpl) handleOutputMessage(id uint32, setup usbSetupPacket, transferBuffer []byte, onFinish func()) {
 	// Only process one output message at a time in order to maintain message order
 	device.outputLock.Lock()
-	response := device.CTAPHIDServer.getResponse(id, 1000)
+	response := device.ctapHIDServer.getResponse(id, 1000)
 	if response != nil {
 		copy(transferBuffer, response)
 		onFinish()
@@ -292,11 +292,11 @@ func (device *USBDeviceImpl) handleOutputMessage(id uint32, setup USBSetupPacket
 	device.outputLock.Unlock()
 }
 
-func (device *USBDeviceImpl) removeWaitingRequest(id uint32) bool {
-	return device.CTAPHIDServer.removeWaitingRequest(id)
+func (device *usbDeviceImpl) removeWaitingRequest(id uint32) bool {
+	return device.ctapHIDServer.removeWaitingRequest(id)
 }
 
-func (device *USBDeviceImpl) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
+func (device *usbDeviceImpl) handleMessage(id uint32, onFinish func(), endpoint uint32, setup usbSetupPacket, transferBuffer []byte) {
 	usbLogger.Printf("USB MESSAGE - ENDPOINT %d\n\n", endpoint)
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
