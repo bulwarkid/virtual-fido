@@ -77,7 +77,7 @@ func NewClient(
 		certificateAuthority:  authorityCert,
 		certPrivateKey:        certificatePrivateKey,
 		authenticationCounter: 1,
-		vault:                 newIdentityVault(),
+		vault:                 NewIdentityVault(),
 		requestApprover:       requestApprover,
 		dataSaver:             dataSaver,
 	}
@@ -86,13 +86,13 @@ func NewClient(
 }
 
 func (client *DefaultFIDOClient) NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
-	newSource := client.vault.newIdentity(relyingParty, user)
+	newSource := client.vault.NewIdentity(relyingParty, user)
 	client.saveData()
 	return newSource
 }
 
 func (client *DefaultFIDOClient) GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *CredentialSource {
-	sources := client.vault.getMatchingCredentialSources(relyingPartyID, allowList)
+	sources := client.vault.GetMatchingCredentialSources(relyingPartyID, allowList)
 	if len(sources) == 0 {
 		clientLogger.Printf("ERROR: No Credentials\n\n")
 		return nil
@@ -188,7 +188,7 @@ type savedClientState struct {
 func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
 	checkErr(err, "Could not marshal private key")
-	identityData := client.vault.exportToBytes()
+	identityData := client.vault.ExportToBytes()
 	state := savedClientState{
 		DeviceEncryptionKey:   client.deviceEncryptionKey,
 		CertificateAuthority:  client.certificateAuthority.Raw,
@@ -220,8 +220,8 @@ func (client *DefaultFIDOClient) importData(data []byte, passphrase string) erro
 	client.certificateAuthority = cert
 	client.certPrivateKey = privateKey
 	client.authenticationCounter = state.AuthenticationCounter
-	client.vault = newIdentityVault()
-	client.vault.importFromBytes(state.CredentialSources)
+	client.vault = NewIdentityVault()
+	client.vault.ImportFromBytes(state.CredentialSources)
 	return nil
 }
 
@@ -246,7 +246,7 @@ func (client *DefaultFIDOClient) Identities() []CredentialSource {
 }
 
 func (client *DefaultFIDOClient) DeleteIdentity(id []byte) bool {
-	success := client.vault.deleteIdentity(id)
+	success := client.vault.DeleteIdentity(id)
 	if success {
 		client.saveData()
 	}

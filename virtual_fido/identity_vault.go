@@ -32,12 +32,12 @@ type IdentityVault struct {
 	credentialSources []*CredentialSource
 }
 
-func newIdentityVault() *IdentityVault {
+func NewIdentityVault() *IdentityVault {
 	sources := make([]*CredentialSource, 0)
 	return &IdentityVault{credentialSources: sources}
 }
 
-func (vault *IdentityVault) newIdentity(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
+func (vault *IdentityVault) NewIdentity(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
 	credentialID := read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate private key")
@@ -49,15 +49,15 @@ func (vault *IdentityVault) newIdentity(relyingParty PublicKeyCredentialRpEntity
 		User:             user,
 		SignatureCounter: 0,
 	}
-	vault.addIdentity(&credentialSource)
+	vault.AddIdentity(&credentialSource)
 	return &credentialSource
 }
 
-func (vault *IdentityVault) addIdentity(source *CredentialSource) {
+func (vault *IdentityVault) AddIdentity(source *CredentialSource) {
 	vault.credentialSources = append(vault.credentialSources, source)
 }
 
-func (vault *IdentityVault) deleteIdentity(id []byte) bool {
+func (vault *IdentityVault) DeleteIdentity(id []byte) bool {
 	for i, source := range vault.credentialSources {
 		if bytes.Equal(source.ID, id) {
 			vault.credentialSources[i] = vault.credentialSources[len(vault.credentialSources)-1]
@@ -68,7 +68,7 @@ func (vault *IdentityVault) deleteIdentity(id []byte) bool {
 	return false
 }
 
-func (vault *IdentityVault) getMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*CredentialSource {
+func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*CredentialSource {
 	sources := make([]*CredentialSource, 0)
 	for _, credentialSource := range vault.credentialSources {
 		if credentialSource.RelyingParty.Id == relyingPartyID {
@@ -87,7 +87,7 @@ func (vault *IdentityVault) getMatchingCredentialSources(relyingPartyID string, 
 	return sources
 }
 
-func (vault *IdentityVault) exportToBytes() []byte {
+func (vault *IdentityVault) ExportToBytes() []byte {
 	sources := make([]savedCredentialSource, 0)
 	for _, source := range vault.credentialSources {
 		key, err := x509.MarshalECPrivateKey(source.PrivateKey)
@@ -107,7 +107,7 @@ func (vault *IdentityVault) exportToBytes() []byte {
 	return output
 }
 
-func (vault *IdentityVault) importFromBytes(data []byte) error {
+func (vault *IdentityVault) ImportFromBytes(data []byte) error {
 	sources := make([]savedCredentialSource, 0)
 	err := cbor.Unmarshal(data, &sources)
 	if err != nil {
@@ -126,7 +126,7 @@ func (vault *IdentityVault) importFromBytes(data []byte) error {
 			User:             source.User,
 			SignatureCounter: source.SignatureCounter,
 		}
-		vault.addIdentity(&decodedSource)
+		vault.AddIdentity(&decodedSource)
 	}
 	return nil
 }
