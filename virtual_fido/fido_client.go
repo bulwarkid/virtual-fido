@@ -9,8 +9,6 @@ import (
 	"log"
 	"math/big"
 	"time"
-
-	"github.com/fxamacker/cbor/v2"
 )
 
 type ClientAction uint8
@@ -21,8 +19,8 @@ type ClientActionRequestParams struct {
 }
 
 const (
-	ClientActionU2FRegister         ClientAction = 0
-	ClientActionU2FAuthenticate     ClientAction = 1
+	ClientActionU2FRegister        ClientAction = 0
+	ClientActionU2FAuthenticate    ClientAction = 1
 	ClientActionFIDOMakeCredential ClientAction = 2
 	ClientActionFIDOGetAssertion   ClientAction = 3
 )
@@ -168,60 +166,35 @@ func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *KeyHandle) b
 	return client.requestApprover.ApproveClientAction(ClientActionU2FAuthenticate, params)
 }
 
-type savedCredentialSource struct {
-	Type             string
-	ID               []byte
-	PrivateKey       []byte
-	RelyingParty     PublicKeyCredentialRpEntity
-	User             PublicKeyCrendentialUserEntity
-	SignatureCounter int32
-}
-
-type savedClientState struct {
-	DeviceEncryptionKey   []byte
-	CertificateAuthority  []byte
-	CertPrivateKey        []byte
-	AuthenticationCounter uint32
-	CredentialSources     []byte
-}
-
 func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
 	checkErr(err, "Could not marshal private key")
-	identityData := client.vault.ExportToBytes()
-	state := savedClientState{
-		DeviceEncryptionKey:   client.deviceEncryptionKey,
-		CertificateAuthority:  client.certificateAuthority.Raw,
-		CertPrivateKey:        privKeyBytes,
-		AuthenticationCounter: client.authenticationCounter,
-		CredentialSources:     identityData,
+	identityData := client.vault.Export()
+	state := FIDODeviceConfig{
+		EncryptionKey:          client.deviceEncryptionKey,
+		AttestationCertificate: client.certificateAuthority.Raw,
+		AttestationPrivateKey:  privKeyBytes,
+		AuthenticationCounter:  client.authenticationCounter,
+		Sources:                identityData,
 	}
-	stateBytes, err := cbor.Marshal(state)
-	checkErr(err, "Could not encode CBOR")
-	blob := encryptWithPassphrase(passphrase, stateBytes)
-	output, err := cbor.Marshal(blob)
-	checkErr(err, "Could not encode CBOR")
-	return output
+	savedBytes, err := EncryptWithPassphrase(state, passphrase)
+	checkErr(err, "Could not encode saved state")
+	return savedBytes
 }
 
 func (client *DefaultFIDOClient) importData(data []byte, passphrase string) error {
-	blob := passphraseEncryptedBlob{}
-	err := cbor.Unmarshal(data, &blob)
-	checkErr(err, "Invalid passphrase blob")
-	stateBytes := decryptWithPassphrase(passphrase, blob)
-	state := savedClientState{}
-	err = cbor.Unmarshal(stateBytes, &state)
-	checkErr(err, "Could not unmarshal saved data")
-	cert, err := x509.ParseCertificate(state.CertificateAuthority)
+	state, err := DecryptWithPassphrase(data, passphrase)
+	checkErr(err, "Could not decrypt vault data")
+	cert, err := x509.ParseCertificate(state.AttestationCertificate)
 	checkErr(err, "Could not parse x509 cert")
-	privateKey, err := x509.ParseECPrivateKey(state.CertPrivateKey)
+	privateKey, err := x509.ParseECPrivateKey(state.AttestationPrivateKey)
 	checkErr(err, "Could not parse private key")
-	client.deviceEncryptionKey = state.DeviceEncryptionKey
+	client.deviceEncryptionKey = state.EncryptionKey
 	client.certificateAuthority = cert
 	client.certPrivateKey = privateKey
 	client.authenticationCounter = state.AuthenticationCounter
 	client.vault = NewIdentityVault()
-	client.vault.ImportFromBytes(state.CredentialSources)
+	client.vault.Import(state.Sources)
 	return nil
 }
 

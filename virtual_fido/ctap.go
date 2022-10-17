@@ -57,8 +57,8 @@ const (
 )
 
 type PublicKeyCredentialRpEntity struct {
-	Id   string `cbor:"id"`
-	Name string `cbor:"name"`
+	Id   string `cbor:"id" json:"id"`
+	Name string `cbor:"name" json:"name"`
 }
 
 func (rp PublicKeyCredentialRpEntity) String() string {
@@ -67,9 +67,9 @@ func (rp PublicKeyCredentialRpEntity) String() string {
 }
 
 type PublicKeyCrendentialUserEntity struct {
-	Id          []byte `cbor:"id"`
-	DisplayName string `cbor:"displayName"`
-	Name        string `cbor:"name"`
+	Id          []byte `cbor:"id" json:"id"`
+	DisplayName string `cbor:"displayName" json:"display_name"`
+	Name        string `cbor:"name" json:"name"`
 }
 
 func (user PublicKeyCrendentialUserEntity) String() string {

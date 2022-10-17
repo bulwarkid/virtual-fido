@@ -7,8 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-
-	"github.com/fxamacker/cbor/v2"
 )
 
 type CredentialSource struct {
@@ -87,12 +85,12 @@ func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, 
 	return sources
 }
 
-func (vault *IdentityVault) ExportToBytes() []byte {
-	sources := make([]savedCredentialSource, 0)
+func (vault *IdentityVault) Export() []SavedCredentialSource {
+	sources := make([]SavedCredentialSource, 0)
 	for _, source := range vault.CredentialSources {
 		key, err := x509.MarshalECPrivateKey(source.PrivateKey)
 		checkErr(err, "Could not marshall private key")
-		savedSource := savedCredentialSource{
+		savedSource := SavedCredentialSource{
 			Type:             source.Type,
 			ID:               source.ID,
 			PrivateKey:       key,
@@ -102,17 +100,10 @@ func (vault *IdentityVault) ExportToBytes() []byte {
 		}
 		sources = append(sources, savedSource)
 	}
-	output, err := cbor.Marshal(sources)
-	checkErr(err, "Could not export identities to CBOR")
-	return output
+	return sources
 }
 
-func (vault *IdentityVault) ImportFromBytes(data []byte) error {
-	sources := make([]savedCredentialSource, 0)
-	err := cbor.Unmarshal(data, &sources)
-	if err != nil {
-		return fmt.Errorf("Invalid bytes for importing identities: %w", err)
-	}
+func (vault *IdentityVault) Import(sources []SavedCredentialSource) error {
 	for _, source := range sources {
 		key, err := x509.ParseECPrivateKey(source.PrivateKey)
 		if err != nil {
