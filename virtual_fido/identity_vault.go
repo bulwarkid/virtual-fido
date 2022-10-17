@@ -29,12 +29,12 @@ func (source *CredentialSource) ctapDescriptor() PublicKeyCredentialDescriptor {
 }
 
 type IdentityVault struct {
-	credentialSources []*CredentialSource
+	CredentialSources []*CredentialSource
 }
 
 func NewIdentityVault() *IdentityVault {
 	sources := make([]*CredentialSource, 0)
-	return &IdentityVault{credentialSources: sources}
+	return &IdentityVault{CredentialSources: sources}
 }
 
 func (vault *IdentityVault) NewIdentity(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
@@ -54,14 +54,14 @@ func (vault *IdentityVault) NewIdentity(relyingParty PublicKeyCredentialRpEntity
 }
 
 func (vault *IdentityVault) AddIdentity(source *CredentialSource) {
-	vault.credentialSources = append(vault.credentialSources, source)
+	vault.CredentialSources = append(vault.CredentialSources, source)
 }
 
 func (vault *IdentityVault) DeleteIdentity(id []byte) bool {
-	for i, source := range vault.credentialSources {
+	for i, source := range vault.CredentialSources {
 		if bytes.Equal(source.ID, id) {
-			vault.credentialSources[i] = vault.credentialSources[len(vault.credentialSources)-1]
-			vault.credentialSources = vault.credentialSources[:len(vault.credentialSources)-1]
+			vault.CredentialSources[i] = vault.CredentialSources[len(vault.CredentialSources)-1]
+			vault.CredentialSources = vault.CredentialSources[:len(vault.CredentialSources)-1]
 			return true
 		}
 	}
@@ -70,7 +70,7 @@ func (vault *IdentityVault) DeleteIdentity(id []byte) bool {
 
 func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*CredentialSource {
 	sources := make([]*CredentialSource, 0)
-	for _, credentialSource := range vault.credentialSources {
+	for _, credentialSource := range vault.CredentialSources {
 		if credentialSource.RelyingParty.Id == relyingPartyID {
 			if allowList != nil {
 				for _, allowedSource := range allowList {
@@ -89,7 +89,7 @@ func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, 
 
 func (vault *IdentityVault) ExportToBytes() []byte {
 	sources := make([]savedCredentialSource, 0)
-	for _, source := range vault.credentialSources {
+	for _, source := range vault.CredentialSources {
 		key, err := x509.MarshalECPrivateKey(source.PrivateKey)
 		checkErr(err, "Could not marshall private key")
 		savedSource := savedCredentialSource{

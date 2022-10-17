@@ -239,7 +239,7 @@ func (client *DefaultFIDOClient) loadData() {
 
 func (client *DefaultFIDOClient) Identities() []CredentialSource {
 	sources := make([]CredentialSource, 0)
-	for _, source := range client.vault.credentialSources {
+	for _, source := range client.vault.CredentialSources {
 		sources = append(sources, *source)
 	}
 	return sources
