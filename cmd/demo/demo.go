@@ -109,7 +109,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&vaultFilename, "vault", "", "vault.data", "Identity vault filename")
+	rootCmd.PersistentFlags().StringVarP(&vaultFilename, "vault", "", "vault.json", "Identity vault filename")
 	rootCmd.PersistentFlags().StringVarP(&vaultPassphrase, "passphrase", "", "passphrase", "Identity vault passphrase")
 	rootCmd.MarkFlagRequired("vault")
 	rootCmd.MarkFlagRequired("passphrase")
