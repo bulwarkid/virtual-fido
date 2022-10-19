@@ -6,28 +6,39 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
+	"fmt"
 )
 
-func encrypt(key []byte, data []byte) ([]byte, []byte) {
+func encrypt(key []byte, data []byte) ([]byte, []byte, error) {
 	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)
-	checkErr(err, "Could not create device cipher")
+	if err != nil {
+		return nil, nil, fmt.Errorf("Could not create device cipher: %w", err)
+	}
 	nonce := read(rand.Reader, 12)
 	gcm, err := cipher.NewGCM(block)
-	checkErr(err, "Could not create GCM mode")
+	if err != nil {
+		return nil, nil, fmt.Errorf("Could not create GCM mode: %w", err)
+	}
 	encryptedData := gcm.Seal(nil, nonce, data, nil)
-	return encryptedData, nonce
+	return encryptedData, nonce, nil
 }
 
-func decrypt(key []byte, data []byte, nonce []byte) []byte {
+func decrypt(key []byte, data []byte, nonce []byte) ([]byte, error) {
 	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)
-	checkErr(err, "Could not create device cipher")
+	if err != nil {
+		return nil, fmt.Errorf("Could not create device cipher: %w", err)
+	}
 	gcm, err := cipher.NewGCM(block)
-	checkErr(err, "Could not create GCM mode")
+	if err != nil {
+		return nil, fmt.Errorf("Could not create GCM mode: %w", err)
+	}
 	decryptedData, err := gcm.Open(nil, nonce, data, nil)
-	checkErr(err, "Could not decrypt data")
-	return decryptedData
+	if err != nil {
+		return nil, fmt.Errorf("Could not decrypt data: %w", err)
+	}
+	return decryptedData, nil
 }
 
 func sign(key *ecdsa.PrivateKey, data []byte) []byte {
@@ -48,10 +59,13 @@ type encryptedBox struct {
 }
 
 func seal(key []byte, data []byte) encryptedBox {
-	encryptedData, iv := encrypt(key, data)
+	encryptedData, iv, err := encrypt(key, data)
+	checkErr(err, "Could not seal data")
 	return encryptedBox{Data: encryptedData, IV: iv}
 }
 
 func open(key []byte, box encryptedBox) []byte {
-	return decrypt(key, box.Data, box.IV)
+	data, err := decrypt(key, box.Data, box.IV)
+	checkErr(err, "Could not open data")
+	return data
 }
