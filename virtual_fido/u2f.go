@@ -99,7 +99,7 @@ func (server *u2fServer) handleU2FMessage(message []byte) []byte {
 	var response []byte
 	switch header.Command {
 	case u2f_COMMAND_VERSION:
-		response = append([]byte("u2f_V2"), toBE(u2f_SW_NO_ERROR)...)
+		response = append([]byte("U2F_V2"), toBE(u2f_SW_NO_ERROR)...)
 	case u2f_COMMAND_REGISTER:
 		response = server.handleU2FRegister(header, request)
 	case u2f_COMMAND_AUTHENTICATE:
