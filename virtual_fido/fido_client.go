@@ -141,15 +141,20 @@ func (client *DefaultFIDOClient) NewAuthenticationCounterId() uint32 {
 func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
 	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
 	templateCert := &x509.Certificate{
+		Version:      2,
 		SerialNumber: big.NewInt(0),
 		Subject: pkix.Name{
-			Organization: []string{"Self-Signed Virtual FIDO"},
-			Country:      []string{"US"},
+			Organization:       []string{"Self-Signed Virtual FIDO"},
+			Country:            []string{"US"},
+			CommonName:         "Self-Signed Virtual FIDO",
+			OrganizationalUnit: []string{"Authenticator Attestation"},
 		},
-		NotBefore:   time.Now(),
-		NotAfter:    time.Now().AddDate(10, 0, 0),
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:    x509.KeyUsageDigitalSignature,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature,
+		IsCA:                  false,
+		BasicConstraintsValid: true,
 	}
 	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.certPrivateKey)
 	checkErr(err, "Could not generate attestation certificate")

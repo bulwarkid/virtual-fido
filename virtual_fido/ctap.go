@@ -137,6 +137,17 @@ type ctapAuthData struct {
 	AttestedCredentialData *ctapAttestedCredentialData
 }
 
+type ctapSelfAttestationStatement struct {
+	Alg coseAlgorithmID `cbor:"alg"`
+	Sig []byte          `cbor:"sig"`
+}
+
+type ctapBasicAttestationStatement struct {
+	Alg coseAlgorithmID `cbor:"alg"`
+	Sig []byte          `cbor:"sig"`
+	X5c [][]byte        `cbor:"x5c"`
+}
+
 func ctapMakeAttestedCredentialData(credentialSource *CredentialSource) []byte {
 	encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
 	return flatten([][]byte{aaguid[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
@@ -199,9 +210,9 @@ func (args ctapMakeCredentialArgs) String() string {
 }
 
 type ctapMakeCredentialReponse struct {
-	FormatIdentifer      string                      `cbor:"1,keyasint"`
-	AuthData             []byte                      `cbor:"2,keyasint"`
-	AttestationStatement map[interface{}]interface{} `cbor:"3,keyasint"`
+	FormatIdentifer      string                        `cbor:"1,keyasint"`
+	AuthData             []byte                        `cbor:"2,keyasint"`
+	AttestationStatement ctapBasicAttestationStatement `cbor:"3,keyasint"`
 }
 
 func (server *ctapServer) handleMakeCredential(data []byte) []byte {
@@ -231,15 +242,24 @@ func (server *ctapServer) handleMakeCredential(data []byte) []byte {
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
 	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, attestedCredentialData)
 
-	// TODO: Add support for attestation to response
+	attestationSignature := sign(credentialSource.PrivateKey, append(authenticatorData, args.ClientDataHash...))
+	cert := server.client.CreateAttestationCertificiate(credentialSource.PrivateKey)
+	attestationStatement := ctapBasicAttestationStatement{
+		Alg: cose_ALGORITHM_ID_ES256,
+		Sig: attestationSignature,
+		X5c: [][]byte{cert},
+	}
+
 	response := ctapMakeCredentialReponse{
 		AuthData:             authenticatorData,
-		FormatIdentifer:      "none",
-		AttestationStatement: make(map[interface{}]interface{}),
+		FormatIdentifer:      "packed",
+		AttestationStatement: attestationStatement,
 	}
 	responseBytes, err := cbor.Marshal(response)
 	checkErr(err, "Could not encode MakeAssertion response in CBOR")
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
+	returnVal := append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
+	ctapLogger.Printf("MAKE CREDENTIAL RESPONSE: %#v\n\n", returnVal)
+	return returnVal
 }
 
 type ctapGetInfoOptions struct {
