@@ -46,6 +46,13 @@ type FIDOClient interface {
 	NewAuthenticationCounterId() uint32
 	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
 
+	PINHash() []byte
+	SetPINHash(pin []byte)
+	AvailablePINRetries() int32
+	SetPINRetries(retries int32)
+	PINKeyAgreement() *ECDHKey
+	PINToken() []byte
+
 	ApproveAccountCreation(relyingParty string) bool
 	ApproveAccountLogin(credentialSource *CredentialSource) bool
 	ApproveU2FRegistration(keyHandle *KeyHandle) bool
@@ -57,9 +64,15 @@ type DefaultFIDOClient struct {
 	certificateAuthority  *x509.Certificate
 	certPrivateKey        *ecdsa.PrivateKey
 	authenticationCounter uint32
-	vault                 *IdentityVault
-	requestApprover       ClientRequestApprover
-	dataSaver             ClientDataSaver
+
+	pinToken        []byte
+	pinKeyAgreement *ECDHKey
+	pinRetries      int32
+	pinHash         []byte
+
+	vault           *IdentityVault
+	requestApprover ClientRequestApprover
+	dataSaver       ClientDataSaver
 }
 
 func NewClient(
@@ -75,6 +88,10 @@ func NewClient(
 		certificateAuthority:  authorityCert,
 		certPrivateKey:        certificatePrivateKey,
 		authenticationCounter: 1,
+		pinToken:              randomBytes(16),
+		pinKeyAgreement:       generateECDHKey(),
+		pinRetries:            8,
+		pinHash:               nil,
 		vault:                 NewIdentityVault(),
 		requestApprover:       requestApprover,
 		dataSaver:             dataSaver,
@@ -116,6 +133,36 @@ func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *Credential
 		UserName:     credentialSource.User.Name,
 	}
 	return client.requestApprover.ApproveClientAction(ClientActionFIDOGetAssertion, params)
+}
+
+// -----------------------
+// PIN Management Methods
+// -----------------------
+
+func (client *DefaultFIDOClient) PINHash() []byte {
+	return client.pinHash
+}
+
+func (client *DefaultFIDOClient) SetPINHash(newHash []byte) {
+	client.pinHash = newHash
+	client.saveData()
+}
+
+func (client *DefaultFIDOClient) AvailablePINRetries() int32 {
+	assert(client.pinRetries > 0 && client.pinRetries <= 8, "Invalid PIN Retries")
+	return client.pinRetries
+}
+
+func (client *DefaultFIDOClient) SetPINRetries(retries int32) {
+	client.pinRetries = retries
+}
+
+func (client *DefaultFIDOClient) PINKeyAgreement() *ECDHKey {
+	return client.pinKeyAgreement
+}
+
+func (client *DefaultFIDOClient) PINToken() []byte {
+	return client.pinToken
 }
 
 // -----------------------------
@@ -180,6 +227,7 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 		AttestationCertificate: client.certificateAuthority.Raw,
 		AttestationPrivateKey:  privKeyBytes,
 		AuthenticationCounter:  client.authenticationCounter,
+		PINHash:                client.pinHash,
 		Sources:                identityData,
 	}
 	savedBytes, err := EncryptWithPassphrase(state, passphrase)
@@ -198,6 +246,7 @@ func (client *DefaultFIDOClient) importData(data []byte, passphrase string) erro
 	client.certificateAuthority = cert
 	client.certPrivateKey = privateKey
 	client.authenticationCounter = state.AuthenticationCounter
+	client.pinHash = state.PINHash
 	client.vault = NewIdentityVault()
 	client.vault.Import(state.Sources)
 	return nil

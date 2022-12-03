@@ -22,6 +22,7 @@ type FIDODeviceConfig struct {
 	AttestationCertificate []byte                  `json:"attestation_certificate"`
 	AttestationPrivateKey  []byte                  `json:"attestation_private_key"`
 	AuthenticationCounter  uint32                  `json:"authentication_counter"`
+	PINHash                []byte                  `json:"pin_hash,omitempty"`
 	Sources                []SavedCredentialSource `json:"sources"`
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net"
 	"time"
 	"unicode/utf16"
@@ -175,4 +176,8 @@ func newLogger(prefix string, enabled bool) *log.Logger {
 	} else {
 		return log.New(io.Discard, prefix, 0)
 	}
+}
+
+func bytesToBigInt(b []byte) *big.Int {
+	return big.NewInt(0).SetBytes(b)
 }
