@@ -268,11 +268,11 @@ func (server *ctapServer) handleMakeCredential(data []byte) []byte {
 	}
 
 	if args.PinProtocol == 1 {
-		flags = flags | ctap_AUTH_DATA_FLAG_USER_VERIFIED
 		pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
 		if !bytes.Equal(pinAuth, args.PinAuth) {
 			return []byte{byte(ctap2_ERR_PIN_AUTH_INVALID)}
 		}
+		flags = flags | ctap_AUTH_DATA_FLAG_USER_VERIFIED
 	} else {
 		if server.client.PINHash() != nil {
 			return []byte{byte(ctap2_ERR_PIN_REQUIRED)}
@@ -374,11 +374,11 @@ func (server *ctapServer) handleGetAssertion(data []byte) []byte {
 		if args.PinProtocol != 1 {
 			return []byte{byte(ctap2_ERR_PIN_AUTH_INVALID)}
 		}
-		flags = flags | ctap_AUTH_DATA_FLAG_USER_VERIFIED
 		pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
 		if !bytes.Equal(pinAuth, args.PinAuth) {
 			return []byte{byte(ctap2_ERR_PIN_AUTH_INVALID)}
 		}
+		flags = flags | ctap_AUTH_DATA_FLAG_USER_VERIFIED
 	}
 
 	credentialSource := server.client.GetAssertionSource(args.RpID, args.AllowList)
@@ -394,8 +394,6 @@ func (server *ctapServer) handleGetAssertion(data []byte) []byte {
 		}
 		flags = flags | ctap_AUTH_DATA_FLAG_USER_PRESENT
 	}
-
-	// TODO: Check PIN if provided
 
 	authData := ctapMakeAuthData(args.RpID, credentialSource, nil, flags)
 	signature := sign(credentialSource.PrivateKey, flatten([][]byte{authData, args.ClientDataHash}))
@@ -523,7 +521,7 @@ func (server *ctapServer) handleClientPIN(data []byte) []byte {
 }
 
 func (server *ctapServer) handleGetRetries() []byte {
-	retries := uint8(server.client.AvailablePINRetries())
+	retries := uint8(server.client.PINRetries())
 	response := ctapClientPINResponse{
 		Retries: &retries,
 	}
@@ -576,7 +574,7 @@ func (server *ctapServer) handleChangePIN(args ctapClientPINArgs) []byte {
 	if args.KeyAgreement == nil || args.PINAuth == nil {
 		return []byte{byte(ctap2_ERR_MISSING_PARAM)}
 	}
-	if server.client.AvailablePINRetries() == 0 {
+	if server.client.PINRetries() == 0 {
 		return []byte{byte(ctap2_ERR_PIN_BLOCKED)}
 	}
 	sharedSecret := server.getPINSharedSecret(*args.KeyAgreement)
@@ -584,7 +582,7 @@ func (server *ctapServer) handleChangePIN(args ctapClientPINArgs) []byte {
 	if !bytes.Equal(pinAuth, args.PINAuth) {
 		return []byte{byte(ctap2_ERR_PIN_AUTH_INVALID)}
 	}
-	server.client.SetPINRetries(server.client.AvailablePINRetries() - 1)
+	server.client.SetPINRetries(server.client.PINRetries() - 1)
 	decryptedPINHash := decryptAESCBC(sharedSecret, args.PINHashEncoding)
 	if !bytes.Equal(server.client.PINHash(), decryptedPINHash) {
 		// TODO: Mismatch detected, handle it
@@ -604,11 +602,11 @@ func (server *ctapServer) handleGetPINToken(args ctapClientPINArgs) []byte {
 	if args.PINHashEncoding == nil || args.KeyAgreement.X == nil {
 		return []byte{byte(ctap2_ERR_MISSING_PARAM)}
 	}
-	if server.client.AvailablePINRetries() <= 0 {
+	if server.client.PINRetries() <= 0 {
 		return []byte{byte(ctap2_ERR_PIN_BLOCKED)}
 	}
 	sharedSecret := server.getPINSharedSecret(*args.KeyAgreement)
-	server.client.SetPINRetries(server.client.AvailablePINRetries() - 1)
+	server.client.SetPINRetries(server.client.PINRetries() - 1)
 	pinHash := server.decryptPINHash(sharedSecret, args.PINHashEncoding)
 	ctapLogger.Printf("TRYING PIN HASH: %v\n\n", hex.EncodeToString(pinHash))
 	if !bytes.Equal(pinHash, server.client.PINHash()) {

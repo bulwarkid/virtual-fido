@@ -48,7 +48,7 @@ type FIDOClient interface {
 
 	PINHash() []byte
 	SetPINHash(pin []byte)
-	AvailablePINRetries() int32
+	PINRetries() int32
 	SetPINRetries(retries int32)
 	PINKeyAgreement() *ECDHKey
 	PINToken() []byte
@@ -148,7 +148,7 @@ func (client *DefaultFIDOClient) SetPINHash(newHash []byte) {
 	client.saveData()
 }
 
-func (client *DefaultFIDOClient) AvailablePINRetries() int32 {
+func (client *DefaultFIDOClient) PINRetries() int32 {
 	assert(client.pinRetries > 0 && client.pinRetries <= 8, "Invalid PIN Retries")
 	return client.pinRetries
 }
