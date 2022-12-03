@@ -117,12 +117,8 @@ type KeyHandle struct {
 }
 
 func (server *u2fServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
-	data, err := cbor.Marshal(keyHandle)
-	checkErr(err, "Could not encode key handle")
-	box := seal(server.client.SealingEncryptionKey(), data)
-	boxBytes, err := cbor.Marshal(box)
-	checkErr(err, "Could not encode encrypted box")
-	return boxBytes
+	box := seal(server.client.SealingEncryptionKey(), marshalCBOR(keyHandle))
+	return marshalCBOR(box)
 }
 
 func (server *u2fServer) openKeyHandle(boxBytes []byte) *KeyHandle {

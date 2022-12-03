@@ -146,9 +146,7 @@ func ctapEncodeKeyAsCOSE(publicKey *ecdsa.PublicKey) []byte {
 		X:         publicKey.X.Bytes(),
 		Y:         publicKey.Y.Bytes(),
 	}
-	keyBytes, err := cbor.Marshal(key)
-	checkErr(err, "Could not encode public key in COSE CBOR")
-	return keyBytes
+	return marshalCBOR(key)
 }
 
 const (
@@ -300,11 +298,8 @@ func (server *ctapServer) handleMakeCredential(data []byte) []byte {
 		FormatIdentifer:      "packed",
 		AttestationStatement: attestationStatement,
 	}
-	responseBytes, err := cbor.Marshal(response)
-	checkErr(err, "Could not encode MakeAssertion response in CBOR")
-	returnVal := append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
-	ctapLogger.Printf("MAKE CREDENTIAL RESPONSE: %#v\n\n", returnVal)
-	return returnVal
+	ctapLogger.Printf("MAKE CREDENTIAL RESPONSE: %#v\n\n", response)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
 }
 
 type ctapGetInfoOptions struct {
@@ -337,10 +332,8 @@ func (server *ctapServer) handleGetInfo(data []byte) []byte {
 		},
 		PinProtocols: []uint32{1},
 	}
-	responseBytes, err := cbor.Marshal(response)
-	checkErr(err, "Could not encode GET_INFO in CBOR")
-	ctapLogger.Printf("CTAP GET_INFO RESPONSE: %#v\n\n", responseBytes)
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
+	ctapLogger.Printf("CTAP GET_INFO RESPONSE: %#v\n\n", response)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
 }
 
 type ctapGetAssertionArgs struct {
@@ -405,12 +398,10 @@ func (server *ctapServer) handleGetAssertion(data []byte) []byte {
 		//User:                credentialSource.User,
 		//NumberOfCredentials: 1,
 	}
-	responseBytes, err := cbor.Marshal(response)
-	checkErr(err, "Could not encode response in CBOR")
 
-	ctapLogger.Printf("RESPONSE: %v\n\n", responseBytes)
+	ctapLogger.Printf("RESPONSE: %#v\n\n", response)
 
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
 }
 
 type ctapClientPINSubcommand uint32
@@ -525,10 +516,8 @@ func (server *ctapServer) handleGetRetries() []byte {
 	response := ctapClientPINResponse{
 		Retries: &retries,
 	}
-	ctapLogger.Printf("RETURNING %v\n\n", response)
-	responseBytes, err := cbor.Marshal(response)
-	checkErr(err, "Could not encode response in CBOR")
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
+	ctapLogger.Printf("CTAP_CLIENT_PIN_GET_RETRIES: %v\n\n", response)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
 }
 
 func (server *ctapServer) handleGetKeyAgreement(args ctapClientPINArgs) []byte {
@@ -541,10 +530,8 @@ func (server *ctapServer) handleGetKeyAgreement(args ctapClientPINArgs) []byte {
 			Y:         key.y.Bytes(),
 		},
 	}
-	ctapLogger.Printf("RETURNING %v\n\n", response)
-	responseBytes, err := cbor.Marshal(response)
-	checkErr(err, "Could not encode response in CBOR")
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
+	ctapLogger.Printf("CLIENT_PIN_GET_KEY_AGREEMENT RESPONSE: %#v\n\n", response)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
 }
 
 func (server *ctapServer) handleSetPIN(args ctapClientPINArgs) []byte {
@@ -618,7 +605,6 @@ func (server *ctapServer) handleGetPINToken(args ctapClientPINArgs) []byte {
 	response := ctapClientPINResponse{
 		PinToken: encryptAESCBC(sharedSecret, server.client.PINToken()),
 	}
-	responseBytes, err := cbor.Marshal(response)
-	checkErr(err, "Could not encode CBOR")
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, responseBytes...)
+	ctapLogger.Printf("GET_PIN_TOKEN RESPONSE: %#v\n\n",response)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
 }

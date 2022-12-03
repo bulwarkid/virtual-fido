@@ -10,6 +10,8 @@ import (
 	"net"
 	"time"
 	"unicode/utf16"
+
+	"github.com/fxamacker/cbor/v2"
 )
 
 func assert(val bool, message string) {
@@ -180,4 +182,10 @@ func newLogger(prefix string, enabled bool) *log.Logger {
 
 func bytesToBigInt(b []byte) *big.Int {
 	return big.NewInt(0).SetBytes(b)
+}
+
+func marshalCBOR(val interface{}) []byte {
+	data, err := cbor.Marshal(val)
+	checkErr(err, "Could not marshal CBOR")
+	return data
 }
