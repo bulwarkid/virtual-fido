@@ -119,7 +119,7 @@ type ctapHIDInitReponse struct {
 	DeviceVersionMajor uint8
 	DeviceVersionMinor uint8
 	DeviceVersionBuild uint8
-	CapabilitiesFlags  uint8
+	CapabilitiesFlags  ctapHIDCapabilityFlag
 }
 
 const (
@@ -321,7 +321,7 @@ func (channel *ctapHIDChannel) handleBroadcastMessage(server *ctapHIDServer, hea
 			DeviceVersionMajor: 0,
 			DeviceVersionMinor: 0,
 			DeviceVersionBuild: 1,
-			CapabilitiesFlags:  0,
+			CapabilitiesFlags:  ctapHID_CAPABILITY_CBOR,
 		}
 		copy(response.Nonce[:], nonce)
 		server.maxChannelID += 1

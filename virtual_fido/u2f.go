@@ -71,10 +71,10 @@ func decodeU2FMessage(messageBytes []byte) (u2fMessageHeader, []byte, uint16) {
 	buffer := bytes.NewBuffer(messageBytes)
 	header := readBE[u2fMessageHeader](buffer)
 	if buffer.Len() == 0 {
-		// No reqest length, no reponse length
+		// No request length, no response length
 		return header, []byte{}, 0
 	}
-	// We should either have a request length or reponse length, so we have at least
+	// We should either have a request length or response length, so we have at least
 	// one '0' byte at the start
 	if read(buffer, 1)[0] != 0 {
 		panic(fmt.Sprintf("Invalid U2F Payload length: %s %#v", header, messageBytes))
@@ -95,7 +95,7 @@ func decodeU2FMessage(messageBytes []byte) (u2fMessageHeader, []byte, uint16) {
 
 func (server *u2fServer) handleU2FMessage(message []byte) []byte {
 	header, request, responseLength := decodeU2FMessage(message)
-	u2fLogger.Printf("U2F MESSAGE: Header: %s Request: %#v Reponse Length: %d\n\n", header, request, responseLength)
+	u2fLogger.Printf("U2F MESSAGE: Header: %s Request: %#v Response Length: %d\n\n", header, request, responseLength)
 	var response []byte
 	switch header.Command {
 	case u2f_COMMAND_VERSION:
@@ -121,15 +121,19 @@ func (server *u2fServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
 	return marshalCBOR(box)
 }
 
-func (server *u2fServer) openKeyHandle(boxBytes []byte) *KeyHandle {
+func (server *u2fServer) openKeyHandle(boxBytes []byte) (*KeyHandle, error) {
 	var box encryptedBox
 	err := cbor.Unmarshal(boxBytes, &box)
-	checkErr(err, "Could not decode encrypted box")
+	if err != nil {
+		return nil, err
+	}
 	data := open(server.client.SealingEncryptionKey(), box)
 	var keyHandle KeyHandle
 	err = cbor.Unmarshal(data, &keyHandle)
-	checkErr(err, "Could not decode key handle")
-	return &keyHandle
+	if err != nil {
+		return nil, err
+	}
+	return &keyHandle, nil
 }
 
 func (server *u2fServer) handleU2FRegister(header u2fMessageHeader, request []byte) []byte {
@@ -167,7 +171,11 @@ func (server *u2fServer) handleU2FAuthenticate(header u2fMessageHeader, request 
 
 	keyHandleLength := readLE[uint8](requestReader)
 	encryptedKeyHandleBytes := read(requestReader, uint(keyHandleLength))
-	keyHandle := server.openKeyHandle(encryptedKeyHandleBytes)
+	keyHandle, err := server.openKeyHandle(encryptedKeyHandleBytes)
+	if err != nil {
+		u2fLogger.Printf("U2F AUTHENTICATE: Invalid key handle given - %s %#v\n\n", err, encryptedKeyHandleBytes)
+		return toBE(u2f_SW_WRONG_DATA)
+	}
 	if keyHandle.PrivateKey == nil || bytes.Compare(keyHandle.ApplicationID, application) != 0 {
 		u2fLogger.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
 		return toBE(u2f_SW_WRONG_DATA)
