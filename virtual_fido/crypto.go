@@ -105,7 +105,7 @@ type ECDHKey struct {
 	x, y *big.Int
 }
 
-func generateECDHKey() *ECDHKey {
+func GenerateECDHKey() *ECDHKey {
 	priv, x, y, err := elliptic.GenerateKey(elliptic.P256(), rand.Reader)
 	checkErr(err, "Could not generate ECDH key")
 	return &ECDHKey{priv: priv, x: x, y: y}

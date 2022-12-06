@@ -89,7 +89,7 @@ func NewClient(
 		certPrivateKey:        certificatePrivateKey,
 		authenticationCounter: 1,
 		pinToken:              randomBytes(16),
-		pinKeyAgreement:       generateECDHKey(),
+		pinKeyAgreement:       GenerateECDHKey(),
 		pinRetries:            8,
 		pinHash:               nil,
 		vault:                 NewIdentityVault(),
