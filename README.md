@@ -1,8 +1,8 @@
 # Virtual FIDO
 
-> **Note**: Virtual FIDO is currently in beta, so it should not yet be used for security-critical products.
+> Also check out [Bulwark Passkey](https://bulwark.id), a passkey manager based on VirtualFIDO that is currently in beta!
 
-Virtual FIDO is a virtual USB device that implements the FIDO2/U2F protocol (like a YubiKey) to support 2FA and WebAuthN.
+Virtual FIDO is a virtual USB device that implements the FIDO2/U2F protocol (like a YubiKey) to support 2FA and WebAuthN. Please note that this software is still in beta and under active development, so APIs may be subject to change.
 
 ## Features
 
