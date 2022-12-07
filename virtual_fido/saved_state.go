@@ -34,7 +34,7 @@ type PassphraseEncryptedBlob struct {
 	DataNonce     []byte `json:"data_nonce"`
 }
 
-func encryptPassphraseBlob(passphrase string, data []byte) (*PassphraseEncryptedBlob, error) {
+func EncryptWithPassphrase(passphrase string, data []byte) (*PassphraseEncryptedBlob, error) {
 	salt := read(rand.Reader, 16)
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
 	if err != nil {
@@ -58,7 +58,7 @@ func encryptPassphraseBlob(passphrase string, data []byte) (*PassphraseEncrypted
 	}, nil
 }
 
-func decryptPassphraseBlob(passphrase string, blob PassphraseEncryptedBlob) ([]byte, error) {
+func DecryptWithPassphrase(passphrase string, blob PassphraseEncryptedBlob) ([]byte, error) {
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), blob.Salt, 32768, 8, 1, 32)
 	checkErr(err, "Could not create key encryption key")
 	encryptionKey, err := decrypt(keyEncryptionKey, blob.EncryptionKey, blob.KeyNonce)
@@ -72,12 +72,12 @@ func decryptPassphraseBlob(passphrase string, blob PassphraseEncryptedBlob) ([]b
 	return data, nil
 }
 
-func EncryptWithPassphrase(savedState FIDODeviceConfig, passphrase string) ([]byte, error) {
+func EncryptFIDOState(savedState FIDODeviceConfig, passphrase string) ([]byte, error) {
 	stateBytes, err := json.Marshal(savedState)
 	if err != nil {
 		return nil, fmt.Errorf("Could not encode JSON: %w", err)
 	}
-	blob, err := encryptPassphraseBlob(passphrase, stateBytes)
+	blob, err := EncryptWithPassphrase(passphrase, stateBytes)
 	if err != nil {
 		return nil, fmt.Errorf("Could not encrypt data: %w", err)
 	}
@@ -88,13 +88,13 @@ func EncryptWithPassphrase(savedState FIDODeviceConfig, passphrase string) ([]by
 	return output, nil
 }
 
-func DecryptWithPassphrase(data []byte, passphrase string) (*FIDODeviceConfig, error) {
+func DecryptFIDOState(data []byte, passphrase string) (*FIDODeviceConfig, error) {
 	blob := PassphraseEncryptedBlob{}
 	err := json.Unmarshal(data, &blob)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decode JSON: %w", err)
 	}
-	stateBytes, err := decryptPassphraseBlob(passphrase, blob)
+	stateBytes, err := DecryptWithPassphrase(passphrase, blob)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt data: %w", err)
 	}

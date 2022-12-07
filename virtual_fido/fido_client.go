@@ -230,13 +230,13 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 		PINHash:                client.pinHash,
 		Sources:                identityData,
 	}
-	savedBytes, err := EncryptWithPassphrase(state, passphrase)
+	savedBytes, err := EncryptFIDOState(state, passphrase)
 	checkErr(err, "Could not encode saved state")
 	return savedBytes
 }
 
 func (client *DefaultFIDOClient) importData(data []byte, passphrase string) error {
-	state, err := DecryptWithPassphrase(data, passphrase)
+	state, err := DecryptFIDOState(data, passphrase)
 	checkErr(err, "Could not decrypt vault data")
 	cert, err := x509.ParseCertificate(state.AttestationCertificate)
 	checkErr(err, "Could not parse x509 cert")
