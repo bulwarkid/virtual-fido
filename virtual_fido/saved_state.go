@@ -34,7 +34,7 @@ type PassphraseEncryptedBlob struct {
 	DataNonce     []byte `json:"data_nonce"`
 }
 
-func EncryptWithPassphrase(passphrase string, data []byte) (*PassphraseEncryptedBlob, error) {
+func EncryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
 	salt := read(rand.Reader, 16)
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
 	if err != nil {
@@ -49,27 +49,37 @@ func EncryptWithPassphrase(passphrase string, data []byte) (*PassphraseEncrypted
 	if err != nil {
 		return nil, fmt.Errorf("Could not encrypt data: %w", err)
 	}
-	return &PassphraseEncryptedBlob{
+	blob := PassphraseEncryptedBlob{
 		Salt:          salt,
 		EncryptionKey: encryptedKey,
 		KeyNonce:      keyNonce,
 		EncryptedData: encryptedData,
 		DataNonce:     dataNonce,
-	}, nil
+	}
+	blobBytes, err := json.Marshal(blob)
+	if err != nil {
+		return nil, fmt.Errorf("Could not marshal JSON: %w", err)
+	}
+	return blobBytes, nil
 }
 
-func DecryptWithPassphrase(passphrase string, blob PassphraseEncryptedBlob) ([]byte, error) {
+func DecryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
+	blob := PassphraseEncryptedBlob{}
+	err := json.Unmarshal(data, &blob)
+	if err != nil {
+		return nil, fmt.Errorf("Could not unmarshal JSON into encrypted data: %w", err)
+	}
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), blob.Salt, 32768, 8, 1, 32)
 	checkErr(err, "Could not create key encryption key")
 	encryptionKey, err := decrypt(keyEncryptionKey, blob.EncryptionKey, blob.KeyNonce)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt encryption key: %w", err)
 	}
-	data, err := decrypt(encryptionKey, blob.EncryptedData, blob.DataNonce)
+	decryptedData, err := decrypt(encryptionKey, blob.EncryptedData, blob.DataNonce)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt data: %w", err)
 	}
-	return data, nil
+	return decryptedData, nil
 }
 
 func EncryptFIDOState(savedState FIDODeviceConfig, passphrase string) ([]byte, error) {
@@ -81,20 +91,11 @@ func EncryptFIDOState(savedState FIDODeviceConfig, passphrase string) ([]byte, e
 	if err != nil {
 		return nil, fmt.Errorf("Could not encrypt data: %w", err)
 	}
-	output, err := json.Marshal(blob)
-	if err != nil {
-		return nil, fmt.Errorf("Could not encode JSON: %w", err)
-	}
-	return output, nil
+	return blob, nil
 }
 
 func DecryptFIDOState(data []byte, passphrase string) (*FIDODeviceConfig, error) {
-	blob := PassphraseEncryptedBlob{}
-	err := json.Unmarshal(data, &blob)
-	if err != nil {
-		return nil, fmt.Errorf("Could not decode JSON: %w", err)
-	}
-	stateBytes, err := DecryptWithPassphrase(passphrase, blob)
+	stateBytes, err := DecryptWithPassphrase(passphrase, data)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt data: %w", err)
 	}
