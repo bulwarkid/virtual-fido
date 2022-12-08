@@ -1,0 +1,66 @@
+;/*++
+;
+;    INF file for installing USB/IP vhci driver
+;
+;--*/
+[Version]
+Signature="$WINDOWS NT$"
+Class=USB
+ClassGuid={36FC9E60-C465-11CF-8056-444553540000}
+
+Provider=%Provider%
+CatalogFile=usbip_vhci.cat
+
+PnpLockDown=1
+DriverVer = 06/18/2022,0.3.6.0
+
+[Manufacturer]
+%StdMfg%=Standard,NTamd64
+
+[Standard.NTamd64]
+%DeviceDesc%=usbip_vhci_Device, USBIPWIN\vhci
+%vhub_DeviceDesc%=usbip_vhci_Device, USB\ROOT_HUB&VID_1209&PID_8250&REV_0000
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[SourceDisksNames]
+1 = %DiskId1%,,,""
+
+[SourceDisksFiles]
+usbip_vhci.sys  = 1,,
+
+[Drivers_Dir]
+usbip_vhci.sys
+
+[usbip_vhci_Device.NTamd64]
+CopyFiles=Drivers_Dir
+
+[usbip_vhci_Device.NTamd64.HW]
+AddReg=usbip_vhci_Device_AddReg
+
+[usbip_vhci_Device_AddReg]
+HKR,,DeviceCharacteristics,0x10001,0x0100         ; Use same security checks on relative opens
+
+;-------------- Service installation
+[usbip_vhci_Device.NTamd64.Services]
+AddService = usbip_vhci,%SPSVCINST_ASSOCSERVICE%, usbip_vhci_Service_Inst
+
+; -------------- vhci driver install sections
+[usbip_vhci_Service_Inst]
+DisplayName    = %ServiceDesc%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\usbip_vhci.sys
+LoadOrderGroup = Extended Base
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+Provider = "usbip-win project"
+StdMfg = "usbip-win"
+DiskId1 = "usbip-win VHCI Disk"
+DeviceDesc = "usbip-win VHCI"
+vhub_DeviceDesc = "usbip-win VHUB"
+ServiceDesc = "usbip-win VHCI Service"
+DisplayClassName = "usbip-win"

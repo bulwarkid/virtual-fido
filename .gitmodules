@@ -1,0 +1,4 @@
+
+[submodule "usbip/usbip-win"]
+	path = usbip/usbip-win
+	url = https://github.com/cezanne/usbip-win
