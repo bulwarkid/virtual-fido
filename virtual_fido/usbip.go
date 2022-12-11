@@ -3,6 +3,8 @@ package virtual_fido
 import (
 	"bytes"
 	"fmt"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 const (
@@ -155,7 +157,7 @@ func (body usbipCommandSubmitBody) String() string {
 }
 
 func (body usbipCommandSubmitBody) Setup() usbSetupPacket {
-	return readLE[usbSetupPacket](bytes.NewBuffer(body.SetupBytes[:]))
+	return util.ReadLE[usbSetupPacket](bytes.NewBuffer(body.SetupBytes[:]))
 }
 
 type usbipCommandUnlinkBody struct {

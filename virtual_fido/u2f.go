@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 	"github.com/fxamacker/cbor/v2"
 )
 
@@ -69,27 +70,27 @@ func newU2FServer(client FIDOClient) *u2fServer {
 
 func decodeU2FMessage(messageBytes []byte) (u2fMessageHeader, []byte, uint16) {
 	buffer := bytes.NewBuffer(messageBytes)
-	header := readBE[u2fMessageHeader](buffer)
+	header := util.ReadBE[u2fMessageHeader](buffer)
 	if buffer.Len() == 0 {
 		// No request length, no response length
 		return header, []byte{}, 0
 	}
 	// We should either have a request length or response length, so we have at least
 	// one '0' byte at the start
-	if read(buffer, 1)[0] != 0 {
+	if util.Read(buffer, 1)[0] != 0 {
 		panic(fmt.Sprintf("Invalid U2F Payload length: %s %#v", header, messageBytes))
 	}
-	length := readBE[uint16](buffer)
+	length := util.ReadBE[uint16](buffer)
 	if buffer.Len() == 0 {
 		// No payload, so length must be the response length
 		return header, []byte{}, length
 	}
 	// length is the request length
-	request := read(buffer, uint(length))
+	request := util.Read(buffer, uint(length))
 	if buffer.Len() == 0 {
 		return header, request, 0
 	}
-	responseLength := readBE[uint16](buffer)
+	responseLength := util.ReadBE[uint16](buffer)
 	return header, request, responseLength
 }
 
@@ -99,7 +100,7 @@ func (server *u2fServer) handleU2FMessage(message []byte) []byte {
 	var response []byte
 	switch header.Command {
 	case u2f_COMMAND_VERSION:
-		response = append([]byte("U2F_V2"), toBE(u2f_SW_NO_ERROR)...)
+		response = append([]byte("U2F_V2"), util.ToBE(u2f_SW_NO_ERROR)...)
 	case u2f_COMMAND_REGISTER:
 		response = server.handleU2FRegister(header, request)
 	case u2f_COMMAND_AUTHENTICATE:
@@ -117,8 +118,8 @@ type KeyHandle struct {
 }
 
 func (server *u2fServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
-	box := seal(server.client.SealingEncryptionKey(), marshalCBOR(keyHandle))
-	return marshalCBOR(box)
+	box := seal(server.client.SealingEncryptionKey(), util.MarshalCBOR(keyHandle))
+	return util.MarshalCBOR(box)
 }
 
 func (server *u2fServer) openKeyHandle(boxBytes []byte) (*KeyHandle, error) {
@@ -139,64 +140,64 @@ func (server *u2fServer) openKeyHandle(boxBytes []byte) (*KeyHandle, error) {
 func (server *u2fServer) handleU2FRegister(header u2fMessageHeader, request []byte) []byte {
 	challenge := request[:32]
 	application := request[32:]
-	assert(len(challenge) == 32, "Challenge is not 32 bytes")
-	assert(len(application) == 32, "Application is not 32 bytes")
+	util.Assert(len(challenge) == 32, "Challenge is not 32 bytes")
+	util.Assert(len(application) == 32, "Application is not 32 bytes")
 
 	privateKey := server.client.NewPrivateKey()
 	encodedPublicKey := elliptic.Marshal(elliptic.P256(), privateKey.PublicKey.X, privateKey.PublicKey.Y)
 	encodedPrivateKey, err := x509.MarshalECPrivateKey(privateKey)
-	checkErr(err, "Could not encode private key")
+	util.CheckErr(err, "Could not encode private key")
 
 	unencryptedKeyHandle := KeyHandle{PrivateKey: encodedPrivateKey, ApplicationID: application}
 	keyHandle := server.sealKeyHandle(&unencryptedKeyHandle)
 	u2fLogger.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
 
 	if !server.client.ApproveU2FRegistration(&unencryptedKeyHandle) {
-		return toBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
+		return util.ToBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
 	}
 
 	cert := server.client.CreateAttestationCertificiate(privateKey)
 
-	signatureDataBytes := flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
+	signatureDataBytes := util.Flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
 	signature := sign(privateKey, signatureDataBytes)
 
-	return flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, toBE(u2f_SW_NO_ERROR)})
+	return util.Flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, util.ToBE(u2f_SW_NO_ERROR)})
 }
 
 func (server *u2fServer) handleU2FAuthenticate(header u2fMessageHeader, request []byte) []byte {
 	requestReader := bytes.NewBuffer(request)
 	control := u2fAuthenticateControl(header.Param1)
-	challenge := read(requestReader, 32)
-	application := read(requestReader, 32)
+	challenge := util.Read(requestReader, 32)
+	application := util.Read(requestReader, 32)
 
-	keyHandleLength := readLE[uint8](requestReader)
-	encryptedKeyHandleBytes := read(requestReader, uint(keyHandleLength))
+	keyHandleLength := util.ReadLE[uint8](requestReader)
+	encryptedKeyHandleBytes := util.Read(requestReader, uint(keyHandleLength))
 	keyHandle, err := server.openKeyHandle(encryptedKeyHandleBytes)
 	if err != nil {
 		u2fLogger.Printf("U2F AUTHENTICATE: Invalid key handle given - %s %#v\n\n", err, encryptedKeyHandleBytes)
-		return toBE(u2f_SW_WRONG_DATA)
+		return util.ToBE(u2f_SW_WRONG_DATA)
 	}
 	if keyHandle.PrivateKey == nil || bytes.Compare(keyHandle.ApplicationID, application) != 0 {
 		u2fLogger.Printf("U2F AUTHENTICATE: Invalid input data %#v\n\n", keyHandle)
-		return toBE(u2f_SW_WRONG_DATA)
+		return util.ToBE(u2f_SW_WRONG_DATA)
 	}
 	privateKey, err := x509.ParseECPrivateKey(keyHandle.PrivateKey)
-	checkErr(err, "Could not decode private key")
+	util.CheckErr(err, "Could not decode private key")
 
 	if control == u2f_AUTH_CONTROL_CHECK_ONLY {
-		return toBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
+		return util.ToBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
 	} else if control == u2f_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN || control == u2f_AUTH_CONTROL_SIGN {
 		if control == u2f_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN {
 			if !server.client.ApproveU2FAuthentication(keyHandle) {
-				return toBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
+				return util.ToBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
 			}
 		}
 		counter := server.client.NewAuthenticationCounterId()
-		signatureDataBytes := flatten([][]byte{application, {1}, toBE(counter), challenge})
+		signatureDataBytes := util.Flatten([][]byte{application, {1}, util.ToBE(counter), challenge})
 		signature := sign(privateKey, signatureDataBytes)
-		return flatten([][]byte{{1}, toBE(counter), signature, toBE(u2f_SW_NO_ERROR)})
+		return util.Flatten([][]byte{{1}, util.ToBE(counter), signature, util.ToBE(u2f_SW_NO_ERROR)})
 	} else {
 		// No error specific to invalid control byte, so return WRONG_LENGTH to indicate data error
-		return toBE(u2f_SW_WRONG_LENGTH)
+		return util.ToBE(u2f_SW_WRONG_LENGTH)
 	}
 }

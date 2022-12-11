@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 var ctapHIDLogger = newLogger("[CTAPHID] ", false)
@@ -109,7 +111,7 @@ func (header ctapHIDMessageHeader) isFollowupMessage() bool {
 }
 
 func newctapHIDMessageHeader(channelID ctapHIDChannelID, command ctapHIDCommand, length uint16) []byte {
-	return flatten([][]byte{toLE(channelID), toLE(command), toBE(length)})
+	return util.Flatten([][]byte{util.ToLE(channelID), util.ToLE(command), util.ToBE(length)})
 }
 
 type ctapHIDInitReponse struct {
@@ -194,7 +196,7 @@ func (server *ctapHIDServer) sendResponse(response [][]byte) {
 
 func (server *ctapHIDServer) handleMessage(message []byte) {
 	buffer := bytes.NewBuffer(message)
-	channelId := readLE[ctapHIDChannelID](buffer)
+	channelId := util.ReadLE[ctapHIDChannelID](buffer)
 	channel, exists := server.channels[channelId]
 	if !exists {
 		response := ctapHidError(channelId, ctapHID_ERR_INVALID_CHANNEL)
@@ -233,9 +235,9 @@ func (channel *ctapHIDChannel) clearInProgressMessage() {
 // After the multiple packets are compiled, then a finalized CTAPHID message is created
 func (channel *ctapHIDChannel) handleIntermediateMessage(server *ctapHIDServer, message []byte) {
 	buffer := bytes.NewBuffer(message)
-	readLE[ctapHIDChannelID](buffer) // Consume Channel ID
+	util.ReadLE[ctapHIDChannelID](buffer) // Consume Channel ID
 	if channel.inProgressHeader != nil {
-		val := readLE[uint8](buffer)
+		val := util.ReadLE[uint8](buffer)
 		if val == uint8(ctapHID_COMMAND_CANCEL) {
 			channel.clearInProgressMessage()
 			return
@@ -265,7 +267,7 @@ func (channel *ctapHIDChannel) handleIntermediateMessage(server *ctapHIDServer, 
 		}
 	} else {
 		// Command message
-		command := readLE[ctapHIDCommand](buffer)
+		command := util.ReadLE[ctapHIDCommand](buffer)
 		if command == ctapHID_COMMAND_CANCEL {
 			channel.clearInProgressMessage()
 			ctapHIDLogger.Printf("CTAPHID COMMAND: ctapHID_COMMAND_CANCEL\n\n")
@@ -276,7 +278,7 @@ func (channel *ctapHIDChannel) handleIntermediateMessage(server *ctapHIDServer, 
 			server.sendResponse(ctapHidError(channel.channelId, ctapHID_ERR_INVALID_COMMAND))
 			return
 		}
-		payloadLength := readBE[uint16](buffer)
+		payloadLength := util.ReadBE[uint16](buffer)
 		header := ctapHIDMessageHeader{
 			ChannelID:     channel.channelId,
 			Command:       command,
@@ -327,7 +329,7 @@ func (channel *ctapHIDChannel) handleBroadcastMessage(server *ctapHIDServer, hea
 		server.maxChannelID += 1
 		server.channels[response.NewChannelID] = newCTAPHIDChannel(response.NewChannelID)
 		ctapHIDLogger.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
-		return createResponsePackets(ctapHID_BROADCAST_CHANNEL, ctapHID_COMMAND_INIT, toLE(response))
+		return createResponsePackets(ctapHID_BROADCAST_CHANNEL, ctapHID_COMMAND_INIT, util.ToLE(response))
 	case ctapHID_COMMAND_PING:
 		return createResponsePackets(ctapHID_BROADCAST_CHANNEL, ctapHID_COMMAND_PING, payload)
 	default:
@@ -342,7 +344,7 @@ func (channel *ctapHIDChannel) handleDataMessage(server *ctapHIDServer, header c
 		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
 		return createResponsePackets(header.ChannelID, ctapHID_COMMAND_MSG, responsePayload)
 	case ctapHID_COMMAND_CBOR:
-		stop := startRecurringFunction(keepConnectionAlive(server, channel.channelId, ctapHID_STATUS_UPNEEDED), 100)
+		stop := util.StartRecurringFunction(keepConnectionAlive(server, channel.channelId, ctapHID_STATUS_UPNEEDED), 100)
 		responsePayload := server.ctapServer.handleMessage(payload)
 		stop <- 0
 		ctapHIDLogger.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
@@ -369,7 +371,7 @@ func createResponsePackets(channelId ctapHIDChannelID, command ctapHIDCommand, p
 		if sequence < 0 {
 			packet = append(packet, newctapHIDMessageHeader(channelId, command, uint16(len(payload)))...)
 		} else {
-			packet = append(packet, toLE(channelId)...)
+			packet = append(packet, util.ToLE(channelId)...)
 			packet = append(packet, byte(uint8(sequence)))
 		}
 		sequence++
@@ -379,7 +381,7 @@ func createResponsePackets(channelId ctapHIDChannelID, command ctapHIDCommand, p
 		}
 		packet = append(packet, payload[:bytesLeft]...)
 		payload = payload[bytesLeft:]
-		packet = pad(packet, ctapHIDSERVER_MAX_PACKET_SIZE)
+		packet = util.Pad(packet, ctapHIDSERVER_MAX_PACKET_SIZE)
 		packets = append(packets, packet)
 	}
 	return packets

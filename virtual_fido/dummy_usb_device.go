@@ -2,6 +2,8 @@ package virtual_fido
 
 import (
 	"fmt"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 type dummyUSBDevice struct{}
@@ -52,7 +54,7 @@ func (device *dummyUSBDevice) getDescriptor(descriptorType usbDescriptorType, in
 	switch descriptorType {
 	case usb_DESCRIPTOR_DEVICE:
 		descriptor := usbDeviceDescriptor{
-			BLength:            sizeOf[usbDeviceDescriptor](),
+			BLength:            util.SizeOf[usbDeviceDescriptor](),
 			BDescriptorType:    usb_DESCRIPTOR_DEVICE,
 			BcdUSB:             0x0110,
 			BDeviceClass:       0,
@@ -67,11 +69,11 @@ func (device *dummyUSBDevice) getDescriptor(descriptorType usbDescriptorType, in
 			ISerialNumber:      0,
 			BNumConfigurations: 0,
 		}
-		return toLE(descriptor)
+		return util.ToLE(descriptor)
 	case usb_DESCRIPTOR_CONFIGURATION:
-		totalLength := uint16(sizeOf[usbConfigurationDescriptor]())
+		totalLength := uint16(util.SizeOf[usbConfigurationDescriptor]())
 		descriptor := usbConfigurationDescriptor{
-			BLength:             sizeOf[usbConfigurationDescriptor](),
+			BLength:             util.SizeOf[usbConfigurationDescriptor](),
 			BDescriptorType:     usb_DESCRIPTOR_CONFIGURATION,
 			WTotalLength:        totalLength,
 			BNumInterfaces:      0,
@@ -80,7 +82,7 @@ func (device *dummyUSBDevice) getDescriptor(descriptorType usbDescriptorType, in
 			BmAttributes:        usb_CONFIG_ATTR_BASE | usb_CONFIG_ATTR_SELF_POWERED,
 			BMaxPower:           0,
 		}
-		return toLE(descriptor)
+		return util.ToLE(descriptor)
 	default:
 		panic(fmt.Sprintf("Invalid Descriptor type: %d", descriptorType))
 	}

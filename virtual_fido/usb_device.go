@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"unsafe"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 type usbDevice interface {
@@ -32,7 +34,7 @@ func newUSBDevice(ctapHIDServer *ctapHIDServer) *usbDeviceImpl {
 
 func (device *usbDeviceImpl) getDeviceDescriptor() usbDeviceDescriptor {
 	return usbDeviceDescriptor{
-		BLength:            sizeOf[usbDeviceDescriptor](),
+		BLength:            util.SizeOf[usbDeviceDescriptor](),
 		BDescriptorType:    usb_DESCRIPTOR_DEVICE,
 		BcdUSB:             0x0110,
 		BDeviceClass:       0,
@@ -50,12 +52,12 @@ func (device *usbDeviceImpl) getDeviceDescriptor() usbDeviceDescriptor {
 }
 
 func (device *usbDeviceImpl) getConfigurationDescriptor() usbConfigurationDescriptor {
-	totalLength := uint16(sizeOf[usbConfigurationDescriptor]()) +
-		uint16(sizeOf[usbInterfaceDescriptor]()) +
-		uint16(sizeOf[usbHIDDescriptor]()) +
-		uint16(2*sizeOf[usbEndpointDescriptor]())
+	totalLength := uint16(util.SizeOf[usbConfigurationDescriptor]()) +
+		uint16(util.SizeOf[usbInterfaceDescriptor]()) +
+		uint16(util.SizeOf[usbHIDDescriptor]()) +
+		uint16(2*util.SizeOf[usbEndpointDescriptor]())
 	return usbConfigurationDescriptor{
-		BLength:             sizeOf[usbConfigurationDescriptor](),
+		BLength:             util.SizeOf[usbConfigurationDescriptor](),
 		BDescriptorType:     usb_DESCRIPTOR_CONFIGURATION,
 		WTotalLength:        totalLength,
 		BNumInterfaces:      1,
@@ -68,7 +70,7 @@ func (device *usbDeviceImpl) getConfigurationDescriptor() usbConfigurationDescri
 
 func (device *usbDeviceImpl) getInterfaceDescriptor() usbInterfaceDescriptor {
 	return usbInterfaceDescriptor{
-		BLength:            sizeOf[usbInterfaceDescriptor](),
+		BLength:            util.SizeOf[usbInterfaceDescriptor](),
 		BDescriptorType:    usb_DESCRIPTOR_INTERFACE,
 		BInterfaceNumber:   0,
 		BAlternateSetting:  0,
@@ -82,7 +84,7 @@ func (device *usbDeviceImpl) getInterfaceDescriptor() usbInterfaceDescriptor {
 
 func (device *usbDeviceImpl) getHIDDescriptor(hidReportDescriptor []byte) usbHIDDescriptor {
 	return usbHIDDescriptor{
-		BLength:                 sizeOf[usbHIDDescriptor](),
+		BLength:                 util.SizeOf[usbHIDDescriptor](),
 		BDescriptorType:         usb_DESCRIPTOR_HID,
 		BcdHID:                  0x0101,
 		BCountryCode:            0,
@@ -98,7 +100,7 @@ func (device *usbDeviceImpl) getHIDReport() []byte {
 }
 
 func (device *usbDeviceImpl) getEndpointDescriptors() []usbEndpointDescriptor {
-	length := sizeOf[usbEndpointDescriptor]()
+	length := util.SizeOf[usbEndpointDescriptor]()
 	return []usbEndpointDescriptor{
 		{
 			BLength:          length,
@@ -122,15 +124,15 @@ func (device *usbDeviceImpl) getEndpointDescriptors() []usbEndpointDescriptor {
 func (device *usbDeviceImpl) getStringDescriptor(index uint8) []byte {
 	switch index {
 	case 1:
-		return utf16encode("No Company")
+		return util.Utf16encode("No Company")
 	case 2:
-		return utf16encode("Virtual FIDO")
+		return util.Utf16encode("Virtual FIDO")
 	case 3:
-		return utf16encode("No Serial Number")
+		return util.Utf16encode("No Serial Number")
 	case 4:
-		return utf16encode("String 4")
+		return util.Utf16encode("String 4")
 	case 5:
-		return utf16encode("Default Interface")
+		return util.Utf16encode("Default Interface")
 	default:
 		panic(fmt.Sprintf("Invalid string descriptor index: %d", index))
 	}
@@ -142,7 +144,7 @@ func (device *usbDeviceImpl) getDescriptor(descriptorType usbDescriptorType, ind
 	case usb_DESCRIPTOR_DEVICE:
 		descriptor := device.getDeviceDescriptor()
 		usbLogger.Printf("DEVICE DESCRIPTOR: %#v\n\n", descriptor)
-		return toLE(descriptor)
+		return util.ToLE(descriptor)
 	case usb_DESCRIPTOR_CONFIGURATION:
 		hidReport := device.getHIDReport()
 		buffer := new(bytes.Buffer)
@@ -150,19 +152,19 @@ func (device *usbDeviceImpl) getDescriptor(descriptorType usbDescriptorType, ind
 		interfaceDescriptor := device.getInterfaceDescriptor()
 		hid := device.getHIDDescriptor(hidReport)
 		usbLogger.Printf("CONFIGURATION: %#v\n\nINTERFACE: %#v\n\nHID: %#v\n\n", config, interfaceDescriptor, hid)
-		buffer.Write(toLE(config))
-		buffer.Write(toLE(interfaceDescriptor))
-		buffer.Write(toLE(hid))
+		buffer.Write(util.ToLE(config))
+		buffer.Write(util.ToLE(interfaceDescriptor))
+		buffer.Write(util.ToLE(hid))
 		endpoints := device.getEndpointDescriptors()
 		for _, endpoint := range endpoints {
 			usbLogger.Printf("ENDPOINT: %#v\n\n", endpoint)
-			buffer.Write(toLE(endpoint))
+			buffer.Write(util.ToLE(endpoint))
 		}
 		return buffer.Bytes()
 	case usb_DESCRIPTOR_STRING:
 		var message []byte
 		if index == 0 {
-			message = toLE[uint16](usb_LANGID_ENG_USA)
+			message = util.ToLE[uint16](usb_LANGID_ENG_USA)
 		} else {
 			message = device.getStringDescriptor(index)
 		}
@@ -173,7 +175,7 @@ func (device *usbDeviceImpl) getDescriptor(descriptorType usbDescriptorType, ind
 			BDescriptorType: usb_DESCRIPTOR_STRING,
 		}
 		buffer := new(bytes.Buffer)
-		buffer.Write(toLE(header))
+		buffer.Write(util.ToLE(header))
 		buffer.Write([]byte(message))
 		usbLogger.Printf("STRING: Length: %d Message: \"%s\" Bytes: %v\n\n", header.BLength, message, buffer.Bytes())
 		return buffer.Bytes()

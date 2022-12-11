@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -35,12 +36,12 @@ type PassphraseEncryptedBlob struct {
 }
 
 func EncryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
-	salt := read(rand.Reader, 16)
+	salt := util.Read(rand.Reader, 16)
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create key encryption key: %w", err)
 	}
-	encryptionKey := read(rand.Reader, 32)
+	encryptionKey := util.Read(rand.Reader, 32)
 	encryptedKey, keyNonce, err := encrypt(keyEncryptionKey, encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("Could not encrypt key: %w", err)
@@ -70,7 +71,7 @@ func DecryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Could not unmarshal JSON into encrypted data: %w", err)
 	}
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), blob.Salt, 32768, 8, 1, 32)
-	checkErr(err, "Could not create key encryption key")
+	util.CheckErr(err, "Could not create key encryption key")
 	encryptionKey, err := decrypt(keyEncryptionKey, blob.EncryptionKey, blob.KeyNonce)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt encryption key: %w", err)

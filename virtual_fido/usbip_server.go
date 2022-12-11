@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 var usbipLogger = newLogger("[USBIP] ", false)
@@ -25,10 +27,10 @@ func newUSBIPServer(device usbDevice) *usbIPServer {
 func (server *usbIPServer) start() {
 	usbipLogger.Println("Starting USBIP server...")
 	listener, err := net.Listen("tcp", ":3240")
-	checkErr(err, "Could not create listener")
+	util.CheckErr(err, "Could not create listener")
 	for {
 		connection, err := listener.Accept()
-		checkErr(err, "Connection accept error")
+		util.CheckErr(err, "Connection accept error")
 		if !strings.HasPrefix(connection.RemoteAddr().String(), "127.0.0.1") {
 			usbipLogger.Printf("Connection attempted from non-local address: %s", connection.RemoteAddr().String())
 			connection.Close()
@@ -40,12 +42,12 @@ func (server *usbIPServer) start() {
 
 func (server *usbIPServer) handleConnection(conn *net.Conn) {
 	for {
-		header := readBE[usbipControlHeader](*conn)
+		header := util.ReadBE[usbipControlHeader](*conn)
 		usbipLogger.Printf("[CONTROL MESSAGE] %#v\n\n", header)
 		if header.CommandCode == usbip_COMMAND_OP_REQ_DEVLIST {
 			reply := newOpRepDevlist(server.device)
 			usbipLogger.Printf("[OP_REP_DEVLIST] %#v\n\n", reply)
-			write(*conn, toBE(reply))
+			util.Write(*conn, util.ToBE(reply))
 		} else if header.CommandCode == usbip_COMMAND_OP_REQ_IMPORT {
 			busId := make([]byte, 32)
 			bytesRead, err := (*conn).Read(busId)
@@ -54,7 +56,7 @@ func (server *usbIPServer) handleConnection(conn *net.Conn) {
 			}
 			reply := newOpRepImport(server.device)
 			usbipLogger.Printf("[OP_REP_IMPORT] %s\n\n", reply)
-			write(*conn, toBE(reply))
+			util.Write(*conn, util.ToBE(reply))
 			server.handleCommands(conn)
 		}
 	}
@@ -63,7 +65,7 @@ func (server *usbIPServer) handleConnection(conn *net.Conn) {
 func (server *usbIPServer) handleCommands(conn *net.Conn) {
 	for {
 		//fmt.Printf("--------------------------------------------\n\n")
-		header := readBE[usbipMessageHeader](*conn)
+		header := util.ReadBE[usbipMessageHeader](*conn)
 		usbipLogger.Printf("[MESSAGE HEADER] %s\n\n", header)
 		if header.Command == usbip_COMMAND_SUBMIT {
 			server.handleCommandSubmit(conn, header)
@@ -76,13 +78,13 @@ func (server *usbIPServer) handleCommands(conn *net.Conn) {
 }
 
 func (server *usbIPServer) handleCommandSubmit(conn *net.Conn, header usbipMessageHeader) {
-	command := readBE[usbipCommandSubmitBody](*conn)
+	command := util.ReadBE[usbipCommandSubmitBody](*conn)
 	setup := command.Setup()
 	usbipLogger.Printf("[COMMAND SUBMIT] %s\n\n", command)
 	transferBuffer := make([]byte, command.TransferBufferLength)
 	if header.Direction == usbip_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)
-		checkErr(err, "Could not read transfer buffer")
+		util.CheckErr(err, "Could not read transfer buffer")
 	}
 	// Getting the reponse may not be immediate, so we need a callback
 	onReturnSubmit := func() {
@@ -103,10 +105,10 @@ func (server *usbIPServer) handleCommandSubmit(conn *net.Conn, header usbipMessa
 			Padding:         0,
 		}
 		usbipLogger.Printf("[RETURN SUBMIT] %v %#v\n\n", replyHeader, replyBody)
-		write(*conn, toBE(replyHeader))
-		write(*conn, toBE(replyBody))
+		util.Write(*conn, util.ToBE(replyHeader))
+		util.Write(*conn, util.ToBE(replyBody))
 		if header.Direction == usbip_DIR_IN {
-			write(*conn, transferBuffer)
+			util.Write(*conn, transferBuffer)
 		}
 		server.responseMutex.Unlock()
 	}
@@ -114,7 +116,7 @@ func (server *usbIPServer) handleCommandSubmit(conn *net.Conn, header usbipMessa
 }
 
 func (server *usbIPServer) handleCommandUnlink(conn *net.Conn, header usbipMessageHeader) {
-	unlink := readBE[usbipCommandUnlinkBody](*conn)
+	unlink := util.ReadBE[usbipCommandUnlinkBody](*conn)
 	usbipLogger.Printf("[COMMAND UNLINK] %#v\n\n", unlink)
 	var status int32
 	if server.device.removeWaitingRequest(unlink.UnlinkSequenceNumber) {
@@ -133,6 +135,6 @@ func (server *usbIPServer) handleCommandUnlink(conn *net.Conn, header usbipMessa
 		Status:  status,
 		Padding: [24]byte{},
 	}
-	write(*conn, toBE(replyHeader))
-	write(*conn, toBE(replyBody))
+	util.Write(*conn, util.ToBE(replyHeader))
+	util.Write(*conn, util.ToBE(replyBody))
 }

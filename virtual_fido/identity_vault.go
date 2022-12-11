@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 type CredentialSource struct {
@@ -36,9 +38,9 @@ func NewIdentityVault() *IdentityVault {
 }
 
 func (vault *IdentityVault) NewIdentity(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
-	credentialID := read(rand.Reader, 16)
+	credentialID := util.Read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	checkErr(err, "Could not generate private key")
+	util.CheckErr(err, "Could not generate private key")
 	credentialSource := CredentialSource{
 		Type:             "public-key",
 		ID:               credentialID,
@@ -89,7 +91,7 @@ func (vault *IdentityVault) Export() []SavedCredentialSource {
 	sources := make([]SavedCredentialSource, 0)
 	for _, source := range vault.CredentialSources {
 		key, err := x509.MarshalECPrivateKey(source.PrivateKey)
-		checkErr(err, "Could not marshall private key")
+		util.CheckErr(err, "Could not marshall private key")
 		savedSource := SavedCredentialSource{
 			Type:             source.Type,
 			ID:               source.ID,

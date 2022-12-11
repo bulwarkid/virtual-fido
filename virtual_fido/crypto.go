@@ -9,6 +9,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"math/big"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 func encrypt(key []byte, data []byte) ([]byte, []byte, error) {
@@ -17,7 +19,7 @@ func encrypt(key []byte, data []byte) ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("Could not create device cipher: %w", err)
 	}
-	nonce := read(rand.Reader, 12)
+	nonce := util.Read(rand.Reader, 12)
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Could not create GCM mode: %w", err)
@@ -46,7 +48,7 @@ func decrypt(key []byte, data []byte, nonce []byte) ([]byte, error) {
 func sign(key *ecdsa.PrivateKey, data []byte) []byte {
 	hash := sha256.Sum256(data)
 	signature, err := ecdsa.SignASN1(rand.Reader, key, hash[:])
-	checkErr(err, "Could not sign data")
+	util.CheckErr(err, "Could not sign data")
 	return signature
 }
 
@@ -62,26 +64,26 @@ type encryptedBox struct {
 
 func seal(key []byte, data []byte) encryptedBox {
 	encryptedData, iv, err := encrypt(key, data)
-	checkErr(err, "Could not seal data")
+	util.CheckErr(err, "Could not seal data")
 	return encryptedBox{Data: encryptedData, IV: iv}
 }
 
 func open(key []byte, box encryptedBox) []byte {
 	data, err := decrypt(key, box.Data, box.IV)
-	checkErr(err, "Could not open data")
+	util.CheckErr(err, "Could not open data")
 	return data
 }
 
 func hashSHA256(bytes []byte) []byte {
 	hash := sha256.New()
 	_, err := hash.Write(bytes)
-	checkErr(err, "Could not hash bytes")
+	util.CheckErr(err, "Could not hash bytes")
 	return hash.Sum(nil)
 }
 
 func encryptAESCBC(key []byte, data []byte) []byte {
 	aesCipher, err := aes.NewCipher(key)
-	checkErr(err, "Could not create AES cipher")
+	util.CheckErr(err, "Could not create AES cipher")
 	iv := make([]byte, aesCipher.BlockSize())
 	cbc := cipher.NewCBCEncrypter(aesCipher, iv)
 	encryptedData := make([]byte, len(data))
@@ -91,7 +93,7 @@ func encryptAESCBC(key []byte, data []byte) []byte {
 
 func decryptAESCBC(key []byte, data []byte) []byte {
 	aesCipher, err := aes.NewCipher(key)
-	checkErr(err, "Could not create AES cipher")
+	util.CheckErr(err, "Could not create AES cipher")
 	iv := make([]byte, aesCipher.BlockSize())
 	cbc := cipher.NewCBCDecrypter(aesCipher, iv)
 	decryptedData := make([]byte, len(data))
@@ -107,7 +109,7 @@ type ECDHKey struct {
 
 func GenerateECDHKey() *ECDHKey {
 	priv, x, y, err := elliptic.GenerateKey(elliptic.P256(), rand.Reader)
-	checkErr(err, "Could not generate ECDH key")
+	util.CheckErr(err, "Could not generate ECDH key")
 	return &ECDHKey{priv: priv, x: x, y: y}
 }
 
@@ -123,6 +125,6 @@ func (key *ECDHKey) PublicKeyBytes() []byte {
 func randomBytes(length int) []byte {
 	randBytes := make([]byte, length)
 	_, err := rand.Read(randBytes)
-	checkErr(err, "Could not generate random bytes")
+	util.CheckErr(err, "Could not generate random bytes")
 	return randBytes
 }

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 	"github.com/fxamacker/cbor/v2"
 )
 
@@ -146,7 +147,7 @@ func ctapEncodeKeyAsCOSE(publicKey *ecdsa.PublicKey) []byte {
 		X:         publicKey.X.Bytes(),
 		Y:         publicKey.Y.Bytes(),
 	}
-	return marshalCBOR(key)
+	return util.MarshalCBOR(key)
 }
 
 const (
@@ -182,7 +183,7 @@ type ctapBasicAttestationStatement struct {
 
 func ctapMakeAttestedCredentialData(credentialSource *CredentialSource) []byte {
 	encodedCredentialPublicKey := ctapEncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
-	return flatten([][]byte{aaguid[:], toBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
+	return util.Flatten([][]byte{aaguid[:], util.ToBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
 }
 
 func ctapMakeAuthData(rpID string, credentialSource *CredentialSource, attestedCredentialData []byte, flags uint8) []byte {
@@ -192,7 +193,7 @@ func ctapMakeAuthData(rpID string, credentialSource *CredentialSource, attestedC
 		attestedCredentialData = []byte{}
 	}
 	rpIdHash := sha256.Sum256([]byte(rpID))
-	return flatten([][]byte{rpIdHash[:], {flags}, toBE(credentialSource.SignatureCounter), attestedCredentialData})
+	return util.Flatten([][]byte{rpIdHash[:], {flags}, util.ToBE(credentialSource.SignatureCounter), attestedCredentialData})
 }
 
 type ctapServer struct {
@@ -250,7 +251,7 @@ type ctapMakeCredentialReponse struct {
 func (server *ctapServer) handleMakeCredential(data []byte) []byte {
 	var args ctapMakeCredentialArgs
 	err := cbor.Unmarshal(data, &args)
-	checkErr(err, fmt.Sprintf("Could not decode CBOR for MAKE_CREDENTIAL: %s %v", err, data))
+	util.CheckErr(err, fmt.Sprintf("Could not decode CBOR for MAKE_CREDENTIAL: %s %v", err, data))
 	ctapLogger.Printf("MAKE CREDENTIAL: %s\n\n", args)
 	var flags uint8 = 0
 
@@ -299,7 +300,7 @@ func (server *ctapServer) handleMakeCredential(data []byte) []byte {
 		AttestationStatement: attestationStatement,
 	}
 	ctapLogger.Printf("MAKE CREDENTIAL RESPONSE: %#v\n\n", response)
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
 
 type ctapGetInfoOptions struct {
@@ -333,7 +334,7 @@ func (server *ctapServer) handleGetInfo(data []byte) []byte {
 		PinProtocols: []uint32{1},
 	}
 	ctapLogger.Printf("CTAP GET_INFO RESPONSE: %#v\n\n", response)
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
 
 type ctapGetAssertionArgs struct {
@@ -389,7 +390,7 @@ func (server *ctapServer) handleGetAssertion(data []byte) []byte {
 	}
 
 	authData := ctapMakeAuthData(args.RpID, credentialSource, nil, flags)
-	signature := sign(credentialSource.PrivateKey, flatten([][]byte{authData, args.ClientDataHash}))
+	signature := sign(credentialSource.PrivateKey, util.Flatten([][]byte{authData, args.ClientDataHash}))
 
 	response := ctapGetAssertionResponse{
 		//Credential:          credentialSource.ctapDescriptor(),
@@ -401,7 +402,7 @@ func (server *ctapServer) handleGetAssertion(data []byte) []byte {
 
 	ctapLogger.Printf("RESPONSE: %#v\n\n", response)
 
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
 
 type ctapClientPINSubcommand uint32
@@ -456,7 +457,7 @@ func (args ctapClientPINResponse) String() string {
 
 func (server *ctapServer) getPINSharedSecret(remoteKey ctapCOSEPublicKey) []byte {
 	pinKey := server.client.PINKeyAgreement()
-	return hashSHA256(pinKey.ECDH(bytesToBigInt(remoteKey.X), bytesToBigInt(remoteKey.Y)))
+	return hashSHA256(pinKey.ECDH(util.BytesToBigInt(remoteKey.X), util.BytesToBigInt(remoteKey.Y)))
 }
 
 func (server *ctapServer) derivePINAuth(sharedSecret []byte, data []byte) []byte {
@@ -517,7 +518,7 @@ func (server *ctapServer) handleGetRetries() []byte {
 		Retries: &retries,
 	}
 	ctapLogger.Printf("CTAP_CLIENT_PIN_GET_RETRIES: %v\n\n", response)
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
 
 func (server *ctapServer) handleGetKeyAgreement(args ctapClientPINArgs) []byte {
@@ -531,7 +532,7 @@ func (server *ctapServer) handleGetKeyAgreement(args ctapClientPINArgs) []byte {
 		},
 	}
 	ctapLogger.Printf("CLIENT_PIN_GET_KEY_AGREEMENT RESPONSE: %#v\n\n", response)
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
 
 func (server *ctapServer) handleSetPIN(args ctapClientPINArgs) []byte {
@@ -606,5 +607,5 @@ func (server *ctapServer) handleGetPINToken(args ctapClientPINArgs) []byte {
 		PinToken: encryptAESCBC(sharedSecret, server.client.PINToken()),
 	}
 	ctapLogger.Printf("GET_PIN_TOKEN RESPONSE: %#v\n\n",response)
-	return append([]byte{byte(ctap1_ERR_SUCCESS)}, marshalCBOR(response)...)
+	return append([]byte{byte(ctap1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }

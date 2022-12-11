@@ -9,6 +9,8 @@ import (
 	"log"
 	"math/big"
 	"time"
+
+	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 type ClientAction uint8
@@ -82,7 +84,7 @@ func NewClient(
 	requestApprover ClientRequestApprover,
 	dataSaver ClientDataSaver) *DefaultFIDOClient {
 	authorityCert, err := x509.ParseCertificate(attestationCertificate)
-	checkErr(err, "Could not parse authority CA cert")
+	util.CheckErr(err, "Could not parse authority CA cert")
 	client := &DefaultFIDOClient{
 		deviceEncryptionKey:   secretEncryptionKey[:],
 		certificateAuthority:  authorityCert,
@@ -149,7 +151,7 @@ func (client *DefaultFIDOClient) SetPINHash(newHash []byte) {
 }
 
 func (client *DefaultFIDOClient) PINRetries() int32 {
-	assert(client.pinRetries > 0 && client.pinRetries <= 8, "Invalid PIN Retries")
+	util.Assert(client.pinRetries > 0 && client.pinRetries <= 8, "Invalid PIN Retries")
 	return client.pinRetries
 }
 
@@ -175,7 +177,7 @@ func (client DefaultFIDOClient) SealingEncryptionKey() []byte {
 
 func (client *DefaultFIDOClient) NewPrivateKey() *ecdsa.PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	checkErr(err, "Could not generate private key")
+	util.CheckErr(err, "Could not generate private key")
 	return privateKey
 }
 
@@ -204,7 +206,7 @@ func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa
 		BasicConstraintsValid: true,
 	}
 	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.certPrivateKey)
-	checkErr(err, "Could not generate attestation certificate")
+	util.CheckErr(err, "Could not generate attestation certificate")
 	return certBytes
 }
 
@@ -220,7 +222,7 @@ func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *KeyHandle) b
 
 func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
-	checkErr(err, "Could not marshal private key")
+	util.CheckErr(err, "Could not marshal private key")
 	identityData := client.vault.Export()
 	state := FIDODeviceConfig{
 		EncryptionKey:          client.deviceEncryptionKey,
@@ -231,17 +233,17 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 		Sources:                identityData,
 	}
 	savedBytes, err := EncryptFIDOState(state, passphrase)
-	checkErr(err, "Could not encode saved state")
+	util.CheckErr(err, "Could not encode saved state")
 	return savedBytes
 }
 
 func (client *DefaultFIDOClient) importData(data []byte, passphrase string) error {
 	state, err := DecryptFIDOState(data, passphrase)
-	checkErr(err, "Could not decrypt vault data")
+	util.CheckErr(err, "Could not decrypt vault data")
 	cert, err := x509.ParseCertificate(state.AttestationCertificate)
-	checkErr(err, "Could not parse x509 cert")
+	util.CheckErr(err, "Could not parse x509 cert")
 	privateKey, err := x509.ParseECPrivateKey(state.AttestationPrivateKey)
-	checkErr(err, "Could not parse private key")
+	util.CheckErr(err, "Could not parse private key")
 	client.deviceEncryptionKey = state.EncryptionKey
 	client.certificateAuthority = cert
 	client.certPrivateKey = privateKey
