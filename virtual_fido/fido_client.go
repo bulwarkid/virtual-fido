@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"time"
 
+	crypto "github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
 	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
@@ -52,7 +53,7 @@ type FIDOClient interface {
 	SetPINHash(pin []byte)
 	PINRetries() int32
 	SetPINRetries(retries int32)
-	PINKeyAgreement() *ECDHKey
+	PINKeyAgreement() *crypto.ECDHKey
 	PINToken() []byte
 
 	ApproveAccountCreation(relyingParty string) bool
@@ -68,7 +69,7 @@ type DefaultFIDOClient struct {
 	authenticationCounter uint32
 
 	pinToken        []byte
-	pinKeyAgreement *ECDHKey
+	pinKeyAgreement *crypto.ECDHKey
 	pinRetries      int32
 	pinHash         []byte
 
@@ -90,8 +91,8 @@ func NewClient(
 		certificateAuthority:  authorityCert,
 		certPrivateKey:        certificatePrivateKey,
 		authenticationCounter: 1,
-		pinToken:              randomBytes(16),
-		pinKeyAgreement:       GenerateECDHKey(),
+		pinToken:              crypto.RandomBytes(16),
+		pinKeyAgreement:       crypto.GenerateECDHKey(),
 		pinRetries:            8,
 		pinHash:               nil,
 		vault:                 NewIdentityVault(),
@@ -159,7 +160,7 @@ func (client *DefaultFIDOClient) SetPINRetries(retries int32) {
 	client.pinRetries = retries
 }
 
-func (client *DefaultFIDOClient) PINKeyAgreement() *ECDHKey {
+func (client *DefaultFIDOClient) PINKeyAgreement() *crypto.ECDHKey {
 	return client.pinKeyAgreement
 }
 

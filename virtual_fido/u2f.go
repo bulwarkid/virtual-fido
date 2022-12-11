@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	crypto "github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
 	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 	"github.com/fxamacker/cbor/v2"
 )
@@ -118,17 +119,17 @@ type KeyHandle struct {
 }
 
 func (server *u2fServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
-	box := seal(server.client.SealingEncryptionKey(), util.MarshalCBOR(keyHandle))
+	box := crypto.Seal(server.client.SealingEncryptionKey(), util.MarshalCBOR(keyHandle))
 	return util.MarshalCBOR(box)
 }
 
 func (server *u2fServer) openKeyHandle(boxBytes []byte) (*KeyHandle, error) {
-	var box encryptedBox
+	var box crypto.EncryptedBox
 	err := cbor.Unmarshal(boxBytes, &box)
 	if err != nil {
 		return nil, err
 	}
-	data := open(server.client.SealingEncryptionKey(), box)
+	data := crypto.Open(server.client.SealingEncryptionKey(), box)
 	var keyHandle KeyHandle
 	err = cbor.Unmarshal(data, &keyHandle)
 	if err != nil {
@@ -159,7 +160,7 @@ func (server *u2fServer) handleU2FRegister(header u2fMessageHeader, request []by
 	cert := server.client.CreateAttestationCertificiate(privateKey)
 
 	signatureDataBytes := util.Flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
-	signature := sign(privateKey, signatureDataBytes)
+	signature := crypto.Sign(privateKey, signatureDataBytes)
 
 	return util.Flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, util.ToBE(u2f_SW_NO_ERROR)})
 }
@@ -194,7 +195,7 @@ func (server *u2fServer) handleU2FAuthenticate(header u2fMessageHeader, request 
 		}
 		counter := server.client.NewAuthenticationCounterId()
 		signatureDataBytes := util.Flatten([][]byte{application, {1}, util.ToBE(counter), challenge})
-		signature := sign(privateKey, signatureDataBytes)
+		signature := crypto.Sign(privateKey, signatureDataBytes)
 		return util.Flatten([][]byte{{1}, util.ToBE(counter), signature, util.ToBE(u2f_SW_NO_ERROR)})
 	} else {
 		// No error specific to invalid control byte, so return WRONG_LENGTH to indicate data error

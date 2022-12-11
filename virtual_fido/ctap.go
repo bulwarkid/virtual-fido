@@ -8,7 +8,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	crypto "github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
 	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+
 	"github.com/fxamacker/cbor/v2"
 )
 
@@ -288,7 +290,7 @@ func (server *ctapServer) handleMakeCredential(data []byte) []byte {
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
 	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, attestedCredentialData, flags)
 
-	attestationSignature := sign(credentialSource.PrivateKey, append(authenticatorData, args.ClientDataHash...))
+	attestationSignature := crypto.Sign(credentialSource.PrivateKey, append(authenticatorData, args.ClientDataHash...))
 	attestationStatement := ctapSelfAttestationStatement{
 		Alg: cose_ALGORITHM_ID_ES256,
 		Sig: attestationSignature,
@@ -390,7 +392,7 @@ func (server *ctapServer) handleGetAssertion(data []byte) []byte {
 	}
 
 	authData := ctapMakeAuthData(args.RpID, credentialSource, nil, flags)
-	signature := sign(credentialSource.PrivateKey, util.Flatten([][]byte{authData, args.ClientDataHash}))
+	signature := crypto.Sign(credentialSource.PrivateKey, util.Flatten([][]byte{authData, args.ClientDataHash}))
 
 	response := ctapGetAssertionResponse{
 		//Credential:          credentialSource.ctapDescriptor(),
@@ -457,7 +459,7 @@ func (args ctapClientPINResponse) String() string {
 
 func (server *ctapServer) getPINSharedSecret(remoteKey ctapCOSEPublicKey) []byte {
 	pinKey := server.client.PINKeyAgreement()
-	return hashSHA256(pinKey.ECDH(util.BytesToBigInt(remoteKey.X), util.BytesToBigInt(remoteKey.Y)))
+	return crypto.HashSHA256(pinKey.ECDH(util.BytesToBigInt(remoteKey.X), util.BytesToBigInt(remoteKey.Y)))
 }
 
 func (server *ctapServer) derivePINAuth(sharedSecret []byte, data []byte) []byte {
@@ -467,11 +469,11 @@ func (server *ctapServer) derivePINAuth(sharedSecret []byte, data []byte) []byte
 }
 
 func (server *ctapServer) decryptPINHash(sharedSecret []byte, pinHashEncoding []byte) []byte {
-	return decryptAESCBC(sharedSecret, pinHashEncoding)
+	return crypto.DecryptAESCBC(sharedSecret, pinHashEncoding)
 }
 
 func (server *ctapServer) decryptPIN(sharedSecret []byte, pinEncoding []byte) []byte {
-	decryptedPINPadded := decryptAESCBC(sharedSecret, pinEncoding)
+	decryptedPINPadded := crypto.DecryptAESCBC(sharedSecret, pinEncoding)
 	var decryptedPIN []byte = nil
 	for i := range decryptedPINPadded {
 		if decryptedPINPadded[i] == 0 {
@@ -527,8 +529,8 @@ func (server *ctapServer) handleGetKeyAgreement(args ctapClientPINArgs) []byte {
 		KeyAgreement: &ctapCOSEPublicKey{
 			KeyType:   int8(cose_KEY_TYPE_EC2),
 			Algorithm: int8(cose_ALGORITHM_ID_ECDH_HKDF_256),
-			X:         key.x.Bytes(),
-			Y:         key.y.Bytes(),
+			X:         key.X.Bytes(),
+			Y:         key.X.Bytes(),
 		},
 	}
 	ctapLogger.Printf("CLIENT_PIN_GET_KEY_AGREEMENT RESPONSE: %#v\n\n", response)
@@ -551,7 +553,7 @@ func (server *ctapServer) handleSetPIN(args ctapClientPINArgs) []byte {
 	if len(decryptedPIN) < 4 {
 		return []byte{byte(ctap2_ERR_PIN_POLICY_VIOLATION)}
 	}
-	pinHash := hashSHA256(decryptedPIN)[:16]
+	pinHash := crypto.HashSHA256(decryptedPIN)[:16]
 	server.client.SetPINRetries(8)
 	server.client.SetPINHash(pinHash)
 	ctapLogger.Printf("SETTING PIN HASH: %v\n\n", hex.EncodeToString(pinHash))
@@ -571,7 +573,7 @@ func (server *ctapServer) handleChangePIN(args ctapClientPINArgs) []byte {
 		return []byte{byte(ctap2_ERR_PIN_AUTH_INVALID)}
 	}
 	server.client.SetPINRetries(server.client.PINRetries() - 1)
-	decryptedPINHash := decryptAESCBC(sharedSecret, args.PINHashEncoding)
+	decryptedPINHash := crypto.DecryptAESCBC(sharedSecret, args.PINHashEncoding)
 	if !bytes.Equal(server.client.PINHash(), decryptedPINHash) {
 		// TODO: Mismatch detected, handle it
 		return []byte{byte(ctap2_ERR_PIN_INVALID)}
@@ -581,7 +583,7 @@ func (server *ctapServer) handleChangePIN(args ctapClientPINArgs) []byte {
 	if len(newPIN) < 4 {
 		return []byte{byte(ctap2_ERR_PIN_POLICY_VIOLATION)}
 	}
-	pinHash := hashSHA256(newPIN)[:16]
+	pinHash := crypto.HashSHA256(newPIN)[:16]
 	server.client.SetPINHash(pinHash)
 	return []byte{byte(ctap1_ERR_SUCCESS)}
 }
@@ -604,7 +606,7 @@ func (server *ctapServer) handleGetPINToken(args ctapClientPINArgs) []byte {
 	}
 	server.client.SetPINRetries(8)
 	response := ctapClientPINResponse{
-		PinToken: encryptAESCBC(sharedSecret, server.client.PINToken()),
+		PinToken: crypto.EncryptAESCBC(sharedSecret, server.client.PINToken()),
 	}
 	ctapLogger.Printf("GET_PIN_TOKEN RESPONSE: %#v\n\n",response)
 	return append([]byte{byte(ctap1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)

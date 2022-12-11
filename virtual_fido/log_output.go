@@ -42,7 +42,7 @@ func SetLogOutput(out io.Writer) {
 	logOutput.setOutput(out)
 }
 
-func NewLogger(prefix string, enabled bool) *log.Logger {
+func newLogger(prefix string, enabled bool) *log.Logger {
 	if enabled {
 		return log.New(logOutput, prefix, 0)
 	} else {

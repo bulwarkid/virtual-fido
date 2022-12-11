@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	crypto "github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
 	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -42,11 +44,11 @@ func EncryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Could not create key encryption key: %w", err)
 	}
 	encryptionKey := util.Read(rand.Reader, 32)
-	encryptedKey, keyNonce, err := encrypt(keyEncryptionKey, encryptionKey)
+	encryptedKey, keyNonce, err := crypto.Encrypt(keyEncryptionKey, encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("Could not encrypt key: %w", err)
 	}
-	encryptedData, dataNonce, err := encrypt(encryptionKey, data)
+	encryptedData, dataNonce, err := crypto.Encrypt(encryptionKey, data)
 	if err != nil {
 		return nil, fmt.Errorf("Could not encrypt data: %w", err)
 	}
@@ -72,11 +74,11 @@ func DecryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
 	}
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), blob.Salt, 32768, 8, 1, 32)
 	util.CheckErr(err, "Could not create key encryption key")
-	encryptionKey, err := decrypt(keyEncryptionKey, blob.EncryptionKey, blob.KeyNonce)
+	encryptionKey, err := crypto.Decrypt(keyEncryptionKey, blob.EncryptionKey, blob.KeyNonce)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt encryption key: %w", err)
 	}
-	decryptedData, err := decrypt(encryptionKey, blob.EncryptedData, blob.DataNonce)
+	decryptedData, err := crypto.Decrypt(encryptionKey, blob.EncryptedData, blob.DataNonce)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt data: %w", err)
 	}

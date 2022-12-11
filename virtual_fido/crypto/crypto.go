@@ -13,7 +13,7 @@ import (
 	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
-func encrypt(key []byte, data []byte) ([]byte, []byte, error) {
+func Encrypt(key []byte, data []byte) ([]byte, []byte, error) {
 	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -28,7 +28,7 @@ func encrypt(key []byte, data []byte) ([]byte, []byte, error) {
 	return encryptedData, nonce, nil
 }
 
-func decrypt(key []byte, data []byte, nonce []byte) ([]byte, error) {
+func Decrypt(key []byte, data []byte, nonce []byte) ([]byte, error) {
 	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -45,43 +45,43 @@ func decrypt(key []byte, data []byte, nonce []byte) ([]byte, error) {
 	return decryptedData, nil
 }
 
-func sign(key *ecdsa.PrivateKey, data []byte) []byte {
+func Sign(key *ecdsa.PrivateKey, data []byte) []byte {
 	hash := sha256.Sum256(data)
 	signature, err := ecdsa.SignASN1(rand.Reader, key, hash[:])
 	util.CheckErr(err, "Could not sign data")
 	return signature
 }
 
-func verify(key *ecdsa.PublicKey, data []byte, signature []byte) bool {
+func Verify(key *ecdsa.PublicKey, data []byte, signature []byte) bool {
 	hash := sha256.Sum256(data)
 	return ecdsa.VerifyASN1(key, hash[:], signature)
 }
 
-type encryptedBox struct {
+type EncryptedBox struct {
 	Data []byte `cbor:"1,keyasint"`
 	IV   []byte `cbor:"2,keyasint"`
 }
 
-func seal(key []byte, data []byte) encryptedBox {
-	encryptedData, iv, err := encrypt(key, data)
+func Seal(key []byte, data []byte) EncryptedBox {
+	encryptedData, iv, err := Encrypt(key, data)
 	util.CheckErr(err, "Could not seal data")
-	return encryptedBox{Data: encryptedData, IV: iv}
+	return EncryptedBox{Data: encryptedData, IV: iv}
 }
 
-func open(key []byte, box encryptedBox) []byte {
-	data, err := decrypt(key, box.Data, box.IV)
+func Open(key []byte, box EncryptedBox) []byte {
+	data, err := Decrypt(key, box.Data, box.IV)
 	util.CheckErr(err, "Could not open data")
 	return data
 }
 
-func hashSHA256(bytes []byte) []byte {
+func HashSHA256(bytes []byte) []byte {
 	hash := sha256.New()
 	_, err := hash.Write(bytes)
 	util.CheckErr(err, "Could not hash bytes")
 	return hash.Sum(nil)
 }
 
-func encryptAESCBC(key []byte, data []byte) []byte {
+func EncryptAESCBC(key []byte, data []byte) []byte {
 	aesCipher, err := aes.NewCipher(key)
 	util.CheckErr(err, "Could not create AES cipher")
 	iv := make([]byte, aesCipher.BlockSize())
@@ -91,7 +91,7 @@ func encryptAESCBC(key []byte, data []byte) []byte {
 	return encryptedData
 }
 
-func decryptAESCBC(key []byte, data []byte) []byte {
+func DecryptAESCBC(key []byte, data []byte) []byte {
 	aesCipher, err := aes.NewCipher(key)
 	util.CheckErr(err, "Could not create AES cipher")
 	iv := make([]byte, aesCipher.BlockSize())
@@ -103,26 +103,26 @@ func decryptAESCBC(key []byte, data []byte) []byte {
 
 /* Note: This should be replaced once crypto/ecdh gets released (Go 1.20?) */
 type ECDHKey struct {
-	priv []byte
-	x, y *big.Int
+	Priv []byte
+	X, Y *big.Int
 }
 
 func GenerateECDHKey() *ECDHKey {
 	priv, x, y, err := elliptic.GenerateKey(elliptic.P256(), rand.Reader)
 	util.CheckErr(err, "Could not generate ECDH key")
-	return &ECDHKey{priv: priv, x: x, y: y}
+	return &ECDHKey{Priv: priv, X: x, Y: y}
 }
 
 func (key *ECDHKey) ECDH(remoteX, remoteY *big.Int) []byte {
-	secret, _ := elliptic.P256().Params().ScalarMult(remoteX, remoteY, key.priv)
+	secret, _ := elliptic.P256().Params().ScalarMult(remoteX, remoteY, key.Priv)
 	return secret.Bytes()
 }
 
 func (key *ECDHKey) PublicKeyBytes() []byte {
-	return elliptic.Marshal(elliptic.P256(), key.x, key.y)
+	return elliptic.Marshal(elliptic.P256(), key.X, key.Y)
 }
 
-func randomBytes(length int) []byte {
+func RandomBytes(length int) []byte {
 	randBytes := make([]byte, length)
 	_, err := rand.Read(randBytes)
 	util.CheckErr(err, "Could not generate random bytes")
