@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="vhci.c" />
+    <ClCompile Include="vhci_dbg.c" />
+    <ClCompile Include="vhci_dev.c" />
+    <ClCompile Include="vhci_devconf.c" />
+    <ClCompile Include="vhci_internal_ioctl.c" />
+    <ClCompile Include="vhci_ioctl.c" />
+    <ClCompile Include="vhci_ioctl_usrreq.c" />
+    <ClCompile Include="vhci_ioctl_vhci.c" />
+    <ClCompile Include="vhci_ioctl_vhub.c" />
+    <ClCompile Include="vhci_irp.c" />
+    <ClCompile Include="vhci_pnp_add.c" />
+    <ClCompile Include="vhci_pnp_cap.c" />
+    <ClCompile Include="vhci_pnp_devtext.c" />
+    <ClCompile Include="vhci_pnp_id.c" />
+    <ClCompile Include="vhci_pnp_intf.c" />
+    <ClCompile Include="vhci_pnp_relations.c" />
+    <ClCompile Include="vhci_pnp_remove.c" />
+    <ClCompile Include="vhci_pnp_resources.c" />
+    <ClCompile Include="vhci_pnp_start.c" />
+    <ClCompile Include="vhci_pnp_vpdo.c" />
+    <ClCompile Include="vhci_vhub.c" />
+    <ClCompile Include="vhci_vpdo.c" />
+    <ClCompile Include="vhci_read.c" />
+    <ClCompile Include="vhci_vpdo_dsc.c" />
+    <ClCompile Include="vhci_write.c" />
+    <ClCompile Include="vhci_plugin.c" />
+    <ClCompile Include="vhci_pnp.c" />
+    <ClCompile Include="vhci_power.c" />
+    <ClCompile Include="vhci_proto.c" />
+    <ClCompile Include="usbreq.c" />
+    <ClCompile Include="vhci_wmi.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\usbip_vhci_api.h" />
+    <ClInclude Include="..\..\include\usbip_proto.h" />
+    <ClInclude Include="basetype.h" />
+    <ClInclude Include="vhci.h" />
+    <ClInclude Include="vhci_dbg.h" />
+    <ClInclude Include="vhci_dev.h" />
+    <ClInclude Include="globals.h" />
+    <ClInclude Include="vhci_devconf.h" />
+    <ClInclude Include="vhci_irp.h" />
+    <ClInclude Include="vhci_pnp.h" />
+    <ClInclude Include="trace.h" />
+    <ClInclude Include="usbreq.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="usbip_vhci.inf" />
+    <Inf Include="usbip_root.inf" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F35A874E-E790-44B5-9C14-749C8854A0C4}</ProjectGuid>
+    <TemplateGuid>{497e31cb-056b-4f31-abb8-447fd55ee5a5}</TemplateGuid>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
+    <Configuration>Debug</Configuration>
+    <Platform Condition="'$(Platform)' == ''">Win32</Platform>
+    <RootNamespace>usbip</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\$(ProjectName)\</IntDir>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <EnableInf2cat>false</EnableInf2cat>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\$(ProjectName)\</IntDir>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <EnableInf2cat>false</EnableInf2cat>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\$(ProjectName)\</IntDir>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <EnableInf2cat>false</EnableInf2cat>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)$(ConfigurationName)\$(Platform)\$(ProjectName)\</IntDir>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <EnableInf2cat>false</EnableInf2cat>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WppEnabled>true</WppEnabled>
+      <WppRecorderEnabled>true</WppRecorderEnabled>
+      <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
+      <WppKernelMode>true</WppKernelMode>
+      <AdditionalIncludeDirectories>..\..\include;..\lib;$(UM_IncludePath);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>_NO_CRT_STDIO_INLINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(DDK_LIB_PATH)wdmsec.lib;$(DDK_LIB_PATH)ntstrsafe.lib;usbd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Inf>
+      <TimeStamp>0.3.5.0</TimeStamp>
+    </Inf>
+    <PostBuildEvent>
+      <Command>gencat.bat $(OutDir) 10_$(DDKPlatform) $(SolutionDir)/driver/usbip_test.pfx
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WppEnabled>true</WppEnabled>
+      <WppRecorderEnabled>true</WppRecorderEnabled>
+      <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
+      <WppKernelMode>true</WppKernelMode>
+      <AdditionalIncludeDirectories>..\..\include;..\lib;$(UM_IncludePath);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>_NO_CRT_STDIO_INLINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(DDK_LIB_PATH)wdmsec.lib;$(DDK_LIB_PATH)ntstrsafe.lib;usbd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Inf>
+      <TimeStamp>0.3.5.0</TimeStamp>
+    </Inf>
+    <PostBuildEvent>
+      <Command>gencat.bat $(OutDir) 10_$(DDKPlatform) $(SolutionDir)/driver/usbip_test.pfx
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WppEnabled>true</WppEnabled>
+      <WppRecorderEnabled>true</WppRecorderEnabled>
+      <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
+      <WppKernelMode>true</WppKernelMode>
+      <AdditionalIncludeDirectories>..\..\include;..\lib;$(UM_IncludePath);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Inf2CatAdditionalOptions>/driver:aaaa\temp\</Inf2CatAdditionalOptions>
+      <PreprocessorDefinitions>_NO_CRT_STDIO_INLINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(DDK_LIB_PATH)wdmsec.lib;$(DDK_LIB_PATH)ntstrsafe.lib;usbd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Inf>
+      <TimeStamp>0.3.5.0</TimeStamp>
+    </Inf>
+    <PostBuildEvent>
+      <Command>gencat.bat $(OutDir) 10_$(DDKPlatform) $(SolutionDir)/driver/usbip_test.pfx
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WppEnabled>true</WppEnabled>
+      <WppRecorderEnabled>true</WppRecorderEnabled>
+      <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
+      <WppKernelMode>true</WppKernelMode>
+      <AdditionalIncludeDirectories>..\..\include;..\lib;$(UM_IncludePath);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>_NO_CRT_STDIO_INLINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(DDK_LIB_PATH)wdmsec.lib;$(DDK_LIB_PATH)ntstrsafe.lib;usbd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Inf>
+      <TimeStamp>0.3.5.0</TimeStamp>
+    </Inf>
+    <PostBuildEvent>
+      <Command>gencat.bat $(OutDir) 10_$(DDKPlatform) $(SolutionDir)/driver/usbip_test.pfx
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <FilesToPackage Include="$(TargetPath)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\lib\libdrv.vcxproj">
+      <Project>{27ab4325-4980-4634-9818-ae6bd61de532}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bulwarkid/virtual-fido/virtual_fido"
-	"github.com/bulwarkid/virtual-fido/virtual_fido/fido_client"
+	virtual_fido "github.com/bulwarkid/virtual-fido"
+	"github.com/bulwarkid/virtual-fido/fido_client"
 	"github.com/spf13/cobra"
 )
 

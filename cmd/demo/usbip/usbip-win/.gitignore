@@ -1,0 +1,6 @@
+*~
+*.aps
+*.vcxproj.user
+/.vs
+/Debug
+/Release
