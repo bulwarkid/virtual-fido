@@ -15,50 +15,50 @@ import (
 
 var u2fLogger = util.NewLogger("[U2F] ", false)
 
-type u2fCommand uint8
+type U2FCommand uint8
 
 const (
-	u2f_COMMAND_REGISTER     u2fCommand = 0x01
-	u2f_COMMAND_AUTHENTICATE u2fCommand = 0x02
-	u2f_COMMAND_VERSION      u2fCommand = 0x03
+	u2f_COMMAND_REGISTER     U2FCommand = 0x01
+	u2f_COMMAND_AUTHENTICATE U2FCommand = 0x02
+	u2f_COMMAND_VERSION      U2FCommand = 0x03
 )
 
-var u2fCommandDescriptions = map[u2fCommand]string{
+var U2FCommandDescriptions = map[U2FCommand]string{
 	u2f_COMMAND_REGISTER:     "u2f_COMMAND_REGISTER",
 	u2f_COMMAND_AUTHENTICATE: "u2f_COMMAND_AUTHENTICATE",
 	u2f_COMMAND_VERSION:      "u2f_COMMAND_VERSION",
 }
 
-type u2fStatusWord uint16
+type U2FStatusWord uint16
 
 const (
-	u2f_SW_NO_ERROR                 u2fStatusWord = 0x9000
-	u2f_SW_CONDITIONS_NOT_SATISFIED u2fStatusWord = 0x6985
-	u2f_SW_WRONG_DATA               u2fStatusWord = 0x6A80
-	u2f_SW_WRONG_LENGTH             u2fStatusWord = 0x6700
-	u2f_SW_CLA_NOT_SUPPORTED        u2fStatusWord = 0x6E00
-	u2f_SW_INS_NOT_SUPPORTED        u2fStatusWord = 0x6D00
+	u2f_SW_NO_ERROR                 U2FStatusWord = 0x9000
+	u2f_SW_CONDITIONS_NOT_SATISFIED U2FStatusWord = 0x6985
+	u2f_SW_WRONG_DATA               U2FStatusWord = 0x6A80
+	u2f_SW_WRONG_LENGTH             U2FStatusWord = 0x6700
+	u2f_SW_CLA_NOT_SUPPORTED        U2FStatusWord = 0x6E00
+	u2f_SW_INS_NOT_SUPPORTED        U2FStatusWord = 0x6D00
 )
 
-type u2fAuthenticateControl uint8
+type U2FAuthenticateControl uint8
 
 const (
-	u2f_AUTH_CONTROL_CHECK_ONLY                     u2fAuthenticateControl = 0x07
-	u2f_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN u2fAuthenticateControl = 0x03
-	u2f_AUTH_CONTROL_SIGN                           u2fAuthenticateControl = 0x08
+	u2f_AUTH_CONTROL_CHECK_ONLY                     U2FAuthenticateControl = 0x07
+	u2f_AUTH_CONTROL_ENFORCE_USER_PRESENCE_AND_SIGN U2FAuthenticateControl = 0x03
+	u2f_AUTH_CONTROL_SIGN                           U2FAuthenticateControl = 0x08
 )
 
-type u2fMessageHeader struct {
+type U2FMessageHeader struct {
 	Cla     uint8
-	Command u2fCommand
+	Command U2FCommand
 	Param1  uint8
 	Param2  uint8
 }
 
-func (header u2fMessageHeader) String() string {
-	return fmt.Sprintf("u2fMessageHeader{ Cla: 0x%x, Command: %s, Param1: %d, Param2: %d }",
+func (header U2FMessageHeader) String() string {
+	return fmt.Sprintf("U2FMessageHeader{ Cla: 0x%x, Command: %s, Param1: %d, Param2: %d }",
 		header.Cla,
-		u2fCommandDescriptions[header.Command],
+		U2FCommandDescriptions[header.Command],
 		header.Param1,
 		header.Param2)
 }
@@ -71,9 +71,9 @@ func NewU2FServer(client fido_client.FIDOClient) *U2FServer {
 	return &U2FServer{client: client}
 }
 
-func decodeU2FMessage(messageBytes []byte) (u2fMessageHeader, []byte, uint16) {
+func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 	buffer := bytes.NewBuffer(messageBytes)
-	header := util.ReadBE[u2fMessageHeader](buffer)
+	header := util.ReadBE[U2FMessageHeader](buffer)
 	if buffer.Len() == 0 {
 		// No request length, no response length
 		return header, []byte{}, 0
@@ -136,7 +136,7 @@ func (server *U2FServer) openKeyHandle(boxBytes []byte) (*webauthn.KeyHandle, er
 	return &keyHandle, nil
 }
 
-func (server *U2FServer) handleU2FRegister(header u2fMessageHeader, request []byte) []byte {
+func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []byte) []byte {
 	challenge := request[:32]
 	application := request[32:]
 	util.Assert(len(challenge) == 32, "Challenge is not 32 bytes")
@@ -163,9 +163,9 @@ func (server *U2FServer) handleU2FRegister(header u2fMessageHeader, request []by
 	return util.Flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, util.ToBE(u2f_SW_NO_ERROR)})
 }
 
-func (server *U2FServer) handleU2FAuthenticate(header u2fMessageHeader, request []byte) []byte {
+func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request []byte) []byte {
 	requestReader := bytes.NewBuffer(request)
-	control := u2fAuthenticateControl(header.Param1)
+	control := U2FAuthenticateControl(header.Param1)
 	challenge := util.Read(requestReader, 32)
 	application := util.Read(requestReader, 32)
 

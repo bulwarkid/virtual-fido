@@ -12,19 +12,19 @@ import (
 
 var usbipLogger = util.NewLogger("[USBIP] ", false)
 
-type usbIPServer struct {
-	device        usbDevice
+type USBIPServer struct {
+	device        USBDevice
 	responseMutex *sync.Mutex
 }
 
-func NewUSBIPServer(device usbDevice) *usbIPServer {
-	server := new(usbIPServer)
+func NewUSBIPServer(device USBDevice) *USBIPServer {
+	server := new(USBIPServer)
 	server.device = device
 	server.responseMutex = &sync.Mutex{}
 	return server
 }
 
-func (server *usbIPServer) Start() {
+func (server *USBIPServer) Start() {
 	usbipLogger.Println("Starting USBIP server...")
 	listener, err := net.Listen("tcp", ":3240")
 	util.CheckErr(err, "Could not create listener")
@@ -40,15 +40,15 @@ func (server *usbIPServer) Start() {
 	}
 }
 
-func (server *usbIPServer) handleConnection(conn *net.Conn) {
+func (server *USBIPServer) handleConnection(conn *net.Conn) {
 	for {
-		header := util.ReadBE[usbipControlHeader](*conn)
+		header := util.ReadBE[USBIPControlHeader](*conn)
 		usbipLogger.Printf("[CONTROL MESSAGE] %#v\n\n", header)
-		if header.CommandCode == usbip_COMMAND_OP_REQ_DEVLIST {
+		if header.CommandCode == USBIP_COMMAND_OP_REQ_DEVLIST {
 			reply := newOpRepDevlist(server.device)
 			usbipLogger.Printf("[OP_REP_DEVLIST] %#v\n\n", reply)
 			util.Write(*conn, util.ToBE(reply))
-		} else if header.CommandCode == usbip_COMMAND_OP_REQ_IMPORT {
+		} else if header.CommandCode == USBIP_COMMAND_OP_REQ_IMPORT {
 			busId := make([]byte, 32)
 			bytesRead, err := (*conn).Read(busId)
 			if bytesRead != 32 {
@@ -62,14 +62,14 @@ func (server *usbIPServer) handleConnection(conn *net.Conn) {
 	}
 }
 
-func (server *usbIPServer) handleCommands(conn *net.Conn) {
+func (server *USBIPServer) handleCommands(conn *net.Conn) {
 	for {
 		//fmt.Printf("--------------------------------------------\n\n")
-		header := util.ReadBE[usbipMessageHeader](*conn)
+		header := util.ReadBE[USBIPMessageHeader](*conn)
 		usbipLogger.Printf("[MESSAGE HEADER] %s\n\n", header)
-		if header.Command == usbip_COMMAND_SUBMIT {
+		if header.Command == USBIP_COMMAND_SUBMIT {
 			server.handleCommandSubmit(conn, header)
-		} else if header.Command == usbip_COMMAND_UNLINK {
+		} else if header.Command == USBIP_COMMAND_UNLINK {
 			server.handleCommandUnlink(conn, header)
 		} else {
 			panic(fmt.Sprintf("Unsupported Command; %#v", header))
@@ -77,26 +77,26 @@ func (server *usbIPServer) handleCommands(conn *net.Conn) {
 	}
 }
 
-func (server *usbIPServer) handleCommandSubmit(conn *net.Conn, header usbipMessageHeader) {
-	command := util.ReadBE[usbipCommandSubmitBody](*conn)
+func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessageHeader) {
+	command := util.ReadBE[USBIPCommandSubmitBody](*conn)
 	setup := command.Setup()
 	usbipLogger.Printf("[COMMAND SUBMIT] %s\n\n", command)
 	transferBuffer := make([]byte, command.TransferBufferLength)
-	if header.Direction == usbip_DIR_OUT && command.TransferBufferLength > 0 {
+	if header.Direction == USBIP_DIR_OUT && command.TransferBufferLength > 0 {
 		_, err := (*conn).Read(transferBuffer)
 		util.CheckErr(err, "Could not read transfer buffer")
 	}
 	// Getting the reponse may not be immediate, so we need a callback
 	onReturnSubmit := func() {
 		server.responseMutex.Lock()
-		replyHeader := usbipMessageHeader{
-			Command:        usbip_COMMAND_RET_SUBMIT,
+		replyHeader := USBIPMessageHeader{
+			Command:        USBIP_COMMAND_RET_SUBMIT,
 			SequenceNumber: header.SequenceNumber,
 			DeviceId:       header.DeviceId,
-			Direction:      usbip_DIR_OUT,
+			Direction:      USBIP_DIR_OUT,
 			Endpoint:       header.Endpoint,
 		}
-		replyBody := usbipReturnSubmitBody{
+		replyBody := USBIPReturnSubmitBody{
 			Status:          0,
 			ActualLength:    uint32(len(transferBuffer)),
 			StartFrame:      0,
@@ -107,7 +107,7 @@ func (server *usbIPServer) handleCommandSubmit(conn *net.Conn, header usbipMessa
 		usbipLogger.Printf("[RETURN SUBMIT] %v %#v\n\n", replyHeader, replyBody)
 		util.Write(*conn, util.ToBE(replyHeader))
 		util.Write(*conn, util.ToBE(replyBody))
-		if header.Direction == usbip_DIR_IN {
+		if header.Direction == USBIP_DIR_IN {
 			util.Write(*conn, transferBuffer)
 		}
 		server.responseMutex.Unlock()
@@ -115,8 +115,8 @@ func (server *usbIPServer) handleCommandSubmit(conn *net.Conn, header usbipMessa
 	server.device.handleMessage(header.SequenceNumber, onReturnSubmit, header.Endpoint, setup, transferBuffer)
 }
 
-func (server *usbIPServer) handleCommandUnlink(conn *net.Conn, header usbipMessageHeader) {
-	unlink := util.ReadBE[usbipCommandUnlinkBody](*conn)
+func (server *USBIPServer) handleCommandUnlink(conn *net.Conn, header USBIPMessageHeader) {
+	unlink := util.ReadBE[USBIPCommandUnlinkBody](*conn)
 	usbipLogger.Printf("[COMMAND UNLINK] %#v\n\n", unlink)
 	var status int32
 	if server.device.removeWaitingRequest(unlink.UnlinkSequenceNumber) {
@@ -124,14 +124,14 @@ func (server *usbIPServer) handleCommandUnlink(conn *net.Conn, header usbipMessa
 	} else {
 		status = -int32(syscall.ENOENT)
 	}
-	replyHeader := usbipMessageHeader{
-		Command:        usbip_COMMAND_RET_UNLINK,
+	replyHeader := USBIPMessageHeader{
+		Command:        USBIP_COMMAND_RET_UNLINK,
 		SequenceNumber: header.SequenceNumber,
 		DeviceId:       header.DeviceId,
-		Direction:      usbip_DIR_OUT,
+		Direction:      USBIP_DIR_OUT,
 		Endpoint:       header.Endpoint,
 	}
-	replyBody := usbipReturnUnlinkBody{
+	replyBody := USBIPReturnUnlinkBody{
 		Status:  status,
 		Padding: [24]byte{},
 	}

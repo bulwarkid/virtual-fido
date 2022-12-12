@@ -6,33 +6,33 @@ import (
 	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
-type dummyUSBDevice struct{}
+type DummyUSBDevice struct{}
 
-func (device *dummyUSBDevice) removeWaitingRequest(id uint32) bool {
+func (device *DummyUSBDevice) removeWaitingRequest(id uint32) bool {
 	return false
 }
 
-func (device *dummyUSBDevice) usbipSummary() usbipDeviceSummary {
-	return usbipDeviceSummary{
+func (device *DummyUSBDevice) usbipSummary() USBIPDeviceSummary {
+	return USBIPDeviceSummary{
 		Header:          device.usbipSummaryHeader(),
 		DeviceInterface: device.usbipInterfacesSummary(),
 	}
 }
 
-func (device *dummyUSBDevice) usbipInterfacesSummary() usbipDeviceInterface {
-	return usbipDeviceInterface{
+func (device *DummyUSBDevice) usbipInterfacesSummary() USBIPDeviceInterface {
+	return USBIPDeviceInterface{
 		BInterfaceClass:    3,
 		BInterfaceSubclass: 0,
 		Padding:            0,
 	}
 }
 
-func (device *dummyUSBDevice) usbipSummaryHeader() usbipDeviceSummaryHeader {
+func (device *DummyUSBDevice) usbipSummaryHeader() USBIPDeviceSummaryHeader {
 	path := [256]byte{}
 	copy(path[:], []byte("/device/0"))
 	busId := [32]byte{}
 	copy(busId[:], []byte("2-2"))
-	return usbipDeviceSummaryHeader{
+	return USBIPDeviceSummaryHeader{
 		Path:                path,
 		BusId:               busId,
 		Busnum:              2,
@@ -50,12 +50,12 @@ func (device *dummyUSBDevice) usbipSummaryHeader() usbipDeviceSummaryHeader {
 	}
 }
 
-func (device *dummyUSBDevice) getDescriptor(descriptorType usbDescriptorType, index uint8) []byte {
+func (device *DummyUSBDevice) getDescriptor(descriptorType USBDescriptorType, index uint8) []byte {
 	switch descriptorType {
-	case usb_DESCRIPTOR_DEVICE:
-		descriptor := usbDeviceDescriptor{
-			BLength:            util.SizeOf[usbDeviceDescriptor](),
-			BDescriptorType:    usb_DESCRIPTOR_DEVICE,
+	case USB_DESCRIPTOR_DEVICE:
+		descriptor := USBDeviceDescriptor{
+			BLength:            util.SizeOf[USBDeviceDescriptor](),
+			BDescriptorType:    USB_DESCRIPTOR_DEVICE,
 			BcdUSB:             0x0110,
 			BDeviceClass:       0,
 			BDeviceSubclass:    0,
@@ -70,16 +70,16 @@ func (device *dummyUSBDevice) getDescriptor(descriptorType usbDescriptorType, in
 			BNumConfigurations: 0,
 		}
 		return util.ToLE(descriptor)
-	case usb_DESCRIPTOR_CONFIGURATION:
-		totalLength := uint16(util.SizeOf[usbConfigurationDescriptor]())
-		descriptor := usbConfigurationDescriptor{
-			BLength:             util.SizeOf[usbConfigurationDescriptor](),
-			BDescriptorType:     usb_DESCRIPTOR_CONFIGURATION,
+	case USB_DESCRIPTOR_CONFIGURATION:
+		totalLength := uint16(util.SizeOf[USBConfigurationDescriptor]())
+		descriptor := USBConfigurationDescriptor{
+			BLength:             util.SizeOf[USBConfigurationDescriptor](),
+			BDescriptorType:     USB_DESCRIPTOR_CONFIGURATION,
 			WTotalLength:        totalLength,
 			BNumInterfaces:      0,
 			BConfigurationValue: 0,
 			IConfiguration:      0,
-			BmAttributes:        usb_CONFIG_ATTR_BASE | usb_CONFIG_ATTR_SELF_POWERED,
+			BmAttributes:        USB_CONFIG_ATTR_BASE | USB_CONFIG_ATTR_SELF_POWERED,
 			BMaxPower:           0,
 		}
 		return util.ToLE(descriptor)
@@ -88,27 +88,27 @@ func (device *dummyUSBDevice) getDescriptor(descriptorType usbDescriptorType, in
 	}
 }
 
-func (device *dummyUSBDevice) handleControlMessage(setup usbSetupPacket, transferBuffer []byte) {
+func (device *DummyUSBDevice) handleControlMessage(setup USBSetupPacket, transferBuffer []byte) {
 	switch setup.BRequest {
-	case usb_REQUEST_GET_DESCRIPTOR:
+	case USB_REQUEST_GET_DESCRIPTOR:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
 		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
 		copy(transferBuffer, descriptor)
-	case usb_REQUEST_SET_CONFIGURATION:
+	case USB_REQUEST_SET_CONFIGURATION:
 		//fmt.Printf("SET_CONFIGURATION: No-op\n\n")
 		// TODO: Handle configuration changes
 		// No-op since we can't change configuration
 		return
-	case usb_REQUEST_GET_STATUS:
+	case USB_REQUEST_GET_STATUS:
 		copy(transferBuffer, []byte{1})
-	case usb_REQUEST_SET_INTERFACE:
+	case USB_REQUEST_SET_INTERFACE:
 		return
 	default:
 		panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
 	}
 }
 
-func (device *dummyUSBDevice) handleMessage(id uint32, onFinish func(), endpoint uint32, setup usbSetupPacket, transferBuffer []byte) {
+func (device *DummyUSBDevice) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
 	fmt.Printf("DUMMY USB: %s\n\n", setup)
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
