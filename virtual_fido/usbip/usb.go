@@ -1,4 +1,4 @@
-package virtual_fido
+package usbip
 
 import "fmt"
 

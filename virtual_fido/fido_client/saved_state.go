@@ -1,12 +1,13 @@
-package virtual_fido
+package fido_client
 
 import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 
-	crypto "github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/webauthn"
 
 	"golang.org/x/crypto/scrypt"
 )
@@ -15,8 +16,8 @@ type SavedCredentialSource struct {
 	Type             string                         `json:"type"`
 	ID               []byte                         `json:"id"`
 	PrivateKey       []byte                         `json:"private_key"`
-	RelyingParty     PublicKeyCredentialRpEntity    `json:"relying_party"`
-	User             PublicKeyCrendentialUserEntity `json:"user"`
+	RelyingParty     webauthn.PublicKeyCredentialRpEntity    `json:"relying_party"`
+	User             webauthn.PublicKeyCrendentialUserEntity `json:"user"`
 	SignatureCounter int32                          `json:"signature_counter"`
 }
 

@@ -1,4 +1,4 @@
-package virtual_fido
+package fido_client
 
 import (
 	"bytes"
@@ -8,20 +8,21 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/webauthn"
 )
 
 type CredentialSource struct {
 	Type             string
 	ID               []byte
 	PrivateKey       *ecdsa.PrivateKey
-	RelyingParty     PublicKeyCredentialRpEntity
-	User             PublicKeyCrendentialUserEntity
+	RelyingParty     webauthn.PublicKeyCredentialRpEntity
+	User             webauthn.PublicKeyCrendentialUserEntity
 	SignatureCounter int32
 }
 
-func (source *CredentialSource) ctapDescriptor() PublicKeyCredentialDescriptor {
-	return PublicKeyCredentialDescriptor{
+func (source *CredentialSource) ctapDescriptor() webauthn.PublicKeyCredentialDescriptor {
+	return webauthn.PublicKeyCredentialDescriptor{
 		Type:       "public-key",
 		Id:         source.ID,
 		Transports: []string{},
@@ -37,7 +38,7 @@ func NewIdentityVault() *IdentityVault {
 	return &IdentityVault{CredentialSources: sources}
 }
 
-func (vault *IdentityVault) NewIdentity(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
+func (vault *IdentityVault) NewIdentity(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
 	credentialID := util.Read(rand.Reader, 16)
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	util.CheckErr(err, "Could not generate private key")
@@ -68,7 +69,7 @@ func (vault *IdentityVault) DeleteIdentity(id []byte) bool {
 	return false
 }
 
-func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) []*CredentialSource {
+func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) []*CredentialSource {
 	sources := make([]*CredentialSource, 0)
 	for _, credentialSource := range vault.CredentialSources {
 		if credentialSource.RelyingParty.Id == relyingPartyID {

@@ -1,4 +1,4 @@
-package virtual_fido
+package usbip
 
 import (
 	"bytes"
@@ -6,7 +6,8 @@ import (
 	"sync"
 	"unsafe"
 
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/ctap_hid"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 type usbDevice interface {
@@ -16,15 +17,15 @@ type usbDevice interface {
 	usbipSummaryHeader() usbipDeviceSummaryHeader
 }
 
-var usbLogger = newLogger("[USB] ", false)
+var usbLogger = util.NewLogger("[USB] ", false)
 
 type usbDeviceImpl struct {
 	Index         int
-	ctapHIDServer *ctapHIDServer
+	ctapHIDServer *ctap_hid.CTAPHIDServer
 	outputLock    sync.Locker
 }
 
-func newUSBDevice(ctapHIDServer *ctapHIDServer) *usbDeviceImpl {
+func NewUSBDevice(ctapHIDServer *ctap_hid.CTAPHIDServer) *usbDeviceImpl {
 	return &usbDeviceImpl{
 		Index:         0,
 		ctapHIDServer: ctapHIDServer,
@@ -280,13 +281,13 @@ func (device *usbDeviceImpl) handleControlMessage(setup usbSetupPacket, transfer
 
 func (device *usbDeviceImpl) handleInputMessage(setup usbSetupPacket, transferBuffer []byte) {
 	usbLogger.Printf("INPUT TRANSFER BUFFER: %#v\n\n", transferBuffer)
-	go device.ctapHIDServer.handleMessage(transferBuffer)
+	go device.ctapHIDServer.HandleMessage(transferBuffer)
 }
 
 func (device *usbDeviceImpl) handleOutputMessage(id uint32, setup usbSetupPacket, transferBuffer []byte, onFinish func()) {
 	// Only process one output message at a time in order to maintain message order
 	device.outputLock.Lock()
-	response := device.ctapHIDServer.getResponse(id, 1000)
+	response := device.ctapHIDServer.GetResponse(id, 1000)
 	if response != nil {
 		copy(transferBuffer, response)
 		onFinish()
@@ -295,7 +296,7 @@ func (device *usbDeviceImpl) handleOutputMessage(id uint32, setup usbSetupPacket
 }
 
 func (device *usbDeviceImpl) removeWaitingRequest(id uint32) bool {
-	return device.ctapHIDServer.removeWaitingRequest(id)
+	return device.ctapHIDServer.RemoveWaitingRequest(id)
 }
 
 func (device *usbDeviceImpl) handleMessage(id uint32, onFinish func(), endpoint uint32, setup usbSetupPacket, transferBuffer []byte) {

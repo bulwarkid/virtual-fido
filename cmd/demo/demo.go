@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/bulwarkid/virtual-fido/virtual_fido"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/fido_client"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +41,7 @@ func listIdentities(cmd *cobra.Command, args []string) {
 func deleteIdentity(cmd *cobra.Command, args []string) {
 	client := createClient()
 	identities := client.Identities()
-	targetIDs := make([]*virtual_fido.CredentialSource, 0)
+	targetIDs := make([]*fido_client.CredentialSource, 0)
 	for _, id := range identities {
 		hexString := hex.EncodeToString(id.ID)
 		if strings.HasPrefix(hexString, identityID) {
@@ -69,7 +70,7 @@ func start(cmd *cobra.Command, args []string) {
 	runServer(client)
 }
 
-func createClient() *virtual_fido.DefaultFIDOClient {
+func createClient() *fido_client.DefaultFIDOClient {
 	// ALL OF THIS IS INSECURE, FOR TESTING PURPOSES ONLY
 	authority := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
@@ -92,7 +93,7 @@ func createClient() *virtual_fido.DefaultFIDOClient {
 
 	virtual_fido.SetLogOutput(os.Stdout)
 	support := ClientSupport{vaultFilename: vaultFilename, vaultPassphrase: vaultPassphrase}
-	return virtual_fido.NewClient(authorityCertBytes, privateKey, encryptionKey, &support, &support)
+	return fido_client.NewDefaultClient(authorityCertBytes, privateKey, encryptionKey, &support, &support)
 }
 
 func printUsage(message string) {

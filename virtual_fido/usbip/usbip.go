@@ -1,10 +1,10 @@
-package virtual_fido
+package usbip
 
 import (
 	"bytes"
 	"fmt"
 
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 const (

@@ -1,4 +1,4 @@
-package virtual_fido
+package ctap_hid
 
 import (
 	"bytes"
@@ -6,10 +6,12 @@ import (
 	"sync"
 	"time"
 
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/ctap"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/u2f"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
-var ctapHIDLogger = newLogger("[CTAPHID] ", false)
+var ctapHIDLogger = util.NewLogger("[CTAPHID] ", false)
 
 const ctapHID_STATUS_UPNEEDED uint8 = 2
 
@@ -128,9 +130,9 @@ const (
 	ctapHIDSERVER_MAX_PACKET_SIZE int = 64
 )
 
-type ctapHIDServer struct {
-	ctapServer          *ctapServer
-	u2fServer           *u2fServer
+type CTAPHIDServer struct {
+	ctapServer          *ctap.CTAPServer
+	u2fServer           *u2f.U2FServer
 	maxChannelID        ctapHIDChannelID
 	channels            map[ctapHIDChannelID]*ctapHIDChannel
 	responses           chan []byte
@@ -138,8 +140,8 @@ type ctapHIDServer struct {
 	waitingForResponses *sync.Map
 }
 
-func newCTAPHIDServer(ctapServer *ctapServer, u2fServer *u2fServer) *ctapHIDServer {
-	server := &ctapHIDServer{
+func NewCTAPHIDServer(ctapServer *ctap.CTAPServer, u2fServer *u2f.U2FServer) *CTAPHIDServer {
+	server := &CTAPHIDServer{
 		ctapServer:          ctapServer,
 		u2fServer:           u2fServer,
 		maxChannelID:        0,
@@ -152,7 +154,7 @@ func newCTAPHIDServer(ctapServer *ctapServer, u2fServer *u2fServer) *ctapHIDServ
 	return server
 }
 
-func (server *ctapHIDServer) getResponse(id uint32, timeout int64) []byte {
+func (server *CTAPHIDServer) GetResponse(id uint32, timeout int64) []byte {
 	killSwitch := make(chan bool)
 	timeoutSwitch := make(chan interface{})
 	server.waitingForResponses.Store(id, killSwitch)
@@ -174,7 +176,7 @@ func (server *ctapHIDServer) getResponse(id uint32, timeout int64) []byte {
 	}
 }
 
-func (server *ctapHIDServer) removeWaitingRequest(id uint32) bool {
+func (server *CTAPHIDServer) RemoveWaitingRequest(id uint32) bool {
 	killSwitch, ok := server.waitingForResponses.Load(id)
 	if ok {
 		killSwitch.(chan bool) <- true
@@ -184,7 +186,7 @@ func (server *ctapHIDServer) removeWaitingRequest(id uint32) bool {
 	}
 }
 
-func (server *ctapHIDServer) sendResponse(response [][]byte) {
+func (server *CTAPHIDServer) sendResponse(response [][]byte) {
 	// Packets should be sequential and continuous per transaction
 	server.responsesLock.Lock()
 	ctapHIDLogger.Printf("ADDING MESSAGE: %#v\n\n", response)
@@ -194,7 +196,7 @@ func (server *ctapHIDServer) sendResponse(response [][]byte) {
 	server.responsesLock.Unlock()
 }
 
-func (server *ctapHIDServer) handleMessage(message []byte) {
+func (server *CTAPHIDServer) HandleMessage(message []byte) {
 	buffer := bytes.NewBuffer(message)
 	channelId := util.ReadLE[ctapHIDChannelID](buffer)
 	channel, exists := server.channels[channelId]
@@ -233,7 +235,7 @@ func (channel *ctapHIDChannel) clearInProgressMessage() {
 
 // This function handles CTAPHID transactions, which can be split into multiple USB messages
 // After the multiple packets are compiled, then a finalized CTAPHID message is created
-func (channel *ctapHIDChannel) handleIntermediateMessage(server *ctapHIDServer, message []byte) {
+func (channel *ctapHIDChannel) handleIntermediateMessage(server *CTAPHIDServer, message []byte) {
 	buffer := bytes.NewBuffer(message)
 	util.ReadLE[ctapHIDChannelID](buffer) // Consume Channel ID
 	if channel.inProgressHeader != nil {
@@ -299,7 +301,7 @@ func (channel *ctapHIDChannel) handleIntermediateMessage(server *ctapHIDServer, 
 	}
 }
 
-func (channel *ctapHIDChannel) handleFinalizedMessage(server *ctapHIDServer, header ctapHIDMessageHeader, payload []byte) {
+func (channel *ctapHIDChannel) handleFinalizedMessage(server *CTAPHIDServer, header ctapHIDMessageHeader, payload []byte) {
 	// TODO: Handle cancel message
 	ctapHIDLogger.Printf("CTAPHID FINALIZED MESSAGE: %s %#v\n\n", header, payload)
 	var response [][]byte = nil
@@ -313,7 +315,7 @@ func (channel *ctapHIDChannel) handleFinalizedMessage(server *ctapHIDServer, hea
 	}
 }
 
-func (channel *ctapHIDChannel) handleBroadcastMessage(server *ctapHIDServer, header ctapHIDMessageHeader, payload []byte) [][]byte {
+func (channel *ctapHIDChannel) handleBroadcastMessage(server *CTAPHIDServer, header ctapHIDMessageHeader, payload []byte) [][]byte {
 	switch header.Command {
 	case ctapHID_COMMAND_INIT:
 		nonce := payload[:8]
@@ -337,15 +339,15 @@ func (channel *ctapHIDChannel) handleBroadcastMessage(server *ctapHIDServer, hea
 	}
 }
 
-func (channel *ctapHIDChannel) handleDataMessage(server *ctapHIDServer, header ctapHIDMessageHeader, payload []byte) [][]byte {
+func (channel *ctapHIDChannel) handleDataMessage(server *CTAPHIDServer, header ctapHIDMessageHeader, payload []byte) [][]byte {
 	switch header.Command {
 	case ctapHID_COMMAND_MSG:
-		responsePayload := server.u2fServer.handleU2FMessage(payload)
+		responsePayload := server.u2fServer.HandleU2FMessage(payload)
 		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
 		return createResponsePackets(header.ChannelID, ctapHID_COMMAND_MSG, responsePayload)
 	case ctapHID_COMMAND_CBOR:
 		stop := util.StartRecurringFunction(keepConnectionAlive(server, channel.channelId, ctapHID_STATUS_UPNEEDED), 100)
-		responsePayload := server.ctapServer.handleMessage(payload)
+		responsePayload := server.ctapServer.HandleMessage(payload)
 		stop <- 0
 		ctapHIDLogger.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
 		return createResponsePackets(header.ChannelID, ctapHID_COMMAND_CBOR, responsePayload)
@@ -356,7 +358,7 @@ func (channel *ctapHIDChannel) handleDataMessage(server *ctapHIDServer, header c
 	}
 }
 
-func keepConnectionAlive(server *ctapHIDServer, channelId ctapHIDChannelID, status uint8) func() {
+func keepConnectionAlive(server *CTAPHIDServer, channelId ctapHIDChannelID, status uint8) func() {
 	return func() {
 		response := createResponsePackets(channelId, ctapHID_COMMAND_KEEPALIVE, []byte{byte(status)})
 		server.sendResponse(response)

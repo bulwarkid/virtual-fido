@@ -1,9 +1,9 @@
-package virtual_fido
+package usbip
 
 import (
 	"fmt"
 
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
 type dummyUSBDevice struct{}

@@ -1,4 +1,4 @@
-package virtual_fido
+package u2f
 
 import (
 	"bytes"
@@ -6,12 +6,14 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	crypto "github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/fido_client"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/webauthn"
 	"github.com/fxamacker/cbor/v2"
 )
 
-var u2fLogger = newLogger("[U2F] ", false)
+var u2fLogger = util.NewLogger("[U2F] ", false)
 
 type u2fCommand uint8
 
@@ -61,12 +63,12 @@ func (header u2fMessageHeader) String() string {
 		header.Param2)
 }
 
-type u2fServer struct {
-	client FIDOClient
+type U2FServer struct {
+	client fido_client.FIDOClient
 }
 
-func newU2FServer(client FIDOClient) *u2fServer {
-	return &u2fServer{client: client}
+func NewU2FServer(client fido_client.FIDOClient) *U2FServer {
+	return &U2FServer{client: client}
 }
 
 func decodeU2FMessage(messageBytes []byte) (u2fMessageHeader, []byte, uint16) {
@@ -95,7 +97,7 @@ func decodeU2FMessage(messageBytes []byte) (u2fMessageHeader, []byte, uint16) {
 	return header, request, responseLength
 }
 
-func (server *u2fServer) handleU2FMessage(message []byte) []byte {
+func (server *U2FServer) HandleU2FMessage(message []byte) []byte {
 	header, request, responseLength := decodeU2FMessage(message)
 	u2fLogger.Printf("U2F MESSAGE: Header: %s Request: %#v Response Length: %d\n\n", header, request, responseLength)
 	var response []byte
@@ -113,24 +115,20 @@ func (server *u2fServer) handleU2FMessage(message []byte) []byte {
 	return response
 }
 
-type KeyHandle struct {
-	PrivateKey    []byte `cbor:"1,keyasint"`
-	ApplicationID []byte `cbor:"2,keyasint"`
-}
 
-func (server *u2fServer) sealKeyHandle(keyHandle *KeyHandle) []byte {
+func (server *U2FServer) sealKeyHandle(keyHandle *webauthn.KeyHandle) []byte {
 	box := crypto.Seal(server.client.SealingEncryptionKey(), util.MarshalCBOR(keyHandle))
 	return util.MarshalCBOR(box)
 }
 
-func (server *u2fServer) openKeyHandle(boxBytes []byte) (*KeyHandle, error) {
+func (server *U2FServer) openKeyHandle(boxBytes []byte) (*webauthn.KeyHandle, error) {
 	var box crypto.EncryptedBox
 	err := cbor.Unmarshal(boxBytes, &box)
 	if err != nil {
 		return nil, err
 	}
 	data := crypto.Open(server.client.SealingEncryptionKey(), box)
-	var keyHandle KeyHandle
+	var keyHandle webauthn.KeyHandle
 	err = cbor.Unmarshal(data, &keyHandle)
 	if err != nil {
 		return nil, err
@@ -138,7 +136,7 @@ func (server *u2fServer) openKeyHandle(boxBytes []byte) (*KeyHandle, error) {
 	return &keyHandle, nil
 }
 
-func (server *u2fServer) handleU2FRegister(header u2fMessageHeader, request []byte) []byte {
+func (server *U2FServer) handleU2FRegister(header u2fMessageHeader, request []byte) []byte {
 	challenge := request[:32]
 	application := request[32:]
 	util.Assert(len(challenge) == 32, "Challenge is not 32 bytes")
@@ -149,7 +147,7 @@ func (server *u2fServer) handleU2FRegister(header u2fMessageHeader, request []by
 	encodedPrivateKey, err := x509.MarshalECPrivateKey(privateKey)
 	util.CheckErr(err, "Could not encode private key")
 
-	unencryptedKeyHandle := KeyHandle{PrivateKey: encodedPrivateKey, ApplicationID: application}
+	unencryptedKeyHandle := webauthn.KeyHandle{PrivateKey: encodedPrivateKey, ApplicationID: application}
 	keyHandle := server.sealKeyHandle(&unencryptedKeyHandle)
 	u2fLogger.Printf("KEY HANDLE: %d %#v\n\n", len(keyHandle), keyHandle)
 
@@ -165,7 +163,7 @@ func (server *u2fServer) handleU2FRegister(header u2fMessageHeader, request []by
 	return util.Flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, util.ToBE(u2f_SW_NO_ERROR)})
 }
 
-func (server *u2fServer) handleU2FAuthenticate(header u2fMessageHeader, request []byte) []byte {
+func (server *U2FServer) handleU2FAuthenticate(header u2fMessageHeader, request []byte) []byte {
 	requestReader := bytes.NewBuffer(request)
 	control := u2fAuthenticateControl(header.Param1)
 	challenge := util.Read(requestReader, 32)

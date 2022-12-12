@@ -1,4 +1,4 @@
-package virtual_fido
+package fido_client
 
 import (
 	"crypto/ecdsa"
@@ -10,8 +10,9 @@ import (
 	"math/big"
 	"time"
 
-	crypto "github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/crypto"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/webauthn"
 )
 
 type ClientAction uint8
@@ -28,7 +29,7 @@ const (
 	ClientActionFIDOGetAssertion   ClientAction = 3
 )
 
-var clientLogger *log.Logger = newLogger("[CLIENT] ", false)
+var clientLogger *log.Logger = util.NewLogger("[CLIENT] ", false)
 
 type ClientRequestApprover interface {
 	ApproveClientAction(action ClientAction, params ClientActionRequestParams) bool
@@ -41,8 +42,8 @@ type ClientDataSaver interface {
 }
 
 type FIDOClient interface {
-	NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource
-	GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *CredentialSource
+	NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource
+	GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *CredentialSource
 
 	SealingEncryptionKey() []byte
 	NewPrivateKey() *ecdsa.PrivateKey
@@ -58,8 +59,8 @@ type FIDOClient interface {
 
 	ApproveAccountCreation(relyingParty string) bool
 	ApproveAccountLogin(credentialSource *CredentialSource) bool
-	ApproveU2FRegistration(keyHandle *KeyHandle) bool
-	ApproveU2FAuthentication(keyHandle *KeyHandle) bool
+	ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool
+	ApproveU2FAuthentication(keyHandle *webauthn.KeyHandle) bool
 }
 
 type DefaultFIDOClient struct {
@@ -78,7 +79,7 @@ type DefaultFIDOClient struct {
 	dataSaver       ClientDataSaver
 }
 
-func NewClient(
+func NewDefaultClient(
 	attestationCertificate []byte,
 	certificatePrivateKey *ecdsa.PrivateKey,
 	secretEncryptionKey [32]byte,
@@ -103,13 +104,13 @@ func NewClient(
 	return client
 }
 
-func (client *DefaultFIDOClient) NewCredentialSource(relyingParty PublicKeyCredentialRpEntity, user PublicKeyCrendentialUserEntity) *CredentialSource {
+func (client *DefaultFIDOClient) NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
 	newSource := client.vault.NewIdentity(relyingParty, user)
 	client.saveData()
 	return newSource
 }
 
-func (client *DefaultFIDOClient) GetAssertionSource(relyingPartyID string, allowList []PublicKeyCredentialDescriptor) *CredentialSource {
+func (client *DefaultFIDOClient) GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *CredentialSource {
 	sources := client.vault.GetMatchingCredentialSources(relyingPartyID, allowList)
 	if len(sources) == 0 {
 		clientLogger.Printf("ERROR: No Credentials\n\n")
@@ -211,12 +212,12 @@ func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa
 	return certBytes
 }
 
-func (client DefaultFIDOClient) ApproveU2FRegistration(keyHandle *KeyHandle) bool {
+func (client DefaultFIDOClient) ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool {
 	params := ClientActionRequestParams{}
 	return client.requestApprover.ApproveClientAction(ClientActionU2FRegister, params)
 }
 
-func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *KeyHandle) bool {
+func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *webauthn.KeyHandle) bool {
 	params := ClientActionRequestParams{}
 	return client.requestApprover.ApproveClientAction(ClientActionU2FAuthenticate, params)
 }

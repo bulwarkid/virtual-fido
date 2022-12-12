@@ -1,4 +1,4 @@
-package virtual_fido
+package crypto
 
 import (
 	"crypto/aes"

@@ -1,4 +1,4 @@
-package virtual_fido
+package usbip
 
 import (
 	"fmt"
@@ -7,24 +7,24 @@ import (
 	"sync"
 	"syscall"
 
-	util "github.com/bulwarkid/virtual-fido/virtual_fido/util"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/util"
 )
 
-var usbipLogger = newLogger("[USBIP] ", false)
+var usbipLogger = util.NewLogger("[USBIP] ", false)
 
 type usbIPServer struct {
 	device        usbDevice
 	responseMutex *sync.Mutex
 }
 
-func newUSBIPServer(device usbDevice) *usbIPServer {
+func NewUSBIPServer(device usbDevice) *usbIPServer {
 	server := new(usbIPServer)
 	server.device = device
 	server.responseMutex = &sync.Mutex{}
 	return server
 }
 
-func (server *usbIPServer) start() {
+func (server *usbIPServer) Start() {
 	usbipLogger.Println("Starting USBIP server...")
 	listener, err := net.Listen("tcp", ":3240")
 	util.CheckErr(err, "Could not create listener")

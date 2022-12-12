@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bulwarkid/virtual-fido/virtual_fido"
+	"github.com/bulwarkid/virtual-fido/virtual_fido/fido_client"
 )
 
 func prompt(prompt string) bool {
@@ -33,15 +34,15 @@ type ClientSupport struct {
 	vaultPassphrase string
 }
 
-func (support *ClientSupport) ApproveClientAction(action virtual_fido.ClientAction, params virtual_fido.ClientActionRequestParams) bool {
+func (support *ClientSupport) ApproveClientAction(action fido_client.ClientAction, params fido_client.ClientActionRequestParams) bool {
 	switch action {
-	case virtual_fido.ClientActionFIDOGetAssertion:
+	case fido_client.ClientActionFIDOGetAssertion:
 		return prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", params.RelyingParty, params.UserName))
-	case virtual_fido.ClientActionFIDOMakeCredential:
+	case fido_client.ClientActionFIDOMakeCredential:
 		return prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", params.RelyingParty))
-	case virtual_fido.ClientActionU2FAuthenticate:
+	case fido_client.ClientActionU2FAuthenticate:
 		return prompt("Approve registration of U2F device (Y/n)?")
-	case virtual_fido.ClientActionU2FRegister:
+	case fido_client.ClientActionU2FRegister:
 		return prompt("Approve use of U2F device (Y/n)?")
 	}
 	fmt.Printf("Unknown client action for approval: %d\n", action)
@@ -70,7 +71,7 @@ func (support *ClientSupport) Passphrase() string {
 	return support.vaultPassphrase
 }
 
-func runServer(client virtual_fido.FIDOClient) {
+func runServer(client fido_client.FIDOClient) {
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
