@@ -1,0 +1,20 @@
+//
+//  USBDriver.iig
+//  USBDriver
+//
+//  Created by Chris de la Iglesia on 12/30/22.
+//
+
+#ifndef USBDriver_h
+#define USBDriver_h
+
+#include <Availability.h>
+#include <DriverKit/IOService.iig>
+
+class USBDriver: public IOService {
+public:
+    virtual kern_return_t Start(IOService *provider) override;
+    virtual kern_return_t NewUserClient(uint32_t type, IOUserClient **userClient) override;
+};
+
+#endif /* USBDriver_h */

@@ -1,0 +1,849 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		8A256C0E296CB2CF00637821 /* DriverKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A7CC85B295FE5EE00D441DE /* DriverKit.framework */; };
+		8A256C11296CB2D000637821 /* HIDDriverKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C0B296CAC4B00637821 /* HIDDriverKit.framework */; };
+		8A256C1A296CB47700637821 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A256C19296CB47700637821 /* main.cpp */; };
+		8A256C1F296CB4D700637821 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C1E296CB4D700637821 /* CoreFoundation.framework */; };
+		8A256C21296CB4DC00637821 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C20296CB4DC00637821 /* IOKit.framework */; };
+		8A7CC85F295FE5EE00D441DE /* USBDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */; };
+		8A7CC861295FE5EE00D441DE /* USBDriver.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC860295FE5EE00D441DE /* USBDriver.iig */; };
+		8A7CC865295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8AAC14E8295FD897004DCCBB /* USBDriverInstallerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AAC14E7295FD897004DCCBB /* USBDriverInstallerApp.swift */; };
+		8AAC14EA295FD897004DCCBB /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AAC14E9295FD897004DCCBB /* ContentView.swift */; };
+		8AAC14EC295FD898004DCCBB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8AAC14EB295FD898004DCCBB /* Assets.xcassets */; };
+		8AAC14EF295FD898004DCCBB /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8AAC14EE295FD898004DCCBB /* Preview Assets.xcassets */; };
+		8AFD3A1E296147B8006A898C /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A1D296147B8006A898C /* ContentViewModel.swift */; };
+		8AFD3A2029614880006A898C /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = 8AFD3A1F29614880006A898C /* util.h */; };
+		8AFD3A22296149E6006A898C /* USBUserClient.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A21296149E6006A898C /* USBUserClient.iig */; };
+		8AFD3A24296149F9006A898C /* USBUserClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A23296149F9006A898C /* USBUserClient.cpp */; };
+		8AFD3A2629615916006A898C /* USBDevice.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A2529615916006A898C /* USBDevice.iig */; };
+		8AFD3A2829615923006A898C /* USBDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A2729615923006A898C /* USBDevice.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8A7CC863295FE5EE00D441DE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8AAC14DA295FD87B004DCCBB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8A7CC858295FE5EE00D441DE;
+			remoteInfo = USBDriver;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8A256C15296CB47700637821 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		8A7CC866295FE5EE00D441DE /* Embed System Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				8A7CC865295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext in Embed System Extensions */,
+			);
+			name = "Embed System Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		8A256C0B296CAC4B00637821 /* HIDDriverKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HIDDriverKit.framework; path = Platforms/DriverKit.platform/Developer/SDKs/DriverKit22.2.sdk/System/DriverKit/System/Library/Frameworks/HIDDriverKit.framework; sourceTree = DEVELOPER_DIR; };
+		8A256C0D296CB12D00637821 /* USBDriver.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = USBDriver.entitlements; sourceTree = "<group>"; };
+		8A256C17296CB47700637821 /* USBDriverTester */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = USBDriverTester; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A256C19296CB47700637821 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		8A256C1E296CB4D700637821 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		8A256C20296CB4DC00637821 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		8A256C22296CCA5D00637821 /* USBDriverTester.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = USBDriverTester.entitlements; sourceTree = "<group>"; };
+		8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */ = {isa = PBXFileReference; explicitFileType = "wrapper.driver-extension"; includeInIndex = 0; path = id.bulwark.USBDriver.driver.dext; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A7CC85B295FE5EE00D441DE /* DriverKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DriverKit.framework; path = System/Library/Frameworks/DriverKit.framework; sourceTree = SDKROOT; };
+		8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBDriver.cpp; sourceTree = "<group>"; };
+		8A7CC860295FE5EE00D441DE /* USBDriver.iig */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.iig; path = USBDriver.iig; sourceTree = "<group>"; };
+		8A7CC862295FE5EE00D441DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8AAC14E4295FD897004DCCBB /* USBDriverInstaller.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = USBDriverInstaller.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8AAC14E7295FD897004DCCBB /* USBDriverInstallerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USBDriverInstallerApp.swift; sourceTree = "<group>"; };
+		8AAC14E9295FD897004DCCBB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8AAC14EB295FD898004DCCBB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8AAC14EE295FD898004DCCBB /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		8AAC14F0295FD898004DCCBB /* USBDriverInstaller.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = USBDriverInstaller.entitlements; sourceTree = "<group>"; };
+		8AFD3A1D296147B8006A898C /* ContentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewModel.swift; sourceTree = "<group>"; };
+		8AFD3A1F29614880006A898C /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		8AFD3A21296149E6006A898C /* USBUserClient.iig */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.iig; path = USBUserClient.iig; sourceTree = "<group>"; };
+		8AFD3A23296149F9006A898C /* USBUserClient.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBUserClient.cpp; sourceTree = "<group>"; };
+		8AFD3A2529615916006A898C /* USBDevice.iig */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.iig; path = USBDevice.iig; sourceTree = "<group>"; };
+		8AFD3A2729615923006A898C /* USBDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBDevice.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8A256C14296CB47700637821 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A256C1F296CB4D700637821 /* CoreFoundation.framework in Frameworks */,
+				8A256C21296CB4DC00637821 /* IOKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8A7CC856295FE5EE00D441DE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A256C0E296CB2CF00637821 /* DriverKit.framework in Frameworks */,
+				8A256C11296CB2D000637821 /* HIDDriverKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8AAC14E1295FD897004DCCBB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		8A256C18296CB47700637821 /* USBDriverTester */ = {
+			isa = PBXGroup;
+			children = (
+				8A256C19296CB47700637821 /* main.cpp */,
+				8A256C22296CCA5D00637821 /* USBDriverTester.entitlements */,
+			);
+			path = USBDriverTester;
+			sourceTree = "<group>";
+		};
+		8A7CC85A295FE5EE00D441DE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8A256C20296CB4DC00637821 /* IOKit.framework */,
+				8A256C1E296CB4D700637821 /* CoreFoundation.framework */,
+				8A256C0B296CAC4B00637821 /* HIDDriverKit.framework */,
+				8A7CC85B295FE5EE00D441DE /* DriverKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		8A7CC85D295FE5EE00D441DE /* USBDriver */ = {
+			isa = PBXGroup;
+			children = (
+				8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */,
+				8A7CC860295FE5EE00D441DE /* USBDriver.iig */,
+				8A7CC862295FE5EE00D441DE /* Info.plist */,
+				8AFD3A1F29614880006A898C /* util.h */,
+				8AFD3A21296149E6006A898C /* USBUserClient.iig */,
+				8AFD3A23296149F9006A898C /* USBUserClient.cpp */,
+				8AFD3A2529615916006A898C /* USBDevice.iig */,
+				8AFD3A2729615923006A898C /* USBDevice.cpp */,
+				8A256C0D296CB12D00637821 /* USBDriver.entitlements */,
+			);
+			path = USBDriver;
+			sourceTree = "<group>";
+		};
+		8AAC14D9295FD87B004DCCBB = {
+			isa = PBXGroup;
+			children = (
+				8AAC14E6295FD897004DCCBB /* USBDriverInstaller */,
+				8A7CC85D295FE5EE00D441DE /* USBDriver */,
+				8A256C18296CB47700637821 /* USBDriverTester */,
+				8A7CC85A295FE5EE00D441DE /* Frameworks */,
+				8AAC14E5295FD897004DCCBB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8AAC14E5295FD897004DCCBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8AAC14E4295FD897004DCCBB /* USBDriverInstaller.app */,
+				8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */,
+				8A256C17296CB47700637821 /* USBDriverTester */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8AAC14E6295FD897004DCCBB /* USBDriverInstaller */ = {
+			isa = PBXGroup;
+			children = (
+				8AAC14E7295FD897004DCCBB /* USBDriverInstallerApp.swift */,
+				8AAC14E9295FD897004DCCBB /* ContentView.swift */,
+				8AFD3A1D296147B8006A898C /* ContentViewModel.swift */,
+				8AAC14EB295FD898004DCCBB /* Assets.xcassets */,
+				8AAC14F0295FD898004DCCBB /* USBDriverInstaller.entitlements */,
+				8AAC14ED295FD898004DCCBB /* Preview Content */,
+			);
+			path = USBDriverInstaller;
+			sourceTree = "<group>";
+		};
+		8AAC14ED295FD898004DCCBB /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				8AAC14EE295FD898004DCCBB /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		8A7CC854295FE5EE00D441DE /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AFD3A2029614880006A898C /* util.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		8A256C16296CB47700637821 /* USBDriverTester */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8A256C1B296CB47700637821 /* Build configuration list for PBXNativeTarget "USBDriverTester" */;
+			buildPhases = (
+				8A256C13296CB47700637821 /* Sources */,
+				8A256C14296CB47700637821 /* Frameworks */,
+				8A256C15296CB47700637821 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = USBDriverTester;
+			productName = USBDriverTester;
+			productReference = 8A256C17296CB47700637821 /* USBDriverTester */;
+			productType = "com.apple.product-type.tool";
+		};
+		8A7CC858295FE5EE00D441DE /* USBDriver */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8A7CC869295FE5EE00D441DE /* Build configuration list for PBXNativeTarget "USBDriver" */;
+			buildPhases = (
+				8A7CC854295FE5EE00D441DE /* Headers */,
+				8A7CC855295FE5EE00D441DE /* Sources */,
+				8A7CC856295FE5EE00D441DE /* Frameworks */,
+				8A7CC857295FE5EE00D441DE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = USBDriver;
+			productName = USBDriver;
+			productReference = 8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */;
+			productType = "com.apple.product-type.driver-extension";
+		};
+		8AAC14E3295FD897004DCCBB /* USBDriverInstaller */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8AAC14F1295FD898004DCCBB /* Build configuration list for PBXNativeTarget "USBDriverInstaller" */;
+			buildPhases = (
+				8AAC14E0295FD897004DCCBB /* Sources */,
+				8AAC14E1295FD897004DCCBB /* Frameworks */,
+				8AAC14E2295FD897004DCCBB /* Resources */,
+				8A7CC866295FE5EE00D441DE /* Embed System Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8A7CC864295FE5EE00D441DE /* PBXTargetDependency */,
+			);
+			name = USBDriverInstaller;
+			productName = USBDriverInstaller;
+			productReference = 8AAC14E4295FD897004DCCBB /* USBDriverInstaller.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8AAC14DA295FD87B004DCCBB /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1420;
+				LastUpgradeCheck = 1420;
+				TargetAttributes = {
+					8A256C16296CB47700637821 = {
+						CreatedOnToolsVersion = 14.2;
+					};
+					8A7CC858295FE5EE00D441DE = {
+						CreatedOnToolsVersion = 14.2;
+					};
+					8AAC14E3295FD897004DCCBB = {
+						CreatedOnToolsVersion = 14.2;
+					};
+				};
+			};
+			buildConfigurationList = 8AAC14DD295FD87B004DCCBB /* Build configuration list for PBXProject "USBDriver" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 8AAC14D9295FD87B004DCCBB;
+			productRefGroup = 8AAC14E5295FD897004DCCBB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8AAC14E3295FD897004DCCBB /* USBDriverInstaller */,
+				8A7CC858295FE5EE00D441DE /* USBDriver */,
+				8A256C16296CB47700637821 /* USBDriverTester */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8A7CC857295FE5EE00D441DE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8AAC14E2295FD897004DCCBB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AAC14EF295FD898004DCCBB /* Preview Assets.xcassets in Resources */,
+				8AAC14EC295FD898004DCCBB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8A256C13296CB47700637821 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A256C1A296CB47700637821 /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8A7CC855295FE5EE00D441DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AFD3A2829615923006A898C /* USBDevice.cpp in Sources */,
+				8AFD3A2629615916006A898C /* USBDevice.iig in Sources */,
+				8A7CC861295FE5EE00D441DE /* USBDriver.iig in Sources */,
+				8AFD3A22296149E6006A898C /* USBUserClient.iig in Sources */,
+				8AFD3A24296149F9006A898C /* USBUserClient.cpp in Sources */,
+				8A7CC85F295FE5EE00D441DE /* USBDriver.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8AAC14E0295FD897004DCCBB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AAC14EA295FD897004DCCBB /* ContentView.swift in Sources */,
+				8AAC14E8295FD897004DCCBB /* USBDriverInstallerApp.swift in Sources */,
+				8AFD3A1E296147B8006A898C /* ContentViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8A7CC864295FE5EE00D441DE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8A7CC858295FE5EE00D441DE /* USBDriver */;
+			targetProxy = 8A7CC863295FE5EE00D441DE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		8A256C1C296CB47700637821 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = USBDriverTester/USBDriverTester.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		8A256C1D296CB47700637821 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = USBDriverTester/USBDriverTester.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		8A7CC867295FE5EE00D441DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = USBDriver/USBDriver.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				DRIVERKIT_DEPLOYMENT_TARGET = 22.1;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/System/DriverKit/System/Library/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = USBDriver/Info.plist;
+				INFOPLIST_KEY_OSBundleUsageDescription = "";
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = id.bulwark.USBDriver.driver;
+				PRODUCT_NAME = "$(inherited)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				RUN_CLANG_STATIC_ANALYZER = YES;
+				SDKROOT = driverkit;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		8A7CC868295FE5EE00D441DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = USBDriver/USBDriver.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				DRIVERKIT_DEPLOYMENT_TARGET = 22.1;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/System/DriverKit/System/Library/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = USBDriver/Info.plist;
+				INFOPLIST_KEY_OSBundleUsageDescription = "";
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = id.bulwark.USBDriver.driver;
+				PRODUCT_NAME = "$(inherited)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				RUN_CLANG_STATIC_ANALYZER = YES;
+				SDKROOT = driverkit;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		8AAC14DE295FD87B004DCCBB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		8AAC14DF295FD87B004DCCBB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		8AAC14F2295FD898004DCCBB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = USBDriverInstaller/USBDriverInstaller.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_ASSET_PATHS = "\"USBDriverInstaller/Preview Content\"";
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = id.bulwark.USBDriverInstaller;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		8AAC14F3295FD898004DCCBB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = USBDriverInstaller/USBDriverInstaller.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_ASSET_PATHS = "\"USBDriverInstaller/Preview Content\"";
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = id.bulwark.USBDriverInstaller;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8A256C1B296CB47700637821 /* Build configuration list for PBXNativeTarget "USBDriverTester" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A256C1C296CB47700637821 /* Debug */,
+				8A256C1D296CB47700637821 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8A7CC869295FE5EE00D441DE /* Build configuration list for PBXNativeTarget "USBDriver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A7CC867295FE5EE00D441DE /* Debug */,
+				8A7CC868295FE5EE00D441DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8AAC14DD295FD87B004DCCBB /* Build configuration list for PBXProject "USBDriver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8AAC14DE295FD87B004DCCBB /* Debug */,
+				8AAC14DF295FD87B004DCCBB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8AAC14F1295FD898004DCCBB /* Build configuration list for PBXNativeTarget "USBDriverInstaller" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8AAC14F2295FD898004DCCBB /* Debug */,
+				8AAC14F3295FD898004DCCBB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8AAC14DA295FD87B004DCCBB /* Project object */;
+}

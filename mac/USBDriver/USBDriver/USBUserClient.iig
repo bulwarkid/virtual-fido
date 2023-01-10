@@ -1,0 +1,21 @@
+//
+//  USBUserClient.iig
+//  USBDriver
+//
+//  Created by Chris de la Iglesia on 12/31/22.
+//
+
+#ifndef USBUserClient_h
+#define USBUserClient_h
+
+#include <Availability.h>
+#include <DriverKit/IOUserClient.iig>
+
+class USBUserClient: IOUserClient {
+    virtual bool init(void) override;
+    virtual void free(void) override;
+    virtual kern_return_t Stop(IOService *provider) override;
+    virtual kern_return_t ExternalMethod(uint64_t selector, IOUserClientMethodArguments* arguments, const IOUserClientMethodDispatch* dispatch, OSObject* target, void* reference) override;
+};
+
+#endif /* USBUserClient_h */

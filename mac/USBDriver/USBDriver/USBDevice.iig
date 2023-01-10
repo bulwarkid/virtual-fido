@@ -1,0 +1,26 @@
+//
+//  USBDevice.iig
+//  USBDriver
+//
+//  Created by Chris de la Iglesia on 12/31/22.
+//
+
+#ifndef USBDevice_h
+#define USBDevice_h
+
+#include <Availability.h>
+#include <DriverKit/IOService.iig>
+#include <HIDDriverKit/IOUserHIDDevice.iig>
+
+class USBDevice: public IOUserHIDDevice {
+public:
+    static USBDevice* newDevice(IOService *provider) LOCALONLY;
+    
+    virtual OSData* newReportDescriptor(void) override;
+    virtual OSDictionary* newDeviceDescription(void) override;
+    
+    virtual kern_return_t getReport(IOMemoryDescriptor *report, IOHIDReportType reportType, IOOptionBits options, uint32_t completionTimeout, OSAction *action) override;
+    virtual kern_return_t setReport(IOMemoryDescriptor *report, IOHIDReportType reportType, IOOptionBits options, uint32_t completionTimeout, OSAction *action) override;
+};
+
+#endif /* USBDevice_h */
