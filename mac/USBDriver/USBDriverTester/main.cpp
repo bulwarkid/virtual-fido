@@ -32,8 +32,9 @@ int main() {
         printf("Could not open connection: 0x%08x\n", ret);
         return 1;
     }
-    
-    ret = IOConnectCallScalarMethod(connection, 0, nullptr, 0, nullptr, 0);
+    // TODO: Actually share selector value in code
+    uint32_t startDeviceSelector = 2;
+    ret = IOConnectCallScalarMethod(connection, startDeviceSelector, nullptr, 0, nullptr, 0);
     if (ret != kIOReturnSuccess) {
         printf("IOConnectCallScalarMethod failed: 0x%08x\n", ret);
         return 1;
