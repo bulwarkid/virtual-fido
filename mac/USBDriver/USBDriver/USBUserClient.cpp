@@ -30,7 +30,11 @@ const IOUserClientMethodDispatch externalMethodChecks[NumberOfExternalMethods] =
     },
     [ExternalMethodType_NotifyFrame] = {
         .function = (IOUserClientMethodFunction)USBUserClient::StaticHandleNotifyFrame,
-        // TODO: Add checks here for function arguments
+        .checkCompletionExists = true,
+        .checkScalarInputCount = 0,
+        .checkScalarOutputCount = 0,
+        .checkStructureInputSize = 0,
+        .checkStructureOutputSize = 0,
     },
     [ExternalMethodType_StartDevice] = {
         .function = (IOUserClientMethodFunction)USBUserClient::StaticHandleStartDevice,
@@ -48,6 +52,7 @@ const IOUserClientMethodDispatch externalMethodChecks[NumberOfExternalMethods] =
 
 struct USBUserClient_IVars {
     USBDevice *_device;
+    OSAction* notifyFrameAction = nullptr;
 };
 
 bool USBUserClient::init(void) {
@@ -139,6 +144,11 @@ kern_return_t USBUserClient::StaticHandleNotifyFrame(USBUserClient* target, void
 }
 
 kern_return_t USBUserClient::HandleNotifyFrame(void* reference, IOUserClientMethodArguments* arguments) {
-    // TODO: Implement
+    if (arguments->completion == nullptr) {
+        Log("Invalid NotifiyFrame completion");
+        return kIOReturnBadArgument;
+    }
+    ivars->notifyFrameAction = arguments->completion;
+    ivars->notifyFrameAction->retain();
     return kIOReturnSuccess;
 }
