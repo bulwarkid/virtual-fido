@@ -10,6 +10,8 @@
 
 #include <Availability.h>
 #include <DriverKit/IOUserClient.iig>
+#include <DriverKit/IOBufferMemoryDescriptor.h>
+#include <HIDDriverKit/IOHIDDeviceTypes.h>
 
 class USBUserClient: IOUserClient {
 public:
@@ -17,6 +19,8 @@ public:
     virtual void free(void) override;
     virtual kern_return_t Stop(IOService *provider) override;
     virtual kern_return_t ExternalMethod(uint64_t selector, IOUserClientMethodArguments* arguments, const IOUserClientMethodDispatch* dispatch, OSObject* target, void* reference) override;
+    
+    void newHIDFrame(IOMemoryDescriptor *report, IOHIDReportType reportType) LOCALONLY;
     
 protected:
     void clearDeviceIfNecessary() LOCALONLY;
@@ -32,6 +36,9 @@ protected:
     
     static kern_return_t StaticHandleNotifyFrame(USBUserClient* target, void* reference, IOUserClientMethodArguments* arguments) LOCALONLY;
     kern_return_t HandleNotifyFrame(void* reference, IOUserClientMethodArguments* arguments) LOCALONLY;
+    
+    static kern_return_t StaticHandleGetFrame(USBUserClient* target, void* reference, IOUserClientMethodArguments* arguments) LOCALONLY;
+    kern_return_t HandleGetFrame(void* reference, IOUserClientMethodArguments* arguments) LOCALONLY;
 };
 
 #endif /* USBUserClient_h */

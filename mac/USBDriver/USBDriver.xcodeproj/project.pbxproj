@@ -12,6 +12,7 @@
 		8A256C1A296CB47700637821 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A256C19296CB47700637821 /* main.cpp */; };
 		8A256C1F296CB4D700637821 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C1E296CB4D700637821 /* CoreFoundation.framework */; };
 		8A256C21296CB4DC00637821 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C20296CB4DC00637821 /* IOKit.framework */; };
+		8A52F2562970C32F004C0521 /* USBDriverLib.h in Headers */ = {isa = PBXBuildFile; fileRef = 8A52F2552970C32F004C0521 /* USBDriverLib.h */; };
 		8A7CC85F295FE5EE00D441DE /* USBDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */; };
 		8A7CC861295FE5EE00D441DE /* USBDriver.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC860295FE5EE00D441DE /* USBDriver.iig */; };
 		8A7CC865295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -68,6 +69,8 @@
 		8A256C1E296CB4D700637821 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		8A256C20296CB4DC00637821 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		8A256C22296CCA5D00637821 /* USBDriverTester.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = USBDriverTester.entitlements; sourceTree = "<group>"; };
+		8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libUSBDriverLib.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A52F2552970C32F004C0521 /* USBDriverLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = USBDriverLib.h; sourceTree = "<group>"; };
 		8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */ = {isa = PBXFileReference; explicitFileType = "wrapper.driver-extension"; includeInIndex = 0; path = id.bulwark.USBDriver.driver.dext; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A7CC85B295FE5EE00D441DE /* DriverKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DriverKit.framework; path = System/Library/Frameworks/DriverKit.framework; sourceTree = SDKROOT; };
 		8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBDriver.cpp; sourceTree = "<group>"; };
@@ -97,6 +100,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8A52F24E2970C314004C0521 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8A7CC856295FE5EE00D441DE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -123,6 +133,14 @@
 				8A256C22296CCA5D00637821 /* USBDriverTester.entitlements */,
 			);
 			path = USBDriverTester;
+			sourceTree = "<group>";
+		};
+		8A52F2542970C31D004C0521 /* USBDrverLib */ = {
+			isa = PBXGroup;
+			children = (
+				8A52F2552970C32F004C0521 /* USBDriverLib.h */,
+			);
+			path = USBDrverLib;
 			sourceTree = "<group>";
 		};
 		8A7CC85A295FE5EE00D441DE /* Frameworks */ = {
@@ -155,6 +173,7 @@
 		8AAC14D9295FD87B004DCCBB = {
 			isa = PBXGroup;
 			children = (
+				8A52F2542970C31D004C0521 /* USBDrverLib */,
 				8AAC14E6295FD897004DCCBB /* USBDriverInstaller */,
 				8A7CC85D295FE5EE00D441DE /* USBDriver */,
 				8A256C18296CB47700637821 /* USBDriverTester */,
@@ -169,6 +188,7 @@
 				8AAC14E4295FD897004DCCBB /* USBDriverInstaller.app */,
 				8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */,
 				8A256C17296CB47700637821 /* USBDriverTester */,
+				8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -197,6 +217,14 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
+		8A52F24C2970C314004C0521 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A52F2562970C32F004C0521 /* USBDriverLib.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8A7CC854295FE5EE00D441DE /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -224,6 +252,23 @@
 			productName = USBDriverTester;
 			productReference = 8A256C17296CB47700637821 /* USBDriverTester */;
 			productType = "com.apple.product-type.tool";
+		};
+		8A52F24F2970C314004C0521 /* USBDriverLib */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8A52F2512970C314004C0521 /* Build configuration list for PBXNativeTarget "USBDriverLib" */;
+			buildPhases = (
+				8A52F24C2970C314004C0521 /* Headers */,
+				8A52F24D2970C314004C0521 /* Sources */,
+				8A52F24E2970C314004C0521 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = USBDriverLib;
+			productName = USBDriverLib;
+			productReference = 8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
 		};
 		8A7CC858295FE5EE00D441DE /* USBDriver */ = {
 			isa = PBXNativeTarget;
@@ -275,6 +320,9 @@
 					8A256C16296CB47700637821 = {
 						CreatedOnToolsVersion = 14.2;
 					};
+					8A52F24F2970C314004C0521 = {
+						CreatedOnToolsVersion = 14.2;
+					};
 					8A7CC858295FE5EE00D441DE = {
 						CreatedOnToolsVersion = 14.2;
 					};
@@ -299,6 +347,7 @@
 				8AAC14E3295FD897004DCCBB /* USBDriverInstaller */,
 				8A7CC858295FE5EE00D441DE /* USBDriver */,
 				8A256C16296CB47700637821 /* USBDriverTester */,
+				8A52F24F2970C314004C0521 /* USBDriverLib */,
 			);
 		};
 /* End PBXProject section */
@@ -328,6 +377,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				8A256C1A296CB47700637821 /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8A52F24D2970C314004C0521 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -483,6 +539,129 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		8A52F2522970C314004C0521 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = GYLDHV7U9U;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		8A52F2532970C314004C0521 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = GYLDHV7U9U;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
@@ -812,6 +991,15 @@
 			buildConfigurations = (
 				8A256C1C296CB47700637821 /* Debug */,
 				8A256C1D296CB47700637821 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8A52F2512970C314004C0521 /* Build configuration list for PBXNativeTarget "USBDriverLib" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A52F2522970C314004C0521 /* Debug */,
+				8A52F2532970C314004C0521 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

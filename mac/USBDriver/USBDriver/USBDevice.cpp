@@ -17,6 +17,7 @@
 #include <HIDDriverKit/IOHIDDeviceKeys.h>
 
 #include "util.h"
+#include "USBUserClient.h"
 #include "USBDevice.h"
 
 #define Log(fmt, ...) GlobalLog("USBDevice - " fmt, ##__VA_ARGS__)
@@ -127,26 +128,14 @@ kern_return_t USBDevice::getReport(IOMemoryDescriptor *report, IOHIDReportType r
     return kIOReturnSuccess;
 }
 
-char *bytesToHexString(uint8_t *address, uint64_t length) {
-    char* output = (char*)IOMalloc(length * 3 + 1);
-    static const char characters[] = "01234567890ABCDEF";
-    for (int i = 0; i < length; i++) {
-        uint8_t byte = address[i];
-        output[3*i] = characters[byte >> 4];
-        output[3*i+1] = characters[byte & 0x0F];
-        output[3*i+2] = ' ';
-    }
-    output[length * 3] = '\0';
-    return output;
-}
-
 kern_return_t USBDevice::setReport(IOMemoryDescriptor *report, IOHIDReportType reportType, IOOptionBits options, uint32_t completionTimeout, OSAction *action) {
     Log("setReport(%d)", reportType);
-    uint64_t address;
-    uint64_t length;
-    report->Map(0,0,0,0,&address,&length);
-    uint8_t *addressByte = reinterpret_cast<uint8_t*>(address);
-    auto reportString = bytesToHexString(addressByte, length);
-    Log("Report: %s", reportString);
+    USBUserClient *userClient = OSDynamicCast(USBUserClient, GetProvider());
+    if (userClient) {
+        userClient->newHIDFrame(report, reportType);
+    } else {
+        Log("No user client found");
+        return kIOReturnError;
+    }
     return kIOReturnSuccess;
 }

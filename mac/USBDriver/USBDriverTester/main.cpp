@@ -11,18 +11,28 @@
 #include <IOKit/IOKitLib.h>
 #include <IOKit/hidsystem/IOHIDShared.h>
 
+#include "USBDriverLib.h"
+
 static const char* dextIdentifier = "USBDriver";
 static const char* fullDextIdentifier = "id.bulwark.USBDriver.driver";
 
+CFRunLoopRef globalRunLoop = nullptr;
+io_connect_t connection;
+
 static void NotifyFrameCallback(void* refcon, IOReturn result, void** args, uint32_t numArgs) {
     printf("NotifyFrame callback called\n");
+    usb_driver_hid_frame frame;
+    size_t output_size = sizeof(usb_driver_hid_frame);
+    kern_return_t ret = IOConnectCallStructMethod(connection, USBDriverMethodType_GetFrame, nullptr, 0, &frame, &output_size);
+    if (ret != kIOReturnSuccess) {
+        printf("Couldn't get frame after callback: %d\n", ret);
+        return;
+    }
+    printf("Got struct: Length: %llu - First bytes: %llu\n", frame.length, frame.data[0]);
 }
-
-CFRunLoopRef globalRunLoop = nullptr;
 
 kern_return_t registerAsyncCallback(io_connect_t connection) {
     kern_return_t ret = kIOReturnSuccess;
-    
     
     IONotificationPortRef notificationPort = IONotificationPortCreate(kIOMainPortDefault);
     if (notificationPort == nullptr) {
@@ -47,7 +57,7 @@ kern_return_t registerAsyncCallback(io_connect_t connection) {
     io_async_ref64_t asyncRef = {};
     asyncRef[kIOAsyncCalloutFuncIndex] = (io_user_reference_t)NotifyFrameCallback;
     asyncRef[kIOAsyncCalloutRefconIndex] = (io_user_reference_t)nullptr;
-    ret = IOConnectCallAsyncScalarMethod(connection, 1, machNotificationPort, asyncRef, kIOAsyncCalloutCount, nullptr, 0, nullptr, 0);
+    ret = IOConnectCallAsyncScalarMethod(connection, USBDriverMethodType_NotifyFrame, machNotificationPort, asyncRef, kIOAsyncCalloutCount, nullptr, 0, nullptr, 0);
     if (ret != kIOReturnSuccess) {
         printf("Failed to register callback\n");
         return ret;
@@ -71,7 +81,6 @@ int main() {
             return 1;
         }
     }
-    io_connect_t connection = IO_OBJECT_NULL;
     ret = IOServiceOpen(service, mach_task_self_, kIOHIDServerConnectType, &connection);
     if (ret != kIOReturnSuccess) {
         printf("Could not open connection: 0x%08x\n", ret);
@@ -83,9 +92,7 @@ int main() {
         return 1;
     }
     
-    // TODO: Actually share selector value in code
-    uint32_t startDeviceSelector = 2;
-    ret = IOConnectCallScalarMethod(connection, startDeviceSelector, nullptr, 0, nullptr, 0);
+    ret = IOConnectCallScalarMethod(connection, USBDriverMethodType_StartDevice, nullptr, 0, nullptr, 0);
     if (ret != kIOReturnSuccess) {
         printf("IOConnectCallScalarMethod failed: 0x%08x\n", ret);
         return 1;
