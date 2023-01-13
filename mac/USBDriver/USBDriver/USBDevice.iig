@@ -21,6 +21,8 @@ public:
     
     virtual kern_return_t getReport(IOMemoryDescriptor *report, IOHIDReportType reportType, IOOptionBits options, uint32_t completionTimeout, OSAction *action) override;
     virtual kern_return_t setReport(IOMemoryDescriptor *report, IOHIDReportType reportType, IOOptionBits options, uint32_t completionTimeout, OSAction *action) override;
+    
+    void sendReportFromDevice(IOMemoryDescriptor *report) LOCALONLY;
 };
 
 #endif /* USBDevice_h */

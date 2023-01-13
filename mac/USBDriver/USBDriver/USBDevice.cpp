@@ -139,3 +139,10 @@ kern_return_t USBDevice::setReport(IOMemoryDescriptor *report, IOHIDReportType r
     }
     return kIOReturnSuccess;
 }
+
+void USBDevice::sendReportFromDevice(IOMemoryDescriptor *report) {
+    uint64_t length;
+    report->GetLength(&length);
+    super::handleReport(mach_absolute_time(), report, uint32_t(length));
+}
+

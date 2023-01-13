@@ -12,4 +12,6 @@
 
 #define GlobalLog(fmt, ...) os_log(OS_LOG_DEFAULT, "USBDriverLog - " fmt "\n", ##__VA_ARGS__)
 
+IOBufferMemoryDescriptor *createMemoryDescriptorWithBytes(const void *bytes, uint64_t length);
+
 #endif /* util_h */

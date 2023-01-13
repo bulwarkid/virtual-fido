@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <DriverKit/IOLib.h>
 #include <DriverKit/OSData.h>
+#include <DriverKit/IOBufferMemoryDescriptor.h>
 
 #include "util.h"
 #include "USBDevice.h"
@@ -23,7 +24,10 @@ const IOUserClientMethodDispatch USBDriverMethodChecks[NumberOfUSBDriverMethods]
     [USBDriverMethodType_SendFrame] = {
         .function = (IOUserClientMethodFunction)USBUserClient::StaticHandleSendFrame,
         .checkCompletionExists = false,
-        // TODO: Add more checks for arguments once finalized
+        .checkScalarInputCount = 0,
+        .checkScalarOutputCount = 0,
+        .checkStructureInputSize = sizeof(usb_driver_hid_frame),
+        .checkStructureOutputSize = 0,
     },
     [USBDriverMethodType_NotifyFrame] = {
         .function = (IOUserClientMethodFunction)USBUserClient::StaticHandleNotifyFrame,
@@ -141,7 +145,15 @@ kern_return_t USBUserClient::StaticHandleSendFrame(USBUserClient* target, void* 
 }
 
 kern_return_t USBUserClient::HandleSendFrame(void* reference, IOUserClientMethodArguments* arguments) {
-    // TODO: Implement
+    usb_driver_hid_frame *frame = (usb_driver_hid_frame*) arguments->structureInput->getBytesNoCopy();
+    if (frame->length <= 0 || frame->length >= sizeof(frame->data)/sizeof(frame->data[0])) {
+        return kIOReturnBadArgument;
+    }
+    if (ivars->_device) {
+        IOBufferMemoryDescriptor *report = createMemoryDescriptorWithBytes((void*)frame->data, sizeof(uint64_t) * frame->length);
+        ivars->_device->sendReportFromDevice(report);
+        report->release();
+    }
     return kIOReturnSuccess;
 }
 

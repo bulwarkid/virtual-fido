@@ -13,6 +13,7 @@
 		8A256C1F296CB4D700637821 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C1E296CB4D700637821 /* CoreFoundation.framework */; };
 		8A256C21296CB4DC00637821 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C20296CB4DC00637821 /* IOKit.framework */; };
 		8A52F2562970C32F004C0521 /* USBDriverLib.h in Headers */ = {isa = PBXBuildFile; fileRef = 8A52F2552970C32F004C0521 /* USBDriverLib.h */; };
+		8A52F258297200E3004C0521 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A52F257297200E3004C0521 /* util.cpp */; };
 		8A7CC85F295FE5EE00D441DE /* USBDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */; };
 		8A7CC861295FE5EE00D441DE /* USBDriver.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC860295FE5EE00D441DE /* USBDriver.iig */; };
 		8A7CC865295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -71,6 +72,7 @@
 		8A256C22296CCA5D00637821 /* USBDriverTester.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = USBDriverTester.entitlements; sourceTree = "<group>"; };
 		8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libUSBDriverLib.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A52F2552970C32F004C0521 /* USBDriverLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = USBDriverLib.h; sourceTree = "<group>"; };
+		8A52F257297200E3004C0521 /* util.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
 		8A7CC859295FE5EE00D441DE /* id.bulwark.USBDriver.driver.dext */ = {isa = PBXFileReference; explicitFileType = "wrapper.driver-extension"; includeInIndex = 0; path = id.bulwark.USBDriver.driver.dext; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A7CC85B295FE5EE00D441DE /* DriverKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DriverKit.framework; path = System/Library/Frameworks/DriverKit.framework; sourceTree = SDKROOT; };
 		8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBDriver.cpp; sourceTree = "<group>"; };
@@ -161,6 +163,7 @@
 				8A7CC860295FE5EE00D441DE /* USBDriver.iig */,
 				8A7CC862295FE5EE00D441DE /* Info.plist */,
 				8AFD3A1F29614880006A898C /* util.h */,
+				8A52F257297200E3004C0521 /* util.cpp */,
 				8AFD3A21296149E6006A898C /* USBUserClient.iig */,
 				8AFD3A23296149F9006A898C /* USBUserClient.cpp */,
 				8AFD3A2529615916006A898C /* USBDevice.iig */,
@@ -393,6 +396,7 @@
 			files = (
 				8AFD3A2829615923006A898C /* USBDevice.cpp in Sources */,
 				8AFD3A2629615916006A898C /* USBDevice.iig in Sources */,
+				8A52F258297200E3004C0521 /* util.cpp in Sources */,
 				8A7CC861295FE5EE00D441DE /* USBDriver.iig in Sources */,
 				8AFD3A22296149E6006A898C /* USBUserClient.iig in Sources */,
 				8AFD3A24296149F9006A898C /* USBUserClient.cpp in Sources */,
