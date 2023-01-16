@@ -191,6 +191,7 @@ void USBUserClient::newHIDFrame(IOMemoryDescriptor *report, IOHIDReportType repo
     ivars->saved_frame.length = length;
     bzero(ivars->saved_frame.data, sizeof(ivars->saved_frame.data));
     memcpy(ivars->saved_frame.data, byteAddress, length);
+    Log("Received frame of length %llu", length);
     
     AsyncCompletion(ivars->notifyFrameAction, kIOReturnSuccess, nullptr, 0);
 }
