@@ -23,9 +23,15 @@ static void debugf(const char* fmt, ...) {
     if (DEBUG) {
         va_list args;
         va_start(args, fmt);
-        printf(fmt, args);
+        vprintf(fmt, args);
         va_end(args);
     }
+}
+
+static void print_return(kern_return_t ret) {
+    debugf("Err system: 0x%x\n", err_get_system(ret));
+    debugf("Err sub: 0x%x\n", err_get_sub(ret));
+    debugf("Err code: 0x%x\n", err_get_code(ret));
 }
 
 static void notify_frame(void* refcon, IOReturn result, void** args, uint32_t numArgs) {
@@ -91,10 +97,8 @@ static io_connect_t open_connection(void) {
     io_connect_t connection;
     ret = IOServiceOpen(service, mach_task_self_, kIOHIDServerConnectType, &connection);
     if (ret != kIOReturnSuccess) {
-        printf("Could not open connection: 0x%x\n", ret);
-        printf("Err system: 0x%x\n", err_get_system(ret));
-        printf("Err sub: 0x%x\n", err_get_sub(ret));
-        printf("Err code: 0x%x\n", err_get_code(ret));
+        debugf("Could not open connection: 0x%x\n", ret);
+        print_return(ret);
         return IO_OBJECT_NULL;
     }
     return connection;
@@ -125,6 +129,7 @@ void usb_driver_start(usb_driver_device_t *device) {
     ret = IOConnectCallScalarMethod(device->connection, USBDriverMethodType_StartDevice, NULL, 0, NULL, 0);
     if (ret != kIOReturnSuccess) {
         debugf("IOConnectCallScalarMethod failed: 0x%08x\n", ret);
+        print_return(ret);
         return;
     }
     
@@ -133,6 +138,7 @@ void usb_driver_start(usb_driver_device_t *device) {
     ret = IOServiceClose(device->connection);
     if (ret != kIOReturnSuccess) {
         debugf("Failed to close connection: 0x%08x\n", ret);
+        print_return(ret);
         return;
     }
     
@@ -150,6 +156,7 @@ void usb_driver_send_frame(usb_driver_device_t *device, usb_driver_hid_frame_t *
     ret = IOConnectCallStructMethod(device->connection, USBDriverMethodType_SendFrame, &frame, inputSize, NULL, 0);
     if (ret != kIOReturnSuccess) {
         debugf("Could not send frame: %d\n", ret);
+        print_return(ret);
         return;
     }
 }
