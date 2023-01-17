@@ -12,13 +12,13 @@ import os.log
 class ContentViewModel: NSObject {
     func activate() {
         let request = OSSystemExtensionRequest
-            .activationRequest(forExtensionWithIdentifier: "id.bulwark.USBDriver.driver",
+            .activationRequest(forExtensionWithIdentifier: "id.bulwark.VirtualUSBDriver.driver",
                                queue: .main)
         request.delegate = self
         OSSystemExtensionManager.shared.submitRequest(request)
     }
     func deactivate() {
-        let request = OSSystemExtensionRequest.deactivationRequest(forExtensionWithIdentifier: "id.bulwark.USBDriver.driver", queue: .main)
+        let request = OSSystemExtensionRequest.deactivationRequest(forExtensionWithIdentifier: "id.bulwark.VirtualUSBDriver.driver", queue: .main)
         request.delegate = self
         OSSystemExtensionManager.shared.submitRequest(request)
     }

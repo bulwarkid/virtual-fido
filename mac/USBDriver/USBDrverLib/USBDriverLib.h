@@ -12,20 +12,11 @@
 extern "C" {
 #endif
 
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOTypes.h>
 
-typedef struct {
-    uint64_t length;
-    uint64_t data[64];
-} usb_driver_hid_frame_t;
+#include "USBDriverShared.h"
 
-typedef enum {
-    USBDriverMethodType_SendFrame = 0,
-    USBDriverMethodType_NotifyFrame = 1,
-    USBDriverMethodType_GetFrame = 2,
-    USBDriverMethodType_StartDevice = 3,
-    USBDriverMethodType_StopDevice = 4,
-    NumberOfUSBDriverMethods
-} usb_driver_method_type;
 
 struct usb_driver_device_s;
 typedef struct usb_driver_device_s usb_driver_device_t;

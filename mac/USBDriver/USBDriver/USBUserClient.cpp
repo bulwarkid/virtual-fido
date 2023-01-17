@@ -9,10 +9,11 @@
 #include <DriverKit/IOLib.h>
 #include <DriverKit/OSData.h>
 #include <DriverKit/IOBufferMemoryDescriptor.h>
+#include <DriverKit/OSAction.h>
 
 #include "util.h"
 #include "USBDevice.h"
-#include "USBDriverLib.h"
+#include "USBDriverShared.h"
 #include "USBUserClient.h"
 
 #define Log(fmt, ...) GlobalLog("USBUserClient - " fmt, ##__VA_ARGS__)
@@ -26,7 +27,7 @@ const IOUserClientMethodDispatch USBDriverMethodChecks[NumberOfUSBDriverMethods]
         .checkCompletionExists = false,
         .checkScalarInputCount = 0,
         .checkScalarOutputCount = 0,
-        .checkStructureInputSize = sizeof(usb_driver_hid_frame),
+        .checkStructureInputSize = sizeof(usb_driver_hid_frame_t),
         .checkStructureOutputSize = 0,
     },
     [USBDriverMethodType_NotifyFrame] = {
@@ -42,7 +43,7 @@ const IOUserClientMethodDispatch USBDriverMethodChecks[NumberOfUSBDriverMethods]
         .checkScalarInputCount = 0,
         .checkScalarOutputCount = 0,
         .checkStructureInputSize = 0,
-        .checkStructureOutputSize = sizeof(usb_driver_hid_frame),
+        .checkStructureOutputSize = sizeof(usb_driver_hid_frame_t),
     },
     [USBDriverMethodType_StartDevice] = {
         .function = (IOUserClientMethodFunction)USBUserClient::StaticHandleStartDevice,
@@ -61,17 +62,19 @@ const IOUserClientMethodDispatch USBDriverMethodChecks[NumberOfUSBDriverMethods]
 struct USBUserClient_IVars {
     USBDevice *_device = nullptr;
     OSAction* notifyFrameAction = nullptr;
-    usb_driver_hid_frame saved_frame;
+    usb_driver_hid_frame_t saved_frame;
 };
 
 bool USBUserClient::init(void) {
     Log("init()");
     bool result = super::init();
     if (!result) {
+        Log("Failed to super init");
         return false;
     }
     ivars = IONewZero(USBUserClient_IVars, 1);
     if (ivars == nullptr) {
+        Log("Failed to allocate ivars");
         return false;
     }
     ivars->saved_frame.length = 0;
@@ -145,7 +148,7 @@ kern_return_t USBUserClient::StaticHandleSendFrame(USBUserClient* target, void* 
 }
 
 kern_return_t USBUserClient::HandleSendFrame(void* reference, IOUserClientMethodArguments* arguments) {
-    usb_driver_hid_frame *frame = (usb_driver_hid_frame*) arguments->structureInput->getBytesNoCopy();
+    usb_driver_hid_frame_t *frame = (usb_driver_hid_frame_t*) arguments->structureInput->getBytesNoCopy();
     if (frame->length <= 0 || frame->length >= sizeof(frame->data)/sizeof(frame->data[0])) {
         return kIOReturnBadArgument;
     }
@@ -207,7 +210,7 @@ kern_return_t USBUserClient::HandleGetFrame(void* reference, IOUserClientMethodA
         return kIOReturnNoFrames;
     }
     Log("Returning frame with length %llu", ivars->saved_frame.length);
-    arguments->structureOutput = OSData::withBytes(&ivars->saved_frame, sizeof(usb_driver_hid_frame));
+    arguments->structureOutput = OSData::withBytes(&ivars->saved_frame, sizeof(usb_driver_hid_frame_t));
     ivars->saved_frame.length = 0;
     bzero(ivars->saved_frame.data, sizeof(ivars->saved_frame.data));
     return kIOReturnSuccess;

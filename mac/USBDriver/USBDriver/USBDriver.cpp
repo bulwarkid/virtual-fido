@@ -17,7 +17,6 @@
 #define Log(fmt, ...) GlobalLog("USBDriver - " fmt, ##__VA_ARGS__)
 
 kern_return_t IMPL(USBDriver, Start) {
-    GlobalLog("Test - Remove me from USBDriver");
     Log("Start()");
     kern_return_t ret = kIOReturnSuccess;
     ret = Start(provider, SUPERDISPATCH);

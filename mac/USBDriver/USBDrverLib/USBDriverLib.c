@@ -16,7 +16,7 @@
 #define DEBUG 1
 
 static const char* DEXT_IDENTIFIER = "USBDriver";
-static const char* FULL_DEXT_IDENTIFIER = "id.bulwark.USBDriver.driver";
+static const char* FULL_DEXT_IDENTIFIER = "id.bulwark.VirtualUSBDriver.driver";
 
 
 static void debugf(const char* fmt, ...) {
@@ -91,7 +91,10 @@ static io_connect_t open_connection(void) {
     io_connect_t connection;
     ret = IOServiceOpen(service, mach_task_self_, kIOHIDServerConnectType, &connection);
     if (ret != kIOReturnSuccess) {
-        debugf("Could not open connection: 0x%08x\n", ret);
+        printf("Could not open connection: 0x%x\n", ret);
+        printf("Err system: 0x%x\n", err_get_system(ret));
+        printf("Err sub: 0x%x\n", err_get_sub(ret));
+        printf("Err code: 0x%x\n", err_get_code(ret));
         return IO_OBJECT_NULL;
     }
     return connection;
