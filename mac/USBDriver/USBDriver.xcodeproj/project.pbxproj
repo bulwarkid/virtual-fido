@@ -24,6 +24,8 @@
 		8AAC14EA295FD897004DCCBB /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AAC14E9295FD897004DCCBB /* ContentView.swift */; };
 		8AAC14EC295FD898004DCCBB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8AAC14EB295FD898004DCCBB /* Assets.xcassets */; };
 		8AAC14EF295FD898004DCCBB /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8AAC14EE295FD898004DCCBB /* Preview Assets.xcassets */; };
+		8AB2C731297751E200D6AEBD /* USBDriverLib.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8A52F2552970C32F004C0521 /* USBDriverLib.h */; };
+		8AB2C732297751E600D6AEBD /* USBDriverShared.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8A3E484329761F900021DE7C /* USBDriverShared.h */; };
 		8AFD3A1E296147B8006A898C /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A1D296147B8006A898C /* ContentViewModel.swift */; };
 		8AFD3A2029614880006A898C /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = 8AFD3A1F29614880006A898C /* util.h */; };
 		8AFD3A22296149E6006A898C /* USBUserClient.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A21296149E6006A898C /* USBUserClient.iig */; };
@@ -68,6 +70,17 @@
 				8A7CC865295FE5EE00D441DE /* id.bulwark.VirtualUSBDriver.driver.dext in Embed System Extensions */,
 			);
 			name = "Embed System Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8AB2C730297751CA00D6AEBD /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+				8AB2C732297751E600D6AEBD /* USBDriverShared.h in CopyFiles */,
+				8AB2C731297751E200D6AEBD /* USBDriverLib.h in CopyFiles */,
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -280,6 +293,7 @@
 				8A52F24C2970C314004C0521 /* Headers */,
 				8A52F24D2970C314004C0521 /* Sources */,
 				8A52F24E2970C314004C0521 /* Frameworks */,
+				8AB2C730297751CA00D6AEBD /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -509,6 +523,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				SYMROOT = build/build;
 			};
 			name = Debug;
 		};
@@ -566,6 +581,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				SYMROOT = build/build;
 			};
 			name = Release;
 		};
@@ -631,6 +647,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SYMROOT = build/build;
 			};
 			name = Debug;
 		};
@@ -689,6 +706,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SYMROOT = build/build;
 			};
 			name = Release;
 		};
@@ -766,6 +784,7 @@
 				SDKROOT = driverkit;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SYMROOT = build/build;
 			};
 			name = Debug;
 		};
@@ -836,6 +855,7 @@
 				SDKROOT = driverkit;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SYMROOT = build/build;
 			};
 			name = Release;
 		};
@@ -931,6 +951,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+				SYMROOT = build/build;
 			};
 			name = Debug;
 		};
@@ -1007,6 +1028,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
+				SYMROOT = build/build;
 			};
 			name = Release;
 		};

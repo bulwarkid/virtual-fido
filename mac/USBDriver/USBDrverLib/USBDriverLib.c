@@ -15,7 +15,6 @@
 
 #define DEBUG 1
 
-static const char* DEXT_IDENTIFIER = "USBDriver";
 static const char* FULL_DEXT_IDENTIFIER = "id.bulwark.VirtualUSBDriver.driver";
 
 
@@ -86,14 +85,12 @@ static kern_return_t register_callback(usb_driver_device_t *device) {
 
 static io_connect_t open_connection(void) {
     kern_return_t ret;
-    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceNameMatching(DEXT_IDENTIFIER));
+    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching(FULL_DEXT_IDENTIFIER));
     if (!service) {
-        service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching(FULL_DEXT_IDENTIFIER));
-        if (!service) {
-            debugf("Could not find matching service\n");
-            return IO_OBJECT_NULL;
-        }
+        debugf("Could not find matching service\n");
+        return IO_OBJECT_NULL;
     }
+    
     io_connect_t connection;
     ret = IOServiceOpen(service, mach_task_self_, kIOHIDServerConnectType, &connection);
     if (ret != kIOReturnSuccess) {
