@@ -149,6 +149,7 @@ kern_return_t USBUserClient::StaticHandleSendFrame(USBUserClient* target, void* 
 
 kern_return_t USBUserClient::HandleSendFrame(void* reference, IOUserClientMethodArguments* arguments) {
     usb_driver_hid_frame_t *frame = (usb_driver_hid_frame_t*) arguments->structureInput->getBytesNoCopy();
+    Log("SendFrame(length: %llu)", frame->length);
     if (frame->length <= 0 || frame->length >= sizeof(frame->data)/sizeof(frame->data[0])) {
         return kIOReturnBadArgument;
     }

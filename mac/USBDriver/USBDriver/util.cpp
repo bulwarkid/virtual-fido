@@ -12,7 +12,7 @@
 
 IOBufferMemoryDescriptor *createMemoryDescriptorWithBytes(const void *bytes, uint64_t length) {
     IOBufferMemoryDescriptor *buffer;
-    IOBufferMemoryDescriptor::Create(kIOMemoryDirectionIn, length, 0, &buffer);
+    IOBufferMemoryDescriptor::Create(kIOMemoryDirectionInOut, length, 0, &buffer);
     buffer->SetLength(length);
     IOAddressSegment range;
     buffer->GetAddressRange(&range);

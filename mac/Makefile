@@ -9,5 +9,8 @@ lib: clean
 	mkdir output
 	mv USBDriver/build/build/Release/* ./output/
 
+tester:
+	/usr/bin/codesign --force --sign - -o runtime --entitlements <> --timestamp\=none --generate-entitlement-der <>
+
 clean:
 	-rm -r output

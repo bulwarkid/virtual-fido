@@ -129,7 +129,7 @@ kern_return_t USBDevice::getReport(IOMemoryDescriptor *report, IOHIDReportType r
 }
 
 kern_return_t USBDevice::setReport(IOMemoryDescriptor *report, IOHIDReportType reportType, IOOptionBits options, uint32_t completionTimeout, OSAction *action) {
-    Log("setReport(%d)", reportType);
+    Log("setReport(reportType: %d, completionTimeout: %u)", reportType, completionTimeout);
     USBUserClient *userClient = OSDynamicCast(USBUserClient, GetProvider());
     if (userClient) {
         userClient->newHIDFrame(report, reportType);
@@ -137,12 +137,19 @@ kern_return_t USBDevice::setReport(IOMemoryDescriptor *report, IOHIDReportType r
         Log("No user client found");
         return kIOReturnError;
     }
+    uint64_t length;
+    report->GetLength(&length);
+    super::CompleteReport(action, kIOReturnSuccess, uint32_t(length));
     return kIOReturnSuccess;
 }
 
 void USBDevice::sendReportFromDevice(IOMemoryDescriptor *report) {
     uint64_t length;
     report->GetLength(&length);
-    super::handleReport(mach_absolute_time(), report, uint32_t(length));
+    kern_return_t ret = handleReport(mach_absolute_time(), report, uint32_t(length));
+    if (ret != kIOReturnSuccess) {
+        Log("Failed to send report from device: 0x%08x", ret);
+    }
+    Log("Sent report with return value: 0x%08x", ret);
 }
 

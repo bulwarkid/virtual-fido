@@ -12,20 +12,20 @@
 		8A256C1A296CB47700637821 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A256C19296CB47700637821 /* main.cpp */; };
 		8A256C1F296CB4D700637821 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C1E296CB4D700637821 /* CoreFoundation.framework */; };
 		8A256C21296CB4DC00637821 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A256C20296CB4DC00637821 /* IOKit.framework */; };
-		8A3E48402975FBE50021DE7C /* libUSBDriverLib.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */; };
-		8A3E484429761F900021DE7C /* USBDriverShared.h in Headers */ = {isa = PBXBuildFile; fileRef = 8A3E484329761F900021DE7C /* USBDriverShared.h */; };
-		8A52F2562970C32F004C0521 /* USBDriverLib.h in Headers */ = {isa = PBXBuildFile; fileRef = 8A52F2552970C32F004C0521 /* USBDriverLib.h */; };
 		8A52F258297200E3004C0521 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A52F257297200E3004C0521 /* util.cpp */; };
+		8A557A1A29787452003DE116 /* USBDriverLib.h in Headers */ = {isa = PBXBuildFile; fileRef = 8A52F2552970C32F004C0521 /* USBDriverLib.h */; };
+		8A557A1B29787457003DE116 /* USBDriverShared.h in Headers */ = {isa = PBXBuildFile; fileRef = 8A3E484329761F900021DE7C /* USBDriverShared.h */; };
+		8A557A1C2978745C003DE116 /* USBDriverLib.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A962FA8297211A70028D57E /* USBDriverLib.c */; };
+		8A557A1E29787474003DE116 /* USBDriverLib.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8A52F2552970C32F004C0521 /* USBDriverLib.h */; };
+		8A557A1F29787478003DE116 /* USBDriverShared.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8A3E484329761F900021DE7C /* USBDriverShared.h */; };
+		8A557A2029787687003DE116 /* libUSBDriverLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A557A1629787440003DE116 /* libUSBDriverLib.a */; };
 		8A7CC85F295FE5EE00D441DE /* USBDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */; };
 		8A7CC861295FE5EE00D441DE /* USBDriver.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8A7CC860295FE5EE00D441DE /* USBDriver.iig */; };
 		8A7CC865295FE5EE00D441DE /* id.bulwark.VirtualUSBDriver.driver.dext in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 8A7CC859295FE5EE00D441DE /* id.bulwark.VirtualUSBDriver.driver.dext */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		8A962FA9297211A70028D57E /* USBDriverLib.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A962FA8297211A70028D57E /* USBDriverLib.c */; };
 		8AAC14E8295FD897004DCCBB /* USBDriverInstallerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AAC14E7295FD897004DCCBB /* USBDriverInstallerApp.swift */; };
 		8AAC14EA295FD897004DCCBB /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AAC14E9295FD897004DCCBB /* ContentView.swift */; };
 		8AAC14EC295FD898004DCCBB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8AAC14EB295FD898004DCCBB /* Assets.xcassets */; };
 		8AAC14EF295FD898004DCCBB /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8AAC14EE295FD898004DCCBB /* Preview Assets.xcassets */; };
-		8AB2C731297751E200D6AEBD /* USBDriverLib.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8A52F2552970C32F004C0521 /* USBDriverLib.h */; };
-		8AB2C732297751E600D6AEBD /* USBDriverShared.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8A3E484329761F900021DE7C /* USBDriverShared.h */; };
 		8AFD3A1E296147B8006A898C /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A1D296147B8006A898C /* ContentViewModel.swift */; };
 		8AFD3A2029614880006A898C /* util.h in Headers */ = {isa = PBXBuildFile; fileRef = 8AFD3A1F29614880006A898C /* util.h */; };
 		8AFD3A22296149E6006A898C /* USBUserClient.iig in Sources */ = {isa = PBXBuildFile; fileRef = 8AFD3A21296149E6006A898C /* USBUserClient.iig */; };
@@ -35,13 +35,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		8A3E48412975FDCC0021DE7C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8AAC14DA295FD87B004DCCBB /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 8A52F24F2970C314004C0521;
-			remoteInfo = USBDriverLib;
-		};
 		8A7CC863295FE5EE00D441DE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8AAC14DA295FD87B004DCCBB /* Project object */;
@@ -61,6 +54,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		8A557A1D29787463003DE116 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+				8A557A1F29787478003DE116 /* USBDriverShared.h in CopyFiles */,
+				8A557A1E29787474003DE116 /* USBDriverLib.h in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8A7CC866295FE5EE00D441DE /* Embed System Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -70,17 +74,6 @@
 				8A7CC865295FE5EE00D441DE /* id.bulwark.VirtualUSBDriver.driver.dext in Embed System Extensions */,
 			);
 			name = "Embed System Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		8AB2C730297751CA00D6AEBD /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "include/$(PRODUCT_NAME)";
-			dstSubfolderSpec = 16;
-			files = (
-				8AB2C732297751E600D6AEBD /* USBDriverShared.h in CopyFiles */,
-				8AB2C731297751E200D6AEBD /* USBDriverLib.h in CopyFiles */,
-			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -94,9 +87,9 @@
 		8A256C20296CB4DC00637821 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		8A256C22296CCA5D00637821 /* USBDriverTester.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = USBDriverTester.entitlements; sourceTree = "<group>"; };
 		8A3E484329761F900021DE7C /* USBDriverShared.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = USBDriverShared.h; sourceTree = "<group>"; };
-		8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libUSBDriverLib.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A52F2552970C32F004C0521 /* USBDriverLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = USBDriverLib.h; sourceTree = "<group>"; };
 		8A52F257297200E3004C0521 /* util.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
+		8A557A1629787440003DE116 /* libUSBDriverLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libUSBDriverLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A7CC859295FE5EE00D441DE /* id.bulwark.VirtualUSBDriver.driver.dext */ = {isa = PBXFileReference; explicitFileType = "wrapper.driver-extension"; includeInIndex = 0; path = id.bulwark.VirtualUSBDriver.driver.dext; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A7CC85B295FE5EE00D441DE /* DriverKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DriverKit.framework; path = System/Library/Frameworks/DriverKit.framework; sourceTree = SDKROOT; };
 		8A7CC85E295FE5EE00D441DE /* USBDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBDriver.cpp; sourceTree = "<group>"; };
@@ -122,13 +115,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8A3E48402975FBE50021DE7C /* libUSBDriverLib.dylib in Frameworks */,
+				8A557A2029787687003DE116 /* libUSBDriverLib.a in Frameworks */,
 				8A256C1F296CB4D700637821 /* CoreFoundation.framework in Frameworks */,
 				8A256C21296CB4DC00637821 /* IOKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		8A52F24E2970C314004C0521 /* Frameworks */ = {
+		8A557A1429787440003DE116 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -219,7 +212,7 @@
 				8AAC14E4295FD897004DCCBB /* USBDriverInstaller.app */,
 				8A7CC859295FE5EE00D441DE /* id.bulwark.VirtualUSBDriver.driver.dext */,
 				8A256C17296CB47700637821 /* USBDriverTester */,
-				8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */,
+				8A557A1629787440003DE116 /* libUSBDriverLib.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -248,12 +241,12 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
-		8A52F24C2970C314004C0521 /* Headers */ = {
+		8A557A1229787440003DE116 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8A3E484429761F900021DE7C /* USBDriverShared.h in Headers */,
-				8A52F2562970C32F004C0521 /* USBDriverLib.h in Headers */,
+				8A557A1B29787457003DE116 /* USBDriverShared.h in Headers */,
+				8A557A1A29787452003DE116 /* USBDriverLib.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,21 +272,20 @@
 			buildRules = (
 			);
 			dependencies = (
-				8A3E48422975FDCC0021DE7C /* PBXTargetDependency */,
 			);
 			name = USBDriverTester;
 			productName = USBDriverTester;
 			productReference = 8A256C17296CB47700637821 /* USBDriverTester */;
 			productType = "com.apple.product-type.tool";
 		};
-		8A52F24F2970C314004C0521 /* USBDriverLib */ = {
+		8A557A1529787440003DE116 /* USBDriverLib */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8A52F2512970C314004C0521 /* Build configuration list for PBXNativeTarget "USBDriverLib" */;
+			buildConfigurationList = 8A557A1729787441003DE116 /* Build configuration list for PBXNativeTarget "USBDriverLib" */;
 			buildPhases = (
-				8A52F24C2970C314004C0521 /* Headers */,
-				8A52F24D2970C314004C0521 /* Sources */,
-				8A52F24E2970C314004C0521 /* Frameworks */,
-				8AB2C730297751CA00D6AEBD /* CopyFiles */,
+				8A557A1229787440003DE116 /* Headers */,
+				8A557A1329787440003DE116 /* Sources */,
+				8A557A1429787440003DE116 /* Frameworks */,
+				8A557A1D29787463003DE116 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -301,8 +293,8 @@
 			);
 			name = USBDriverLib;
 			productName = USBDriverLib;
-			productReference = 8A52F2502970C314004C0521 /* libUSBDriverLib.dylib */;
-			productType = "com.apple.product-type.library.dynamic";
+			productReference = 8A557A1629787440003DE116 /* libUSBDriverLib.a */;
+			productType = "com.apple.product-type.library.static";
 		};
 		8A7CC858295FE5EE00D441DE /* USBDriver */ = {
 			isa = PBXNativeTarget;
@@ -354,7 +346,7 @@
 					8A256C16296CB47700637821 = {
 						CreatedOnToolsVersion = 14.2;
 					};
-					8A52F24F2970C314004C0521 = {
+					8A557A1529787440003DE116 = {
 						CreatedOnToolsVersion = 14.2;
 					};
 					8A7CC858295FE5EE00D441DE = {
@@ -381,7 +373,7 @@
 				8AAC14E3295FD897004DCCBB /* USBDriverInstaller */,
 				8A7CC858295FE5EE00D441DE /* USBDriver */,
 				8A256C16296CB47700637821 /* USBDriverTester */,
-				8A52F24F2970C314004C0521 /* USBDriverLib */,
+				8A557A1529787440003DE116 /* USBDriverLib */,
 			);
 		};
 /* End PBXProject section */
@@ -414,11 +406,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		8A52F24D2970C314004C0521 /* Sources */ = {
+		8A557A1329787440003DE116 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8A962FA9297211A70028D57E /* USBDriverLib.c in Sources */,
+				8A557A1C2978745C003DE116 /* USBDriverLib.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -449,11 +441,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		8A3E48422975FDCC0021DE7C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 8A52F24F2970C314004C0521 /* USBDriverLib */;
-			targetProxy = 8A3E48412975FDCC0021DE7C /* PBXContainerItemProxy */;
-		};
 		8A7CC864295FE5EE00D441DE /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 8A7CC858295FE5EE00D441DE /* USBDriver */;
@@ -496,10 +483,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = USBDriverTester/USBDriverTester.entitlements;
 				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -522,6 +509,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SYMROOT = build/build;
 			};
@@ -561,10 +549,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = USBDriverTester/USBDriverTester.entitlements;
 				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = YWN2K8NKBD;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -580,12 +568,13 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SYMROOT = build/build;
 			};
 			name = Release;
 		};
-		8A52F2522970C314004C0521 /* Debug */ = {
+		8A557A1829787441003DE116 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -620,9 +609,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = GYLDHV7U9U;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				EXECUTABLE_PREFIX = lib;
@@ -651,7 +638,7 @@
 			};
 			name = Debug;
 		};
-		8A52F2532970C314004C0521 /* Release */ = {
+		8A557A1929787441003DE116 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -686,9 +673,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = GYLDHV7U9U;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
+				DEVELOPMENT_TEAM = YWN2K8NKBD;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				EXECUTABLE_PREFIX = lib;
@@ -1044,11 +1029,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8A52F2512970C314004C0521 /* Build configuration list for PBXNativeTarget "USBDriverLib" */ = {
+		8A557A1729787441003DE116 /* Build configuration list for PBXNativeTarget "USBDriverLib" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				8A52F2522970C314004C0521 /* Debug */,
-				8A52F2532970C314004C0521 /* Release */,
+				8A557A1829787441003DE116 /* Debug */,
+				8A557A1929787441003DE116 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -15,6 +15,7 @@
 
 #define DEBUG 1
 
+static const char* DEXT_IDENTIFIER = "USBDriver";
 static const char* FULL_DEXT_IDENTIFIER = "id.bulwark.VirtualUSBDriver.driver";
 
 
@@ -85,10 +86,13 @@ static kern_return_t register_callback(usb_driver_device_t *device) {
 
 static io_connect_t open_connection(void) {
     kern_return_t ret;
-    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching(FULL_DEXT_IDENTIFIER));
+    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceNameMatching(DEXT_IDENTIFIER));
     if (!service) {
-        debugf("Could not find matching service\n");
-        return IO_OBJECT_NULL;
+        service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching(FULL_DEXT_IDENTIFIER));
+        if (!service) {
+            debugf("Could not find matching service\n");
+            return IO_OBJECT_NULL;
+        }
     }
     
     io_connect_t connection;
@@ -150,9 +154,9 @@ void usb_driver_send_frame(usb_driver_device_t *device, usb_driver_hid_frame_t *
     kern_return_t ret = kIOReturnSuccess;
     
     size_t inputSize = sizeof(usb_driver_hid_frame_t);
-    ret = IOConnectCallStructMethod(device->connection, USBDriverMethodType_SendFrame, &frame, inputSize, NULL, 0);
+    ret = IOConnectCallStructMethod(device->connection, USBDriverMethodType_SendFrame, frame, inputSize, NULL, 0);
     if (ret != kIOReturnSuccess) {
-        debugf("Could not send frame: %d\n", ret);
+        debugf("Could not send frame: 0x%x\n", ret);
         print_return(ret);
         return;
     }

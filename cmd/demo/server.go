@@ -81,12 +81,14 @@ func runServer(client fido_client.FIDOClient) {
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		prog := platformUSBIPExec()
-		prog.Stdin = os.Stdin
-		prog.Stdout = os.Stdout
-		prog.Stderr = os.Stderr
-		err := prog.Run()
-		if err != nil {
-			fmt.Printf("Error: %s\n", err)
+		if prog != nil {
+			prog.Stdin = os.Stdin
+			prog.Stdout = os.Stdout
+			prog.Stderr = os.Stderr
+			err := prog.Run()
+			if err != nil {
+				fmt.Printf("Error: %s\n", err)
+			}
 		}
 		wg.Done()
 	}()
