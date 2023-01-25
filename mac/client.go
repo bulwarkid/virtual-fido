@@ -1,30 +1,39 @@
 package mac
 
 import (
-	"fmt"
 	"unsafe"
 
 	"github.com/bulwarkid/virtual-fido/ctap_hid"
+	"github.com/bulwarkid/virtual-fido/util"
 )
 
 // #cgo LDFLAGS: -L${SRCDIR}/output -lUSBDriverLib
 // #include "client.h"
 import "C"
 
+var macLogger = util.NewLogger("[MAC] ", false)
+
 var ctapHIDServer *ctap_hid.CTAPHIDServer
 
+func sendResponsesLoop() {
+	for {
+		response := ctapHIDServer.GetResponse(0,10000)
+		if response != nil && len(response) > 0 {
+			macLogger.Printf("Sending Bytes: %#v\n\n", response)
+			C.send_data(C.CBytes(response), C.int(len(response)))
+		}
+	}
+}
+
 //export receiveDataCallback
-func receiveDataCallback(dataPointer unsafe.Pointer, length C.int) (unsafe.Pointer, C.int) {
-	fmt.Println("receiveDataCallback()")
+func receiveDataCallback(dataPointer unsafe.Pointer, length C.int) {
 	data := C.GoBytes(dataPointer, length)
-	fmt.Printf("Bytes: %#v\n",data)
+	macLogger.Printf("Received Bytes: %d %#v\n\n",length, data)
 	ctapHIDServer.HandleMessage(data)
-	response := ctapHIDServer.GetResponse(0, 10000)
-	fmt.Printf("Reponse: %#v\n", response)
-	return C.CBytes(response), C.int(len(response))
 }
 
 func Start(server *ctap_hid.CTAPHIDServer) {
+	go sendResponsesLoop()
 	ctapHIDServer = server
 	C.start_device()
 }
