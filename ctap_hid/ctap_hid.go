@@ -154,6 +154,10 @@ func NewCTAPHIDServer(ctapServer *ctap.CTAPServer, u2fServer *u2f.U2FServer) *CT
 	return server
 }
 
+func (server *CTAPHIDServer) HasResponse() bool {
+	return len(server.responses) > 0
+}
+
 func (server *CTAPHIDServer) GetResponse(id uint32, timeout int64) []byte {
 	killSwitch := make(chan bool)
 	timeoutSwitch := make(chan interface{})
@@ -277,6 +281,7 @@ func (channel *CTAPHIDChannel) handleIntermediateMessage(server *CTAPHIDServer, 
 		}
 		if command&(1<<7) == 0 {
 			// Non-command (likely a sequence number)
+			ctapHIDLogger.Printf("INVALID COMMAND: %x", command)
 			server.sendResponse(ctapHidError(channel.channelId, CTAPHID_ERR_INVALID_COMMAND))
 			return
 		}
@@ -343,7 +348,7 @@ func (channel *CTAPHIDChannel) handleDataMessage(server *CTAPHIDServer, header C
 	switch header.Command {
 	case CTAPHID_COMMAND_MSG:
 		responsePayload := server.u2fServer.HandleU2FMessage(payload)
-		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %#v\n\n", payload)
+		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %d %#v\n\n", len(responsePayload), responsePayload)
 		return createResponsePackets(header.ChannelID, CTAPHID_COMMAND_MSG, responsePayload)
 	case CTAPHID_COMMAND_CBOR:
 		stop := util.StartRecurringFunction(keepConnectionAlive(server, channel.channelId, CTAPHID_STATUS_UPNEEDED), 100)

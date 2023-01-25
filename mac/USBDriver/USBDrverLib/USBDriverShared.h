@@ -9,8 +9,8 @@
 #define USBDriverShared_h
 
 typedef struct {
-    uint64_t length;
-    uint64_t data[64];
+    uint8_t length;
+    uint8_t data[64];
 } usb_driver_hid_frame_t;
 
 typedef enum {

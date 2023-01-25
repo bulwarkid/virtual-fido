@@ -149,12 +149,12 @@ kern_return_t USBUserClient::StaticHandleSendFrame(USBUserClient* target, void* 
 
 kern_return_t USBUserClient::HandleSendFrame(void* reference, IOUserClientMethodArguments* arguments) {
     usb_driver_hid_frame_t *frame = (usb_driver_hid_frame_t*) arguments->structureInput->getBytesNoCopy();
-    Log("SendFrame(length: %llu)", frame->length);
+    Log("SendFrame(length: %u)", frame->length);
     if (frame->length <= 0 || frame->length >= sizeof(frame->data)/sizeof(frame->data[0])) {
         return kIOReturnBadArgument;
     }
     if (ivars->_device) {
-        IOBufferMemoryDescriptor *report = createMemoryDescriptorWithBytes((void*)frame->data, sizeof(uint64_t) * frame->length);
+        IOBufferMemoryDescriptor *report = createMemoryDescriptorWithBytes((void*)frame->data, frame->length);
         ivars->_device->sendReportFromDevice(report);
         report->release();
     }
@@ -184,14 +184,14 @@ void USBUserClient::newHIDFrame(IOMemoryDescriptor *report, IOHIDReportType repo
     }
     
     if (ivars->saved_frame.length != 0) {
-        Log("Non-zero length of saved frame: %llu", ivars->saved_frame.length);
+        Log("Non-zero length of saved frame: %u", ivars->saved_frame.length);
         return;
     }
     
     uint64_t address;
     uint64_t length;
     report->Map(0, 0, 0, 0, &address, &length);
-    uint64_t *byteAddress = reinterpret_cast<uint64_t*>(address);
+    uint8_t *byteAddress = reinterpret_cast<uint8_t*>(address);
     ivars->saved_frame.length = length;
     bzero(ivars->saved_frame.data, sizeof(ivars->saved_frame.data));
     memcpy(ivars->saved_frame.data, byteAddress, length);
