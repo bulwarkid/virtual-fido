@@ -43,6 +43,7 @@ static void notify_frame(void* refcon, IOReturn result, void** args, uint32_t nu
     ret = IOConnectCallStructMethod(device->connection, USBDriverMethodType_GetFrame, NULL, 0, &frame, &outputSize);
     if (ret != kIOReturnSuccess) {
         debugf("Invalid return when getting frame: %d\n", ret);
+        print_return(ret);
         return;
     }
 

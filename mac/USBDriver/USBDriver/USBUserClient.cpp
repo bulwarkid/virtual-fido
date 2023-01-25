@@ -20,7 +20,6 @@
 
 const uint32_t MAX_SAVED_FRAMES = 16;
 
-
 const IOUserClientMethodDispatch USBDriverMethodChecks[NumberOfUSBDriverMethods] = {
     [USBDriverMethodType_SendFrame] = {
         .function = (IOUserClientMethodFunction)USBUserClient::StaticHandleSendFrame,
@@ -62,7 +61,7 @@ const IOUserClientMethodDispatch USBDriverMethodChecks[NumberOfUSBDriverMethods]
 struct USBUserClient_IVars {
     USBDevice *_device = nullptr;
     OSAction* notifyFrameAction = nullptr;
-    usb_driver_hid_frame_t saved_frame;
+    linked_list_t *saved_frames;
 };
 
 bool USBUserClient::init(void) {
@@ -77,12 +76,13 @@ bool USBUserClient::init(void) {
         Log("Failed to allocate ivars");
         return false;
     }
-    ivars->saved_frame.length = 0;
+    ivars->saved_frames = linked_list_alloc();
     return true;
 }
 
 void USBUserClient::free(void) {
     Log("free()");
+    linked_list_free(ivars->saved_frames);
     IOSafeDeleteNULL(ivars, USBUserClient_IVars, 1);
     super::free();
 }
@@ -150,7 +150,8 @@ kern_return_t USBUserClient::StaticHandleSendFrame(USBUserClient* target, void* 
 kern_return_t USBUserClient::HandleSendFrame(void* reference, IOUserClientMethodArguments* arguments) {
     usb_driver_hid_frame_t *frame = (usb_driver_hid_frame_t*) arguments->structureInput->getBytesNoCopy();
     Log("SendFrame(length: %u)", frame->length);
-    if (frame->length <= 0 || frame->length >= sizeof(frame->data)/sizeof(frame->data[0])) {
+    if (frame->length <= 0 || frame->length > sizeof(frame->data)) {
+        Log("Invalid length: %u", frame->length);
         return kIOReturnBadArgument;
     }
     if (ivars->_device) {
@@ -183,18 +184,19 @@ void USBUserClient::newHIDFrame(IOMemoryDescriptor *report, IOHIDReportType repo
         return;
     }
     
-    if (ivars->saved_frame.length != 0) {
-        Log("Non-zero length of saved frame: %u", ivars->saved_frame.length);
-        return;
+    if (ivars->saved_frames->num_nodes > MAX_SAVED_FRAMES) {
+        Log("Dropping frame because number of frames exceeds %u", MAX_SAVED_FRAMES);
+        linked_list_pop_front(ivars->saved_frames);
     }
     
     uint64_t address;
     uint64_t length;
     report->Map(0, 0, 0, 0, &address, &length);
     uint8_t *byteAddress = reinterpret_cast<uint8_t*>(address);
-    ivars->saved_frame.length = length;
-    bzero(ivars->saved_frame.data, sizeof(ivars->saved_frame.data));
-    memcpy(ivars->saved_frame.data, byteAddress, length);
+    usb_driver_hid_frame_t *frame = (usb_driver_hid_frame_t*)IOMallocZero(sizeof(usb_driver_hid_frame_t));
+    frame->length = length;
+    memcpy(frame->data, byteAddress, length);
+    linked_list_push(ivars->saved_frames, (void*)frame);
     Log("Received frame of length %llu", length);
     
     AsyncCompletion(ivars->notifyFrameAction, kIOReturnSuccess, nullptr, 0);
@@ -206,14 +208,14 @@ kern_return_t USBUserClient::StaticHandleGetFrame(USBUserClient* target, void* r
 
 kern_return_t USBUserClient::HandleGetFrame(void* reference, IOUserClientMethodArguments* arguments) {
     Log("GetFrame()");
-    if (ivars->saved_frame.length == 0) {
+    usb_driver_hid_frame_t *frame = (usb_driver_hid_frame_t*)linked_list_pop_front(ivars->saved_frames);
+    if (frame == NULL) {
         Log("No frame found to return");
         return kIOReturnNoFrames;
     }
-    Log("Returning frame with length %llu", ivars->saved_frame.length);
-    arguments->structureOutput = OSData::withBytes(&ivars->saved_frame, sizeof(usb_driver_hid_frame_t));
-    ivars->saved_frame.length = 0;
-    bzero(ivars->saved_frame.data, sizeof(ivars->saved_frame.data));
+    Log("Returning frame with length %u", frame->length);
+    arguments->structureOutput = OSData::withBytes(frame, sizeof(usb_driver_hid_frame_t));
+    IOFree(frame, sizeof(usb_driver_hid_frame_t));
     return kIOReturnSuccess;
 }
 

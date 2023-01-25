@@ -22,6 +22,8 @@
 
 #define Log(fmt, ...) GlobalLog("USBDevice - " fmt, ##__VA_ARGS__)
 
+#define CTAPHID_FRAME_SIZE 64
+
 constexpr unsigned char fidoReportDescriptor[] = {6, 208, 241, 9, 1, 161, 1, 9, 32, 20, 37, 255, 117, 8, 149, 64, 129, 2, 9, 33, 20, 37, 255, 117, 8, 149, 64, 145, 2, 192};
 
 USBDevice* USBDevice::newDevice(IOService *provider) {
@@ -64,7 +66,6 @@ OSDictionary* USBDevice::newDeviceDescription(void) {
             kIOHIDVersionNumberKey,
             OSNumber::withNumber(1, 8 * sizeof(1))
         },
-        
         {
             kIOHIDProductKey,
             OSString::withCString("VirtualFIDO")
@@ -137,19 +138,27 @@ kern_return_t USBDevice::setReport(IOMemoryDescriptor *report, IOHIDReportType r
         Log("No user client found");
         return kIOReturnError;
     }
-    uint64_t length;
-    report->GetLength(&length);
-    super::CompleteReport(action, kIOReturnSuccess, uint32_t(length));
+    super::CompleteReport(action, kIOReturnSuccess, CTAPHID_FRAME_SIZE);
     return kIOReturnSuccess;
+}
+
+void printReport(IOMemoryDescriptor *report) {
+    uint64_t address;
+    uint64_t length;
+    report->Map(0, 0, 0, 0, &address, &length);
+    uint64_t *addressPointer = (uint64_t*)address;
+    for(int i = 0; i < 8; i++) {
+        Log("Report Data: %llx", addressPointer[i]);
+    }
 }
 
 void USBDevice::sendReportFromDevice(IOMemoryDescriptor *report) {
     uint64_t length;
     report->GetLength(&length);
-    kern_return_t ret = handleReport(mach_absolute_time(), report, uint32_t(length));
+    kern_return_t ret = handleReport(mach_absolute_time(), report, uint32_t(length), kIOHIDReportTypeInput, 0);
     if (ret != kIOReturnSuccess) {
         Log("Failed to send report from device: 0x%08x", ret);
+        return;
     }
-    Log("Sent report with return value: 0x%08x", ret);
 }
 

@@ -14,10 +14,6 @@ import (
  * Mac client requires installation of Mac USBDriver, which implements a virtual USB device.
  */
 func startClient(client fido_client.FIDOClient) {
-	if true {
-		// Remove this check when Mac support is done
-		return
-	}
 	ctapServer := ctap.NewCTAPServer(client)
 	u2fServer := u2f.NewU2FServer(client)
 	ctapHIDServer := ctap_hid.NewCTAPHIDServer(ctapServer, u2fServer)
