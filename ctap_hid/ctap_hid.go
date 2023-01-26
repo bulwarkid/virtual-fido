@@ -170,7 +170,7 @@ func (server *CTAPHIDServer) GetResponse(id uint32, timeout int64) []byte {
 	}
 	select {
 	case response := <-server.responses:
-		ctapHIDLogger.Printf("CTAPHID RESPONSE: %#v\n\n", response)
+		// ctapHIDLogger.Printf("CTAPHID RESPONSE: %#v\n\n", response)
 		return response
 	case <-killSwitch:
 		server.waitingForResponses.Delete(id)
@@ -193,7 +193,7 @@ func (server *CTAPHIDServer) RemoveWaitingRequest(id uint32) bool {
 func (server *CTAPHIDServer) sendResponse(response [][]byte) {
 	// Packets should be sequential and continuous per transaction
 	server.responsesLock.Lock()
-	ctapHIDLogger.Printf("ADDING MESSAGE: %#v\n\n", response)
+	// ctapHIDLogger.Printf("ADDING MESSAGE: %#v\n\n", response)
 	for _, packet := range response {
 		server.responses <- packet
 	}

@@ -142,7 +142,10 @@ func BytesToBigInt(b []byte) *big.Int {
 }
 
 func MarshalCBOR(val interface{}) []byte {
-	data, err := cbor.Marshal(val)
+	encOptions := cbor.CTAP2EncOptions()
+	encMode, err := encOptions.EncMode()
+	CheckErr(err, "Could not get encoding mode")
+	data, err := encMode.Marshal(val)
 	CheckErr(err, "Could not marshal CBOR")
 	return data
 }
