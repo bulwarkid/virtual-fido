@@ -29,7 +29,7 @@ const (
 	ClientActionFIDOGetAssertion   ClientAction = 3
 )
 
-var clientLogger *log.Logger = util.NewLogger("[CLIENT] ", false)
+var clientLogger *log.Logger = util.NewLogger("[CLIENT] ", util.LogLevelDebug)
 
 type ClientRequestApprover interface {
 	ApproveClientAction(action ClientAction, params ClientActionRequestParams) bool

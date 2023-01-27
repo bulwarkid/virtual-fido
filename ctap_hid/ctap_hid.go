@@ -11,7 +11,7 @@ import (
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
-var ctapHIDLogger = util.NewLogger("[CTAPHID] ", false)
+var ctapHIDLogger = util.NewLogger("[CTAPHID] ", util.LogLevelDebug)
 
 const CTAPHID_STATUS_UPNEEDED uint8 = 2
 

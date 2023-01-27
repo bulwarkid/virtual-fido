@@ -13,7 +13,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-var u2fLogger = util.NewLogger("[U2F] ", false)
+var u2fLogger = util.NewLogger("[U2F] ", util.LogLevelDebug)
 
 type U2FCommand uint8
 

@@ -11,7 +11,7 @@ import (
 // #include "client.h"
 import "C"
 
-var macLogger = util.NewLogger("[MAC] ", false)
+var macLogger = util.NewLogger("[MAC] ", util.LogLevelTrace)
 
 var ctapHIDServer *ctap_hid.CTAPHIDServer
 

@@ -16,6 +16,7 @@ import (
 
 	virtual_fido "github.com/bulwarkid/virtual-fido"
 	"github.com/bulwarkid/virtual-fido/fido_client"
+	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/spf13/cobra"
 )
 
@@ -92,6 +93,7 @@ func createClient() *fido_client.DefaultFIDOClient {
 	encryptionKey := sha256.Sum256([]byte("test"))
 
 	virtual_fido.SetLogOutput(os.Stdout)
+	virtual_fido.SetLogLevel(util.LogLevelDebug)
 	support := ClientSupport{vaultFilename: vaultFilename, vaultPassphrase: vaultPassphrase}
 	return fido_client.NewDefaultClient(authorityCertBytes, privateKey, encryptionKey, &support, &support)
 }

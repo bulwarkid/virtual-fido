@@ -16,7 +16,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-var ctapLogger = util.NewLogger("[CTAP] ", false)
+var ctapLogger = util.NewLogger("[CTAP] ", util.LogLevelDebug)
 
 var aaguid = [16]byte{117, 108, 90, 245, 236, 166, 1, 163, 47, 198, 211, 12, 226, 242, 1, 197}
 

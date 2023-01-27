@@ -10,7 +10,7 @@ import (
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
-var usbLogger = util.NewLogger("[USB] ", false)
+var usbLogger = util.NewLogger("[USB] ", util.LogLevelTrace)
 
 type USBDevice interface {
 	handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte)

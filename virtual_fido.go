@@ -12,7 +12,11 @@ func Start(client fido_client.FIDOClient) {
 	startClient(client)
 }
 
+func SetLogLevel(level util.LogLevel) {
+	util.SetLogLevel(level)
+}
 
 func SetLogOutput(out io.Writer) {
 	util.SetLogOutput(out)
 }
+

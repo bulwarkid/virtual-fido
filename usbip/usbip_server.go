@@ -10,7 +10,7 @@ import (
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
-var usbipLogger = util.NewLogger("[USBIP] ", false)
+var usbipLogger = util.NewLogger("[USBIP] ", util.LogLevelTrace)
 
 type USBIPServer struct {
 	device        USBDevice
