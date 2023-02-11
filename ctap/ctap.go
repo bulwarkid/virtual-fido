@@ -190,15 +190,17 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_UNSUPPORTED_ALGORITHM)}
 	}
 
-	if args.PinProtocol == 1 && args.PinAuth != nil {
+	// Edge+Windows+microsoft.com seems to pass an empty byte array for PIN auth
+	pinAuthPresent := args.PinAuth != nil && len(args.PinAuth) > 0
+	if args.PinProtocol == 1 && pinAuthPresent { 
 		pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
 		if !bytes.Equal(pinAuth, args.PinAuth) {
 			return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
 		}
 		flags = flags | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
-	} else if args.PinAuth == nil && server.client.PINHash() != nil{
+	} else if !pinAuthPresent && server.client.PINHash() != nil{
 		return []byte{byte(CTAP2_ERR_PIN_REQUIRED)}
-	} else if args.PinAuth != nil && args.PinProtocol != 1 {
+	} else if pinAuthPresent && args.PinProtocol != 1 {
 		return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
 	}
 
