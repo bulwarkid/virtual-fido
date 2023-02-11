@@ -7,7 +7,6 @@ import (
 	"github.com/bulwarkid/virtual-fido/cose"
 )
 
-
 type PublicKeyCredentialRpEntity struct {
 	Id   string `cbor:"id" json:"id"`
 	Name string `cbor:"name" json:"name"`
@@ -38,7 +37,7 @@ type PublicKeyCredentialDescriptor struct {
 }
 
 type PublicKeyCredentialParams struct {
-	Type      string          `cbor:"type"`
+	Type      string               `cbor:"type"`
 	Algorithm cose.COSEAlgorithmID `cbor:"alg"`
 }
 

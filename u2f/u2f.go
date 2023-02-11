@@ -115,7 +115,6 @@ func (server *U2FServer) HandleU2FMessage(message []byte) []byte {
 	return response
 }
 
-
 func (server *U2FServer) sealKeyHandle(keyHandle *webauthn.KeyHandle) []byte {
 	box := crypto.Seal(server.client.SealingEncryptionKey(), util.MarshalCBOR(keyHandle))
 	return util.MarshalCBOR(box)

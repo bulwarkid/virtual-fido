@@ -135,7 +135,6 @@ func Delay(f func(), interval int64) {
 	}()
 }
 
-
 func BytesToBigInt(b []byte) *big.Int {
 	return big.NewInt(0).SetBytes(b)
 }

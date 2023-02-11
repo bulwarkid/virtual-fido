@@ -9,8 +9,8 @@ import (
 type LogLevel byte
 
 const (
-	LogLevelTrace LogLevel = 0
-	LogLevelDebug LogLevel = 1
+	LogLevelTrace   LogLevel = 0
+	LogLevelDebug   LogLevel = 1
 	LogLevelEnabled LogLevel = 2
 )
 

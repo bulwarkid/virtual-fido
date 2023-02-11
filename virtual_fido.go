@@ -19,4 +19,3 @@ func SetLogLevel(level util.LogLevel) {
 func SetLogOutput(out io.Writer) {
 	util.SetLogOutput(out)
 }
-
