@@ -50,6 +50,7 @@ type FIDOClient interface {
 	NewAuthenticationCounterId() uint32
 	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
 
+	SupportsPIN() bool
 	PINHash() []byte
 	SetPINHash(pin []byte)
 	PINRetries() int32
@@ -142,6 +143,10 @@ func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *Credential
 // -----------------------
 // PIN Management Methods
 // -----------------------
+
+func (client *DefaultFIDOClient) SupportsPIN() bool {
+	return true
+}
 
 func (client *DefaultFIDOClient) PINHash() []byte {
 	return client.pinHash

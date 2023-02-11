@@ -190,16 +190,18 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_UNSUPPORTED_ALGORITHM)}
 	}
 
-	if args.PinProtocol == 1 && args.PinAuth != nil {
-		pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
-		if !bytes.Equal(pinAuth, args.PinAuth) {
+	if server.client.SupportsPIN() {
+		if args.PinProtocol == 1 && args.PinAuth != nil {
+			pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
+			if !bytes.Equal(pinAuth, args.PinAuth) {
+				return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
+			}
+			flags = flags | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
+		} else if args.PinAuth == nil && server.client.PINHash() != nil {
+			return []byte{byte(CTAP2_ERR_PIN_REQUIRED)}
+		} else if args.PinAuth != nil && args.PinProtocol != 1 {
 			return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
 		}
-		flags = flags | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
-	} else if args.PinAuth == nil && server.client.PINHash() != nil {
-		return []byte{byte(CTAP2_ERR_PIN_REQUIRED)}
-	} else if args.PinAuth != nil && args.PinProtocol != 1 {
-		return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
 	}
 
 	if !server.client.ApproveAccountCreation(args.Rp.Name) {
@@ -252,10 +254,12 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 			IsPlatform:      false,
 			CanResidentKey:  true,
 			CanUserPresence: true,
-			HasClientPIN:    server.client.PINHash() != nil,
 			// CanUserVerification: true,
 		},
-		PinProtocols: []uint32{1},
+	}
+	if (server.client.SupportsPIN()) {
+		response.Options.HasClientPIN = server.client.PINHash() != nil
+		response.PinProtocols = []uint32{1}
 	}
 	ctapLogger.Printf("CTAP GET_INFO RESPONSE: %#v\n\n", response)
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
@@ -288,15 +292,17 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	}
 	ctapLogger.Printf("GET ASSERTION: %#v\n\n", args)
 
-	if args.PinAuth != nil {
-		if args.PinProtocol != 1 {
-			return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
+	if server.client.SupportsPIN() {
+		if args.PinAuth != nil {
+			if args.PinProtocol != 1 {
+				return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
+			}
+			pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
+			if !bytes.Equal(pinAuth, args.PinAuth) {
+				return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
+			}
+			flags = flags | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
 		}
-		pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
-		if !bytes.Equal(pinAuth, args.PinAuth) {
-			return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
-		}
-		flags = flags | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
 	}
 
 	credentialSource := server.client.GetAssertionSource(args.RpID, args.AllowList)
@@ -405,6 +411,9 @@ func (server *CTAPServer) decryptPIN(sharedSecret []byte, pinEncoding []byte) []
 }
 
 func (server *CTAPServer) handleClientPIN(data []byte) []byte {
+	if !server.client.SupportsPIN() {
+		return []byte{byte(CTAP1_ERR_INVALID_COMMAND)}
+	}
 	var args ctapClientPINArgs
 	err := cbor.Unmarshal(data, &args)
 	if err != nil {
