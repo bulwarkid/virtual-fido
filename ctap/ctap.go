@@ -361,7 +361,7 @@ type ctapClientPINArgs struct {
 }
 
 func (args ctapClientPINArgs) String() string {
-	return fmt.Sprintf("ctapClientPINArgs{PinProtocol: %d, SubCommand: %s, KeyAgreement: %v, PINAuth: %s, NewPINEncoding: %s, PINHashEncoding: %s}",
+	return fmt.Sprintf("ctapClientPINArgs{PinProtocol: %d, SubCommand: %s, KeyAgreement: %v, PINAuth: 0x%s, NewPINEncoding: 0x%s, PINHashEncoding: 0x%s}",
 		args.PinProtocol,
 		ctapClientPINSubcommandDescriptions[args.SubCommand],
 		args.KeyAgreement,
@@ -459,7 +459,7 @@ func (server *CTAPServer) handleGetKeyAgreement(args ctapClientPINArgs) []byte {
 			KeyType:   int8(cose.COSE_KEY_TYPE_EC2),
 			Algorithm: int8(cose.COSE_ALGORITHM_ID_ECDH_HKDF_256),
 			X:         key.X.Bytes(),
-			Y:         key.X.Bytes(),
+			Y:         key.Y.Bytes(),
 		},
 	}
 	ctapLogger.Printf("CLIENT_PIN_GET_KEY_AGREEMENT RESPONSE: %#v\n\n", response)
