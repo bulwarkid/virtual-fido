@@ -154,13 +154,16 @@ type ctapMakeCredentialArgs struct {
 }
 
 func (args ctapMakeCredentialArgs) String() string {
-	return fmt.Sprintf("ctapMakeCredentialArgs{ ClientDataHash: 0x%s, Relying Party: %s, User: %s, PublicKeyCredentialParams: %#v, ExcludeList: %#v, Options: %#v }",
+	return fmt.Sprintf("ctapMakeCredentialArgs{ ClientDataHash: 0x%s, Relying Party: %s, User: %s, PublicKeyCredentialParams: %#v, ExcludeList: %#v, Options: %#v, PinAuth: %#v, PinProtocol: %d }",
 		hex.EncodeToString(args.ClientDataHash),
 		args.Rp,
 		args.User,
 		args.PubKeyCredParams,
 		args.ExcludeList,
-		args.Options)
+		args.Options,
+		args.PinAuth,
+		args.PinProtocol,
+	)
 }
 
 type ctapMakeCredentialReponse struct {
@@ -187,16 +190,16 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_UNSUPPORTED_ALGORITHM)}
 	}
 
-	if args.PinProtocol == 1 {
+	if args.PinProtocol == 1 && args.PinAuth != nil {
 		pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
 		if !bytes.Equal(pinAuth, args.PinAuth) {
 			return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
 		}
 		flags = flags | CTAP_AUTH_DATA_FLAG_USER_VERIFIED
-	} else {
-		if server.client.PINHash() != nil {
-			return []byte{byte(CTAP2_ERR_PIN_REQUIRED)}
-		}
+	} else if args.PinAuth == nil && server.client.PINHash() != nil{
+		return []byte{byte(CTAP2_ERR_PIN_REQUIRED)}
+	} else if args.PinAuth != nil && args.PinProtocol != 1 {
+		return []byte{byte(CTAP2_ERR_PIN_AUTH_INVALID)}
 	}
 
 	if !server.client.ApproveAccountCreation(args.Rp.Name) {
