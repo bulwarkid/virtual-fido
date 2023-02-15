@@ -17,6 +17,7 @@ import (
 )
 
 var ctapLogger = util.NewLogger("[CTAP] ", util.LogLevelDebug)
+var unsafeCtapLogger = util.NewLogger("[CTAP] ", util.LogLevelUnsafe)
 
 var aaguid = [16]byte{117, 108, 90, 245, 236, 166, 1, 163, 47, 198, 211, 12, 226, 242, 1, 197}
 
@@ -275,7 +276,7 @@ type ctapGetAssertionArgs struct {
 }
 
 type ctapGetAssertionResponse struct {
-	//Credential          *PublicKeyCredentialDescriptor  `cbor:"1,keyasint,omitempty"`
+	Credential          *webauthn.PublicKeyCredentialDescriptor  `cbor:"1,keyasint,omitempty"`
 	AuthenticatorData []byte `cbor:"2,keyasint"`
 	Signature         []byte `cbor:"3,keyasint"`
 	//User                *PublicKeyCrendentialUserEntity `cbor:"4,keyasint,omitempty"`
@@ -306,6 +307,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	}
 
 	credentialSource := server.client.GetAssertionSource(args.RpID, args.AllowList)
+	unsafeCtapLogger.Printf("CREDENTIAL SOURCE: %#v\n\n", credentialSource)
 	if credentialSource == nil {
 		ctapLogger.Printf("ERROR: No Credentials\n\n")
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
@@ -320,8 +322,9 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	authData := ctapMakeAuthData(args.RpID, credentialSource, nil, flags)
 	signature := crypto.Sign(credentialSource.PrivateKey, util.Flatten([][]byte{authData, args.ClientDataHash}))
 
+	credentialDescriptor := credentialSource.CTAPDescriptor()
 	response := ctapGetAssertionResponse{
-		//Credential:          credentialSource.ctapDescriptor(),
+		Credential:          &credentialDescriptor,
 		AuthenticatorData: authData,
 		Signature:         signature,
 		//User:                credentialSource.User,

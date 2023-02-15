@@ -21,7 +21,7 @@ type CredentialSource struct {
 	SignatureCounter int32
 }
 
-func (source *CredentialSource) ctapDescriptor() webauthn.PublicKeyCredentialDescriptor {
+func (source *CredentialSource) CTAPDescriptor() webauthn.PublicKeyCredentialDescriptor {
 	return webauthn.PublicKeyCredentialDescriptor{
 		Type:       "public-key",
 		Id:         source.ID,

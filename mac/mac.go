@@ -19,7 +19,7 @@ func sendResponsesLoop() {
 	for {
 		response := ctapHIDServer.GetResponse(0, 10000)
 		if response != nil && len(response) > 0 {
-			macLogger.Printf("Sending Bytes: %#v\n\n", response)
+			//macLogger.Printf("Sending Bytes: %#v\n\n", response)
 			C.send_data(C.CBytes(response), C.int(len(response)))
 		}
 	}
@@ -28,7 +28,7 @@ func sendResponsesLoop() {
 //export receiveDataCallback
 func receiveDataCallback(dataPointer unsafe.Pointer, length C.int) {
 	data := C.GoBytes(dataPointer, length)
-	macLogger.Printf("Received Bytes: %d %#v\n\n", length, data)
+	//macLogger.Printf("Received Bytes: %d %#v\n\n", length, data)
 	ctapHIDServer.HandleMessage(data)
 }
 
