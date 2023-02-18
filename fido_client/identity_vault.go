@@ -3,7 +3,6 @@ package fido_client
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/x509"
 	"fmt"
 
@@ -39,7 +38,7 @@ func NewIdentityVault() *IdentityVault {
 }
 
 func (vault *IdentityVault) NewIdentity(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
-	credentialID := util.Read(rand.Reader, 16)
+	credentialID := crypto.RandomBytes(16)
 	privateKey := crypto.GenerateECDSAKey()
 	credentialSource := CredentialSource{
 		Type:             "public-key",

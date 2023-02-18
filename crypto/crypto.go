@@ -14,7 +14,7 @@ import (
 )
 
 func GenerateSymmetricKey() []byte {
-	return util.Read(rand.Reader, 32)
+	return RandomBytes(32)
 }
 
 func GenerateECDSAKey() *ecdsa.PrivateKey {
@@ -29,7 +29,7 @@ func Encrypt(key []byte, data []byte) ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("Could not create device cipher: %w", err)
 	}
-	nonce := util.Read(rand.Reader, 12)
+	nonce := RandomBytes(12)
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Could not create GCM mode: %w", err)

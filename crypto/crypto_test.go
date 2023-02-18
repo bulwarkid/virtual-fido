@@ -2,11 +2,8 @@ package crypto
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"testing"
-
-	util "github.com/bulwarkid/virtual-fido/util"
 )
 
 func TestEncryptDecrypt(t *testing.T) {
@@ -55,7 +52,7 @@ func TestHashSHA256(t *testing.T) {
 }
 
 func TestEncryptDecryptAESCBC(t *testing.T) {
-	data := util.Read(rand.Reader, 32)
+	data := RandomBytes(32)
 	key := GenerateSymmetricKey()
 	encryptedData := EncryptAESCBC(key, data)
 	decryptedData := DecryptAESCBC(key, encryptedData)

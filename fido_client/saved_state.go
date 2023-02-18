@@ -1,7 +1,6 @@
 package fido_client
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 
@@ -39,7 +38,7 @@ type PassphraseEncryptedBlob struct {
 }
 
 func EncryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
-	salt := util.Read(rand.Reader, 16)
+	salt := crypto.RandomBytes(16)
 	keyEncryptionKey, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create key encryption key: %w", err)
