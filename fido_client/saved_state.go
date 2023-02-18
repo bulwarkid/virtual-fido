@@ -44,7 +44,7 @@ func EncryptWithPassphrase(passphrase string, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Could not create key encryption key: %w", err)
 	}
-	encryptionKey := util.Read(rand.Reader, 32)
+	encryptionKey := crypto.GenerateSymmetricKey()
 	encryptedKey, keyNonce, err := crypto.Encrypt(keyEncryptionKey, encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("Could not encrypt key: %w", err)

@@ -3,11 +3,11 @@ package fido_client
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
 
+	"github.com/bulwarkid/virtual-fido/crypto"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/bulwarkid/virtual-fido/webauthn"
 )
@@ -40,8 +40,7 @@ func NewIdentityVault() *IdentityVault {
 
 func (vault *IdentityVault) NewIdentity(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
 	credentialID := util.Read(rand.Reader, 16)
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	util.CheckErr(err, "Could not generate private key")
+	privateKey := crypto.GenerateECDSAKey()
 	credentialSource := CredentialSource{
 		Type:             "public-key",
 		ID:               credentialID,

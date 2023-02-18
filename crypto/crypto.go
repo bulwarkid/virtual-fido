@@ -13,6 +13,16 @@ import (
 	util "github.com/bulwarkid/virtual-fido/util"
 )
 
+func GenerateSymmetricKey() []byte {
+	return util.Read(rand.Reader, 32)
+}
+
+func GenerateECDSAKey() *ecdsa.PrivateKey {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	util.CheckErr(err, "Could not generate ecdsa private key")
+	return key
+}
+
 func Encrypt(key []byte, data []byte) ([]byte, []byte, error) {
 	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)

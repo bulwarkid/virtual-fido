@@ -2,7 +2,6 @@ package fido_client
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -183,9 +182,7 @@ func (client DefaultFIDOClient) SealingEncryptionKey() []byte {
 }
 
 func (client *DefaultFIDOClient) NewPrivateKey() *ecdsa.PrivateKey {
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	util.CheckErr(err, "Could not generate private key")
-	return privateKey
+	return crypto.GenerateECDSAKey()
 }
 
 func (client *DefaultFIDOClient) NewAuthenticationCounterId() uint32 {
