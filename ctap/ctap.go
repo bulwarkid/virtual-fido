@@ -2,6 +2,7 @@ package ctap
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/bulwarkid/virtual-fido/cose"
 	"github.com/bulwarkid/virtual-fido/crypto"
-	"github.com/bulwarkid/virtual-fido/fido_client"
+	"github.com/bulwarkid/virtual-fido/identities"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/bulwarkid/virtual-fido/webauthn"
 
@@ -103,12 +104,12 @@ type ctapBasicAttestationStatement struct {
 	X5c [][]byte             `cbor:"x5c"`
 }
 
-func ctapMakeAttestedCredentialData(credentialSource *fido_client.CredentialSource) []byte {
+func ctapMakeAttestedCredentialData(credentialSource *identities.CredentialSource) []byte {
 	encodedCredentialPublicKey := cose.EncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
 	return util.Flatten([][]byte{aaguid[:], util.ToBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
 }
 
-func ctapMakeAuthData(rpID string, credentialSource *fido_client.CredentialSource, attestedCredentialData []byte, flags uint8) []byte {
+func ctapMakeAuthData(rpID string, credentialSource *identities.CredentialSource, attestedCredentialData []byte, flags uint8) []byte {
 	if attestedCredentialData != nil {
 		flags = flags | CTAP_AUTH_DATA_FLAG_ATTESTED_DATA_INCLUDED
 	} else {
@@ -118,11 +119,29 @@ func ctapMakeAuthData(rpID string, credentialSource *fido_client.CredentialSourc
 	return util.Flatten([][]byte{rpIdHash[:], {flags}, util.ToBE(credentialSource.SignatureCounter), attestedCredentialData})
 }
 
-type CTAPServer struct {
-	client fido_client.FIDOClient
+type CTAPClient interface {
+	NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource
+	GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *identities.CredentialSource
+
+	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
+
+	SupportsPIN() bool
+	PINHash() []byte
+	SetPINHash(pin []byte)
+	PINRetries() int32
+	SetPINRetries(retries int32)
+	PINKeyAgreement() *crypto.ECDHKey
+	PINToken() []byte
+
+	ApproveAccountCreation(relyingParty string) bool
+	ApproveAccountLogin(credentialSource *identities.CredentialSource) bool
 }
 
-func NewCTAPServer(client fido_client.FIDOClient) *CTAPServer {
+type CTAPServer struct {
+	client CTAPClient
+}
+
+func NewCTAPServer(client CTAPClient) *CTAPServer {
 	return &CTAPServer{client: client}
 }
 

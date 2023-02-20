@@ -10,7 +10,7 @@ import (
 	"github.com/bulwarkid/virtual-fido/usbip"
 )
 
-func startClient(client fido_client.FIDOClient) {
+func startClient(client FIDOClient) {
 	ctapServer := ctap.NewCTAPServer(client)
 	u2fServer := u2f.NewU2FServer(client)
 	ctapHIDServer := ctap_hid.NewCTAPHIDServer(ctapServer, u2fServer)

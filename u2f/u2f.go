@@ -2,12 +2,12 @@ package u2f
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/x509"
 	"fmt"
 
 	"github.com/bulwarkid/virtual-fido/crypto"
-	"github.com/bulwarkid/virtual-fido/fido_client"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/bulwarkid/virtual-fido/webauthn"
 	"github.com/fxamacker/cbor/v2"
@@ -63,11 +63,20 @@ func (header U2FMessageHeader) String() string {
 		header.Param2)
 }
 
-type U2FServer struct {
-	client fido_client.FIDOClient
+type U2FClient interface {
+	SealingEncryptionKey() []byte
+	NewPrivateKey() *ecdsa.PrivateKey
+	NewAuthenticationCounterId() uint32
+	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
+	ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool
+	ApproveU2FAuthentication(keyHandle *webauthn.KeyHandle) bool
 }
 
-func NewU2FServer(client fido_client.FIDOClient) *U2FServer {
+type U2FServer struct {
+	client U2FClient
+}
+
+func NewU2FServer(client U2FClient) *U2FServer {
 	return &U2FServer{client: client}
 }
 

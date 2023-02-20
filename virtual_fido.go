@@ -3,11 +3,17 @@ package virtual_fido
 import (
 	"io"
 
-	"github.com/bulwarkid/virtual-fido/fido_client"
+	"github.com/bulwarkid/virtual-fido/ctap"
+	"github.com/bulwarkid/virtual-fido/u2f"
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
-func Start(client fido_client.FIDOClient) {
+type FIDOClient interface {
+	u2f.U2FClient
+	ctap.CTAPClient
+}
+
+func Start(client FIDOClient) {
 	// Calls either the Mac or USB/IP client, based on system
 	startClient(client)
 }

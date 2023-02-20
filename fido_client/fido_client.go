@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bulwarkid/virtual-fido/crypto"
+	"github.com/bulwarkid/virtual-fido/identities"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/bulwarkid/virtual-fido/webauthn"
 )
@@ -40,29 +41,6 @@ type ClientDataSaver interface {
 	Passphrase() string
 }
 
-type FIDOClient interface {
-	NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource
-	GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *CredentialSource
-
-	SealingEncryptionKey() []byte
-	NewPrivateKey() *ecdsa.PrivateKey
-	NewAuthenticationCounterId() uint32
-	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
-
-	SupportsPIN() bool
-	PINHash() []byte
-	SetPINHash(pin []byte)
-	PINRetries() int32
-	SetPINRetries(retries int32)
-	PINKeyAgreement() *crypto.ECDHKey
-	PINToken() []byte
-
-	ApproveAccountCreation(relyingParty string) bool
-	ApproveAccountLogin(credentialSource *CredentialSource) bool
-	ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool
-	ApproveU2FAuthentication(keyHandle *webauthn.KeyHandle) bool
-}
-
 type DefaultFIDOClient struct {
 	deviceEncryptionKey   []byte
 	certificateAuthority  *x509.Certificate
@@ -74,7 +52,7 @@ type DefaultFIDOClient struct {
 	pinRetries      int32
 	pinHash         []byte
 
-	vault           *IdentityVault
+	vault           *identities.IdentityVault
 	requestApprover ClientRequestApprover
 	dataSaver       ClientDataSaver
 }
@@ -96,7 +74,7 @@ func NewDefaultClient(
 		pinKeyAgreement:       crypto.GenerateECDHKey(),
 		pinRetries:            8,
 		pinHash:               nil,
-		vault:                 NewIdentityVault(),
+		vault:                 identities.NewIdentityVault(),
 		requestApprover:       requestApprover,
 		dataSaver:             dataSaver,
 	}
@@ -104,13 +82,13 @@ func NewDefaultClient(
 	return client
 }
 
-func (client *DefaultFIDOClient) NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
+func (client *DefaultFIDOClient) NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource {
 	newSource := client.vault.NewIdentity(relyingParty, user)
 	client.saveData()
 	return newSource
 }
 
-func (client *DefaultFIDOClient) GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *CredentialSource {
+func (client *DefaultFIDOClient) GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *identities.CredentialSource {
 	sources := client.vault.GetMatchingCredentialSources(relyingPartyID, allowList)
 	if len(sources) == 0 {
 		clientLogger.Printf("ERROR: No Credentials\n\n")
@@ -131,7 +109,7 @@ func (client DefaultFIDOClient) ApproveAccountCreation(relyingParty string) bool
 	return client.requestApprover.ApproveClientAction(ClientActionFIDOMakeCredential, params)
 }
 
-func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *CredentialSource) bool {
+func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *identities.CredentialSource) bool {
 	params := ClientActionRequestParams{
 		RelyingParty: credentialSource.RelyingParty.Name,
 		UserName:     credentialSource.User.Name,
@@ -228,7 +206,7 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
 	util.CheckErr(err, "Could not marshal private key")
 	identityData := client.vault.Export()
-	state := FIDODeviceConfig{
+	state := identities.FIDODeviceConfig{
 		EncryptionKey:          client.deviceEncryptionKey,
 		AttestationCertificate: client.certificateAuthority.Raw,
 		AttestationPrivateKey:  privKeyBytes,
@@ -236,13 +214,13 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 		PINHash:                client.pinHash,
 		Sources:                identityData,
 	}
-	savedBytes, err := EncryptFIDOState(state, passphrase)
+	savedBytes, err := identities.EncryptFIDOState(state, passphrase)
 	util.CheckErr(err, "Could not encode saved state")
 	return savedBytes
 }
 
 func (client *DefaultFIDOClient) importData(data []byte, passphrase string) error {
-	state, err := DecryptFIDOState(data, passphrase)
+	state, err := identities.DecryptFIDOState(data, passphrase)
 	util.CheckErr(err, "Could not decrypt vault data")
 	cert, err := x509.ParseCertificate(state.AttestationCertificate)
 	util.CheckErr(err, "Could not parse x509 cert")
@@ -253,7 +231,7 @@ func (client *DefaultFIDOClient) importData(data []byte, passphrase string) erro
 	client.certPrivateKey = privateKey
 	client.authenticationCounter = state.AuthenticationCounter
 	client.pinHash = state.PINHash
-	client.vault = NewIdentityVault()
+	client.vault = identities.NewIdentityVault()
 	client.vault.Import(state.Sources)
 	return nil
 }
@@ -270,8 +248,8 @@ func (client *DefaultFIDOClient) loadData() {
 	}
 }
 
-func (client *DefaultFIDOClient) Identities() []CredentialSource {
-	sources := make([]CredentialSource, 0)
+func (client *DefaultFIDOClient) Identities() []identities.CredentialSource {
+	sources := make([]identities.CredentialSource, 0)
 	for _, source := range client.vault.CredentialSources {
 		sources = append(sources, *source)
 	}

@@ -1,4 +1,4 @@
-package fido_client
+package identities
 
 import (
 	"encoding/json"
