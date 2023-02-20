@@ -168,9 +168,9 @@ func (args ctapMakeCredentialArgs) String() string {
 }
 
 type ctapMakeCredentialReponse struct {
-	FormatIdentifer      string                       `cbor:"1,keyasint"`
-	AuthData             []byte                       `cbor:"2,keyasint"`
-	AttestationStatement ctapSelfAttestationStatement `cbor:"3,keyasint"`
+	FormatIdentifer      string                        `cbor:"1,keyasint"`
+	AuthData             []byte                        `cbor:"2,keyasint"`
+	AttestationStatement ctapBasicAttestationStatement `cbor:"3,keyasint"`
 }
 
 func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
@@ -215,10 +215,12 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	attestedCredentialData := ctapMakeAttestedCredentialData(credentialSource)
 	authenticatorData := ctapMakeAuthData(args.Rp.Id, credentialSource, attestedCredentialData, flags)
 
+	attestationCert := server.client.CreateAttestationCertificiate(credentialSource.PrivateKey)
 	attestationSignature := crypto.Sign(credentialSource.PrivateKey, append(authenticatorData, args.ClientDataHash...))
-	attestationStatement := ctapSelfAttestationStatement{
+	attestationStatement := ctapBasicAttestationStatement{
 		Alg: cose.COSE_ALGORITHM_ID_ES256,
 		Sig: attestationSignature,
+		X5c: [][]byte{attestationCert},
 	}
 
 	response := ctapMakeCredentialReponse{
@@ -258,7 +260,7 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 			// CanUserVerification: true,
 		},
 	}
-	if (server.client.SupportsPIN()) {
+	if server.client.SupportsPIN() {
 		response.Options.HasClientPIN = server.client.PINHash() != nil
 		response.PinProtocols = []uint32{1}
 	}
@@ -276,9 +278,9 @@ type ctapGetAssertionArgs struct {
 }
 
 type ctapGetAssertionResponse struct {
-	Credential          *webauthn.PublicKeyCredentialDescriptor  `cbor:"1,keyasint,omitempty"`
-	AuthenticatorData []byte `cbor:"2,keyasint"`
-	Signature         []byte `cbor:"3,keyasint"`
+	Credential        *webauthn.PublicKeyCredentialDescriptor `cbor:"1,keyasint,omitempty"`
+	AuthenticatorData []byte                                  `cbor:"2,keyasint"`
+	Signature         []byte                                  `cbor:"3,keyasint"`
 	//User                *PublicKeyCrendentialUserEntity `cbor:"4,keyasint,omitempty"`
 	//NumberOfCredentials int32 `cbor:"5,keyasint"`
 }
@@ -324,7 +326,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 
 	credentialDescriptor := credentialSource.CTAPDescriptor()
 	response := ctapGetAssertionResponse{
-		Credential:          &credentialDescriptor,
+		Credential:        &credentialDescriptor,
 		AuthenticatorData: authData,
 		Signature:         signature,
 		//User:                credentialSource.User,
