@@ -23,6 +23,16 @@ func GenerateECDSAKey() *ecdsa.PrivateKey {
 	return key
 }
 
+func EncodePublicKey(publicKey *ecdsa.PublicKey) []byte {
+	return elliptic.Marshal(elliptic.P256(), publicKey.X, publicKey.Y)
+}
+
+func DecodePublicKey(publicKeyBytes []byte) *ecdsa.PublicKey {
+	x, y := elliptic.Unmarshal(elliptic.P256(), publicKeyBytes)
+	key := ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}
+	return &key
+}
+
 func Encrypt(key []byte, data []byte) ([]byte, []byte, error) {
 	// TODO: Handle errors more reliably than panicing
 	block, err := aes.NewCipher(key)

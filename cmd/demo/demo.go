@@ -16,6 +16,7 @@ import (
 
 	virtual_fido "github.com/bulwarkid/virtual-fido"
 	"github.com/bulwarkid/virtual-fido/fido_client"
+	"github.com/bulwarkid/virtual-fido/identities"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/spf13/cobra"
 )
@@ -41,9 +42,9 @@ func listIdentities(cmd *cobra.Command, args []string) {
 
 func deleteIdentity(cmd *cobra.Command, args []string) {
 	client := createClient()
-	identities := client.Identities()
-	targetIDs := make([]*fido_client.CredentialSource, 0)
-	for _, id := range identities {
+	ids := client.Identities()
+	targetIDs := make([]*identities.CredentialSource, 0)
+	for _, id := range ids {
 		hexString := hex.EncodeToString(id.ID)
 		if strings.HasPrefix(hexString, identityID) {
 			targetIDs = append(targetIDs, &id)
