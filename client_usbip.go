@@ -5,7 +5,6 @@ package virtual_fido
 import (
 	"github.com/bulwarkid/virtual-fido/ctap"
 	"github.com/bulwarkid/virtual-fido/ctap_hid"
-	"github.com/bulwarkid/virtual-fido/fido_client"
 	"github.com/bulwarkid/virtual-fido/u2f"
 	"github.com/bulwarkid/virtual-fido/usbip"
 )

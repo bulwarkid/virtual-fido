@@ -334,11 +334,13 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
 	}
 
-	if !server.client.ApproveAccountLogin(credentialSource) {
-		ctapLogger.Printf("ERROR: Unapproved action (Account login)")
-		return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
+	if args.Options.UserPresence {
+		if !server.client.ApproveAccountLogin(credentialSource) {
+			ctapLogger.Printf("ERROR: Unapproved action (Account login)")
+			return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
+		}
+		flags = flags | CTAP_AUTH_DATA_FLAG_USER_PRESENT
 	}
-	flags = flags | CTAP_AUTH_DATA_FLAG_USER_PRESENT
 
 	authData := ctapMakeAuthData(args.RpID, credentialSource, nil, flags)
 	signature := crypto.Sign(credentialSource.PrivateKey, util.Flatten([][]byte{authData, args.ClientDataHash}))
