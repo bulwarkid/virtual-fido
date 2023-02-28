@@ -283,7 +283,7 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 		response.Options.HasClientPIN = server.client.PINHash() != nil
 		response.PinProtocols = []uint32{1}
 	}
-	ctapLogger.Printf("CTAP GET_INFO RESPONSE: %#v\n\n", response)
+	ctapLogger.Printf("GET_INFO RESPONSE: %#v\n\n", response)
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
 
@@ -354,7 +354,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 		//NumberOfCredentials: 1,
 	}
 
-	ctapLogger.Printf("RESPONSE: %#v\n\n", response)
+	ctapLogger.Printf("GET ASSERTION RESPONSE: %#v\n\n", response)
 
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
@@ -449,7 +449,7 @@ func (server *CTAPServer) handleClientPIN(data []byte) []byte {
 	if args.PinProtocol != 1 {
 		return []byte{byte(CTAP1_ERR_INVALID_PARAMETER)}
 	}
-	ctapLogger.Printf("CTAP_CLIENT_PIN: %v\n\n", args)
+	ctapLogger.Printf("CLIENT_PIN: %v\n\n", args)
 	var response []byte
 	switch args.SubCommand {
 	case CTAP_CLIENT_PIN_SUBCOMMAND_GET_RETRIES:
@@ -465,7 +465,7 @@ func (server *CTAPServer) handleClientPIN(data []byte) []byte {
 	default:
 		return []byte{byte(CTAP2_ERR_MISSING_PARAM)}
 	}
-	ctapLogger.Printf("CTAP_CLIENT_PIN RESPONSE: %#v\n\n", response)
+	ctapLogger.Printf("CLIENT_PIN RESPONSE: %#v\n\n", response)
 	return response
 }
 
@@ -474,7 +474,7 @@ func (server *CTAPServer) handleGetRetries() []byte {
 	response := ctapClientPINResponse{
 		Retries: &retries,
 	}
-	ctapLogger.Printf("CTAP_CLIENT_PIN_GET_RETRIES: %v\n\n", response)
+	ctapLogger.Printf("CLIENT_PIN_GET_RETRIES: %v\n\n", response)
 	return append([]byte{byte(CTAP1_ERR_SUCCESS)}, util.MarshalCBOR(response)...)
 }
 

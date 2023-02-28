@@ -108,7 +108,7 @@ func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 
 func (server *U2FServer) HandleU2FMessage(message []byte) []byte {
 	header, request, responseLength := decodeU2FMessage(message)
-	u2fLogger.Printf("U2F MESSAGE: Header: %s Request: %#v Response Length: %d\n\n", header, request, responseLength)
+	u2fLogger.Printf("MESSAGE: Header: %s Request: %#v Response Length: %d\n\n", header, request, responseLength)
 	var response []byte
 	switch header.Command {
 	case u2f_COMMAND_VERSION:
@@ -120,7 +120,7 @@ func (server *U2FServer) HandleU2FMessage(message []byte) []byte {
 	default:
 		panic(fmt.Sprintf("Invalid U2F Command: %#v", header))
 	}
-	u2fLogger.Printf("U2F RESPONSE: %#v\n\n", response)
+	u2fLogger.Printf("RESPONSE: %#v\n\n", response)
 	return response
 }
 
