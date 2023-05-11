@@ -6,6 +6,8 @@ import (
 	"log"
 )
 
+var logLog = NewLogger("[LOG] ", LogLevelEnabled)
+
 type LogLevel byte
 
 const (
@@ -64,6 +66,7 @@ func SetLogLevel(level LogLevel) {
 	if level <= LogLevelDebug {
 		debugLogOutput.setOutput(enabledLogOutput)
 	}
+	logLog.Printf("Log Level Set: %d\n", level)
 }
 
 func NewLogger(prefix string, level LogLevel) *log.Logger {
