@@ -24,6 +24,7 @@ import (
 var vaultFilename string
 var vaultPassphrase string
 var identityID string
+var verbose bool
 
 func checkErr(err error, message string) {
 	if err != nil {
@@ -94,16 +95,13 @@ func createClient() *fido_client.DefaultFIDOClient {
 	encryptionKey := sha256.Sum256([]byte("test"))
 
 	virtual_fido.SetLogOutput(os.Stdout)
-	virtual_fido.SetLogLevel(util.LogLevelDebug)
+	if verbose {
+		virtual_fido.SetLogLevel(util.LogLevelTrace)
+	} else {
+		virtual_fido.SetLogLevel(util.LogLevelDebug)
+	}
 	support := ClientSupport{vaultFilename: vaultFilename, vaultPassphrase: vaultPassphrase}
 	return fido_client.NewDefaultClient(authorityCertBytes, privateKey, encryptionKey, &support, &support)
-}
-
-func printUsage(message string) {
-	fmt.Printf("Incorrect Usage: %s\n", message)
-	fmt.Printf("Usage: go run start.go [command] [flags]\n")
-	fmt.Printf("\tCommand: start\n")
-	fmt.Printf("\tCommand: list\n")
 }
 
 var rootCmd = &cobra.Command{
@@ -115,6 +113,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&vaultFilename, "vault", "", "vault.json", "Identity vault filename")
 	rootCmd.PersistentFlags().StringVarP(&vaultPassphrase, "passphrase", "", "passphrase", "Identity vault passphrase")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.MarkFlagRequired("vault")
 	rootCmd.MarkFlagRequired("passphrase")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
