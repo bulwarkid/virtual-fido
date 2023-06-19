@@ -280,7 +280,8 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 		},
 	}
 	if server.client.SupportsPIN() {
-		*response.Options.HasClientPIN = server.client.PINHash() != nil
+		var clientPIN bool = server.client.PINHash() != nil
+		response.Options.HasClientPIN = &clientPIN
 		response.PinProtocols = []uint32{1}
 	}
 	ctapLogger.Printf("GET_INFO RESPONSE: %#v\n\n", response)
