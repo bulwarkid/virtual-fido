@@ -70,7 +70,7 @@ const (
 type CTAPCommandOptions struct {
 	ResidentKey      bool `cbor:"rk,omitempty"`
 	UserVerification bool `cbor:"uv,omitempty"`
-	UserPresence     bool `cbor:"up,omitempty"`
+	UserPresence     *bool `cbor:"up,omitempty"`
 }
 
 const (
@@ -254,7 +254,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 type ctapGetInfoOptions struct {
 	IsPlatform      bool `cbor:"plat"`
 	CanResidentKey  bool `cbor:"rk"`
-	HasClientPIN    bool `cbor:"clientPin"`
+	HasClientPIN    *bool `cbor:"clientPin,omitempty"`
 	CanUserPresence bool `cbor:"up"`
 	// CanUserVerification bool `cbor:"uv"`
 }
@@ -280,7 +280,7 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 		},
 	}
 	if server.client.SupportsPIN() {
-		response.Options.HasClientPIN = server.client.PINHash() != nil
+		*response.Options.HasClientPIN = server.client.PINHash() != nil
 		response.PinProtocols = []uint32{1}
 	}
 	ctapLogger.Printf("GET_INFO RESPONSE: %#v\n\n", response)
@@ -334,7 +334,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 		return []byte{byte(CTAP2_ERR_NO_CREDENTIALS)}
 	}
 
-	if args.Options.UserPresence {
+	if args.Options.UserPresence == nil || *args.Options.UserPresence {
 		if !server.client.ApproveAccountLogin(credentialSource) {
 			ctapLogger.Printf("ERROR: Unapproved action (Account login)")
 			return []byte{byte(CTAP2_ERR_OPERATION_DENIED)}
