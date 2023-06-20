@@ -168,18 +168,20 @@ type ctapMakeCredentialArgs struct {
 	User             webauthn.PublicKeyCrendentialUserEntity  `cbor:"3,keyasint,omitempty"`
 	PubKeyCredParams []webauthn.PublicKeyCredentialParams     `cbor:"4,keyasint,omitempty"`
 	ExcludeList      []webauthn.PublicKeyCredentialDescriptor `cbor:"5,keyasint,omitempty"`
+	Extensions		map[string]interface{}			`cbor:"6,keyasint,omitempty"`
 	Options          *CTAPCommandOptions                      `cbor:"7,keyasint,omitempty"`
 	PinAuth          []byte                                   `cbor:"8,keyasint,omitempty"`
 	PinProtocol      uint32                                   `cbor:"9,keyasint,omitempty"`
 }
 
 func (args ctapMakeCredentialArgs) String() string {
-	return fmt.Sprintf("ctapMakeCredentialArgs{ ClientDataHash: 0x%s, Relying Party: %s, User: %s, PublicKeyCredentialParams: %#v, ExcludeList: %#v, Options: %#v, PinAuth: %#v, PinProtocol: %d }",
+	return fmt.Sprintf("ctapMakeCredentialArgs{ ClientDataHash: 0x%s, Relying Party: %s, User: %s, PublicKeyCredentialParams: %#v, ExcludeList: %#v, Extensions: %#v, Options: %#v, PinAuth: %#v, PinProtocol: %d }",
 		hex.EncodeToString(args.ClientDataHash),
 		args.Rp,
 		args.User,
 		args.PubKeyCredParams,
 		args.ExcludeList,
+		args.Extensions,
 		args.Options,
 		args.PinAuth,
 		args.PinProtocol,
