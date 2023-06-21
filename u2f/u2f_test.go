@@ -140,7 +140,7 @@ func TestU2FRegistration(t *testing.T) {
 	challenge := crypto.RandomBytes(32)
 	application := crypto.RandomBytes(32)
 	registration := util.Flatten([][]byte{u2fHeader(u2f_COMMAND_REGISTER, 0, 0), {0, 0, 64}, util.ToBE(512), challenge, application})
-	response := server.HandleU2FMessage(registration)
+	response := server.HandleMessage(registration)
 	code, publicKey, keyHandle, certificate, signature, returnCode := parseRegistrationResponse(response, t)
 	if code != 0x05 {
 		t.Fatalf("Incorrect response code for registration: %d", code)

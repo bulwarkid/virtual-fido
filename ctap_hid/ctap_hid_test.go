@@ -8,8 +8,9 @@ import (
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
-type dummyHandler struct {}
-func (server *dummyHandler) HandleMessage(data []byte) []byte{
+type dummyHandler struct{}
+
+func (server *dummyHandler) HandleMessage(data []byte) []byte {
 	return nil
 }
 
@@ -29,12 +30,12 @@ func TestOpenChannel(t *testing.T) {
 	response := server.GetResponse(0, 1000)
 	correctResponse := util.Flatten([][]byte{
 		util.ToLE[uint32](0xFFFFFFFF),
-		{initCmd}, 
+		{initCmd},
 		util.ToBE[uint16](17),
 		nonce,
 		util.ToLE[uint32](1),
 		{2, 0, 0, 1, 0b00000100},
-		})
+	})
 	correctResponse = util.Pad(correctResponse, 64)
 	if !bytes.Equal(response, correctResponse) {
 		t.Errorf("Initialization message returned incorrect response: %#v vs %#v", response, correctResponse)

@@ -57,7 +57,7 @@ const (
 	ctapHIDErrorChannelBusy      ctapHIDErrorCode = 0x06
 	ctapHIDErrorLockRequired     ctapHIDErrorCode = 0x0A
 	ctapHIDErrorInvalidChannel   ctapHIDErrorCode = 0x0B
-	ctapHIDErrorOther             ctapHIDErrorCode = 0x7F
+	ctapHIDErrorOther            ctapHIDErrorCode = 0x7F
 )
 
 var ctapHIDErrorCodeDescriptions = map[ctapHIDErrorCode]string{
@@ -69,7 +69,7 @@ var ctapHIDErrorCodeDescriptions = map[ctapHIDErrorCode]string{
 	ctapHIDErrorChannelBusy:      "ctapHIDErrChannelBusy",
 	ctapHIDErrorLockRequired:     "ctapHIDErrLockRequired",
 	ctapHIDErrorInvalidChannel:   "ctapHIDErrInvalidChannel",
-	ctapHIDErrorOther:             "ctapHIDErrOther",
+	ctapHIDErrorOther:            "ctapHIDErrOther",
 }
 
 func ctapHidError(channelId ctapHIDChannelID, err ctapHIDErrorCode) [][]byte {
@@ -80,8 +80,8 @@ func ctapHidError(channelId ctapHIDChannelID, err ctapHIDErrorCode) [][]byte {
 type ctapHIDCapabilityFlag uint8
 
 const (
-	ctapHIDCapabilityWink ctapHIDCapabilityFlag = 0x1
-	ctapHIDCapabilityCBOR ctapHIDCapabilityFlag = 0x4
+	ctapHIDCapabilityWink  ctapHIDCapabilityFlag = 0x1
+	ctapHIDCapabilityCBOR  ctapHIDCapabilityFlag = 0x4
 	ctapHIDCapabilityNoMsg ctapHIDCapabilityFlag = 0x8
 )
 
@@ -205,8 +205,8 @@ func (server *CTAPHIDServer) HandleMessage(message []byte) {
 }
 
 type ctapHIDChannel struct {
-	channelId                ctapHIDChannelID
-	messageLock              sync.Locker
+	channelId   ctapHIDChannelID
+	messageLock sync.Locker
 
 	inProgressHeader         *ctapHIDMessageHeader
 	inProgressSequenceNumber uint8

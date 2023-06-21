@@ -106,7 +106,7 @@ func decodeU2FMessage(messageBytes []byte) (U2FMessageHeader, []byte, uint16) {
 	return header, request, responseLength
 }
 
-func (server *U2FServer) HandleU2FMessage(message []byte) []byte {
+func (server *U2FServer) HandleMessage(message []byte) []byte {
 	header, request, responseLength := decodeU2FMessage(message)
 	u2fLogger.Printf("MESSAGE: Header: %s Request: %#v Response Length: %d\n\n", header, request, responseLength)
 	var response []byte
