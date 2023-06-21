@@ -11,7 +11,7 @@ var logLog = NewLogger("[LOG] ", LogLevelEnabled)
 type LogLevel byte
 
 const (
-	LogLevelUnsafe LogLevel = 0
+	LogLevelUnsafe  LogLevel = 0
 	LogLevelTrace   LogLevel = 1
 	LogLevelDebug   LogLevel = 2
 	LogLevelEnabled LogLevel = 3

@@ -37,7 +37,7 @@ func init() {
 	cborCommand := &cobra.Command{
 		Use:   "cbor",
 		Short: "Parse base64 encoded CBOR data",
-		Args: cobra.MinimumNArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		Run:   decodeCbor,
 	}
 	rootCmd.AddCommand(cborCommand)

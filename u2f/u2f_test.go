@@ -27,10 +27,10 @@ func checkErr(err error, t *testing.T) {
 }
 
 type DummyU2FClient struct {
-	encryptionKey []byte
-	authorityCert *x509.Certificate
+	encryptionKey  []byte
+	authorityCert  *x509.Certificate
 	certPrivateKey *ecdsa.PrivateKey
-	counter uint32
+	counter        uint32
 }
 
 func newDummyU2FClient() U2FClient {
@@ -55,14 +55,13 @@ func newDummyU2FClient() U2FClient {
 	util.CheckErr(err, "Could not parse cert")
 	encryptionKey := sha256.Sum256([]byte("test"))
 	client := DummyU2FClient{
-		encryptionKey: encryptionKey[:],
-		authorityCert: authorityCert,
+		encryptionKey:  encryptionKey[:],
+		authorityCert:  authorityCert,
 		certPrivateKey: privateKey,
-		counter: 0,
+		counter:        0,
 	}
 	return &client
 }
-
 
 func (client *DummyU2FClient) SealingEncryptionKey() []byte {
 	return client.encryptionKey
@@ -123,7 +122,7 @@ func parseRegistrationResponse(response []byte, t *testing.T) (uint8, *ecdsa.Pub
 	responseReader.Read(keyHandle)
 	input := cryptobyte.String(responseReader.Bytes())
 	certificateBytes := cryptobyte.String{}
-	if !input.ReadASN1Element(&certificateBytes, 0x20 | asn1.TagSequence) {
+	if !input.ReadASN1Element(&certificateBytes, 0x20|asn1.TagSequence) {
 		t.Fatalf("Could not parse certificate ASN1")
 	}
 	certificate, err := x509.ParseCertificate(certificateBytes)
