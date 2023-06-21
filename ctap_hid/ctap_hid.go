@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bulwarkid/virtual-fido/ctap"
-	"github.com/bulwarkid/virtual-fido/u2f"
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
@@ -120,9 +118,13 @@ const (
 	maxPacketSize int = 64
 )
 
+type MessageHandler interface {
+	HandleMessage(data []byte) []byte
+}
+
 type CTAPHIDServer struct {
-	ctapServer          *ctap.CTAPServer
-	u2fServer           *u2f.U2FServer
+	ctapServer          MessageHandler
+	u2fServer           MessageHandler
 	maxChannelID        ctapHIDChannelID
 	channels            map[ctapHIDChannelID]*ctapHIDChannel
 	responses           chan []byte
@@ -130,7 +132,7 @@ type CTAPHIDServer struct {
 	waitingForResponses *sync.Map
 }
 
-func NewCTAPHIDServer(ctapServer *ctap.CTAPServer, u2fServer *u2f.U2FServer) *CTAPHIDServer {
+func NewCTAPHIDServer(ctapServer MessageHandler, u2fServer MessageHandler) *CTAPHIDServer {
 	server := &CTAPHIDServer{
 		ctapServer:          ctapServer,
 		u2fServer:           u2fServer,
@@ -362,7 +364,7 @@ func (channel *ctapHIDChannel) handleBroadcastMessage(server *CTAPHIDServer, hea
 func (channel *ctapHIDChannel) handleDataMessage(server *CTAPHIDServer, header ctapHIDMessageHeader, payload []byte) [][]byte {
 	switch header.Command {
 	case ctapHIDCommandMsg:
-		responsePayload := server.u2fServer.HandleU2FMessage(payload)
+		responsePayload := server.u2fServer.HandleMessage(payload)
 		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %d %#v\n\n", len(responsePayload), responsePayload)
 		return createResponsePackets(header.ChannelID, ctapHIDCommandMsg, responsePayload)
 	case ctapHIDCommandCBOR:
