@@ -118,13 +118,13 @@ const (
 	maxPacketSize int = 64
 )
 
-type MessageHandler interface {
+type CTAPHIDClient interface {
 	HandleMessage(data []byte) []byte
 }
 
 type CTAPHIDServer struct {
-	ctapServer          MessageHandler
-	u2fServer           MessageHandler
+	ctapServer          CTAPHIDClient
+	u2fServer           CTAPHIDClient
 	maxChannelID        ctapHIDChannelID
 	channels            map[ctapHIDChannelID]*ctapHIDChannel
 	responses           chan []byte
@@ -132,7 +132,7 @@ type CTAPHIDServer struct {
 	waitingForResponses *sync.Map
 }
 
-func NewCTAPHIDServer(ctapServer MessageHandler, u2fServer MessageHandler) *CTAPHIDServer {
+func NewCTAPHIDServer(ctapServer CTAPHIDClient, u2fServer CTAPHIDClient) *CTAPHIDServer {
 	server := &CTAPHIDServer{
 		ctapServer:          ctapServer,
 		u2fServer:           u2fServer,
