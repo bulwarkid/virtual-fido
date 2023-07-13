@@ -54,17 +54,15 @@ type DefaultFIDOClient struct {
 }
 
 func NewDefaultClient(
-	attestationCertificate []byte,
-	certificatePrivateKey *ecdsa.PrivateKey,
+	rootAttestationCertificate *x509.Certificate,
+	rootAttestationCertPrivateKey *ecdsa.PrivateKey,
 	secretEncryptionKey [32]byte,
 	requestApprover ClientRequestApprover,
 	dataSaver ClientDataSaver) *DefaultFIDOClient {
-	authorityCert, err := x509.ParseCertificate(attestationCertificate)
-	util.CheckErr(err, "Could not parse authority CA cert")
 	client := &DefaultFIDOClient{
 		deviceEncryptionKey:   secretEncryptionKey[:],
-		certificateAuthority:  authorityCert,
-		certPrivateKey:        certificatePrivateKey,
+		certificateAuthority:  rootAttestationCertificate,
+		certPrivateKey:        rootAttestationCertPrivateKey,
 		authenticationCounter: 1,
 		pinToken:              crypto.RandomBytes(16),
 		pinKeyAgreement:       crypto.GenerateECDHKey(),
@@ -172,7 +170,7 @@ func (client *DefaultFIDOClient) NewAuthenticationCounterId() uint32 {
 func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
 	cert, err := identities.CreateSelfSignedAttestationCertificate(client.certificateAuthority, client.certPrivateKey, privateKey)
 	util.CheckErr(err, "Could not create attestation certificate")
-	return cert
+	return cert.Raw
 }
 
 func (client DefaultFIDOClient) ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool {
