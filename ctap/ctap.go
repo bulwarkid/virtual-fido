@@ -68,12 +68,13 @@ const (
 )
 
 type CTAPClient interface {
+	SupportsResidentKey() bool
+	SupportsPIN() bool
+
 	NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource
 	GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *identities.CredentialSource
-
 	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
 
-	SupportsPIN() bool
 	PINHash() []byte
 	SetPINHash(pin []byte)
 	PINRetries() int32
@@ -278,7 +279,7 @@ func (server *CTAPServer) handleGetInfo(data []byte) []byte {
 		AAGUID:   aaguid,
 		Options: getInfoOptions{
 			IsPlatform:      false,
-			CanResidentKey:  true,
+			CanResidentKey:  server.client.SupportsResidentKey(),
 			CanUserPresence: true,
 			// CanUserVerification: true,
 		},
