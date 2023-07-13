@@ -2,12 +2,8 @@ package fido_client
 
 import (
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"log"
-	"math/big"
-	"time"
 
 	"github.com/bulwarkid/virtual-fido/crypto"
 	"github.com/bulwarkid/virtual-fido/identities"
@@ -174,26 +170,9 @@ func (client *DefaultFIDOClient) NewAuthenticationCounterId() uint32 {
 }
 
 func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
-	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
-	templateCert := &x509.Certificate{
-		Version:      2,
-		SerialNumber: big.NewInt(0),
-		Subject: pkix.Name{
-			Organization:       []string{"Self-Signed Virtual FIDO"},
-			Country:            []string{"US"},
-			CommonName:         "Self-Signed Virtual FIDO",
-			OrganizationalUnit: []string{"Authenticator Attestation"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(10, 0, 0),
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature,
-		IsCA:                  false,
-		BasicConstraintsValid: true,
-	}
-	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, client.certificateAuthority, &privateKey.PublicKey, client.certPrivateKey)
-	util.CheckErr(err, "Could not generate attestation certificate")
-	return certBytes
+	cert, err := identities.CreateSelfSignedAttestationCertificate(client.certificateAuthority, client.certPrivateKey, privateKey)
+	util.CheckErr(err, "Could not create attestation certificate")
+	return cert
 }
 
 func (client DefaultFIDOClient) ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool {
