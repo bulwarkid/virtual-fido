@@ -8,12 +8,14 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"time"
+
+	"github.com/bulwarkid/virtual-fido/cose"
 )
 
 func CreateSelfSignedAttestationCertificate(
 		certificateAuthority *x509.Certificate, 
 		certificateAuthorityPrivateKey *ecdsa.PrivateKey, 
-		targetPrivateKey *ecdsa.PrivateKey) (*x509.Certificate, error) {
+		targetPrivateKey *cose.SupportedCOSEPrivateKey) (*x509.Certificate, error) {
 	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
 	templateCert := &x509.Certificate{
 		Version:      2,
@@ -31,7 +33,12 @@ func CreateSelfSignedAttestationCertificate(
 		IsCA:                  false,
 		BasicConstraintsValid: true,
 	}
-	certBytes, err := x509.CreateCertificate(rand.Reader, templateCert, certificateAuthority, &targetPrivateKey.PublicKey, certificateAuthorityPrivateKey)
+	certBytes, err := x509.CreateCertificate(
+		rand.Reader, 
+		templateCert, 
+		certificateAuthority, 
+		targetPrivateKey.Public().Any(), 
+		certificateAuthorityPrivateKey)
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/crypto/cryptobyte"
 
+	"github.com/bulwarkid/virtual-fido/cose"
 	"github.com/bulwarkid/virtual-fido/crypto"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/bulwarkid/virtual-fido/webauthn"
@@ -77,7 +78,9 @@ func (client *DummyU2FClient) NewAuthenticationCounterId() uint32 {
 	return i
 }
 
-func (client *DummyU2FClient) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
+func (client *DummyU2FClient) CreateAttestationCertificiate(cosePrivateKey *cose.SupportedCOSEPrivateKey) []byte {
+	privateKey := cosePrivateKey.ECDSA
+	util.Assert(privateKey != nil, "No ECDSA private key provided to attestation creator")
 	templateCert := &x509.Certificate{
 		Version:      2,
 		SerialNumber: big.NewInt(0),
@@ -154,7 +157,7 @@ func TestU2FRegistration(t *testing.T) {
 		t.Fatalf("Incorrect return code: %d", returnCode)
 	}
 	signatureBytes := util.Flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
-	if !crypto.Verify(publicKey, signatureBytes, signature) {
+	if !crypto.VerifyECDSA(publicKey, signatureBytes, signature) {
 		t.Fatalf("Could not verify signature returned by Authenticate")
 	}
 }
