@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"log"
 
+	"github.com/bulwarkid/virtual-fido/cose"
 	"github.com/bulwarkid/virtual-fido/crypto"
 	"github.com/bulwarkid/virtual-fido/identities"
 	"github.com/bulwarkid/virtual-fido/util"
@@ -167,7 +168,7 @@ func (client *DefaultFIDOClient) NewAuthenticationCounterId() uint32 {
 	return num
 }
 
-func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte {
+func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *cose.SupportedCOSEPrivateKey) []byte {
 	cert, err := identities.CreateSelfSignedAttestationCertificate(client.certificateAuthority, client.certPrivateKey, privateKey)
 	util.CheckErr(err, "Could not create attestation certificate")
 	return cert.Raw

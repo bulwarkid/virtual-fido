@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/hex"
 	"testing"
 )
@@ -22,11 +23,30 @@ func TestEncryptDecrypt(t *testing.T) {
 	}
 }
 
-func TestSignVerify(t *testing.T) {
+func TestSignVerifyECDSA(t *testing.T) {
 	data := []byte("data")
 	key := GenerateECDSAKey()
-	signature := Sign(key, data)
-	if !Verify(&key.PublicKey, data, signature) {
+	signature := SignECDSA(key, data)
+	if !VerifyECDSA(&key.PublicKey, data, signature) {
+		t.Fatalf("Signature not correct: %#v", signature)
+	}
+}
+
+func TestSignVerifyEd25519(t *testing.T) {
+	data := []byte("data")
+	key := GenerateEd25519Key()
+	signature := SignEd25519(key, data)
+	publicKey := key.Public().(ed25519.PublicKey)
+	if !VerifyEd25519(&publicKey, data, signature) {
+		t.Fatalf("Signature not correct: %#v", signature)
+	}
+}
+
+func TestSignVerifyRSA(t *testing.T) {
+	data := []byte("data")
+	key := GenerateRSAKey()
+	signature := SignRSA(key, data)
+	if !VerifyRSA(&key.PublicKey, data, signature) {
 		t.Fatalf("Signature not correct: %#v", signature)
 	}
 }

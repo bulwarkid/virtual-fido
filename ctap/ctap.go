@@ -2,7 +2,6 @@ package ctap
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -73,7 +72,7 @@ type CTAPClient interface {
 
 	NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource
 	GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *identities.CredentialSource
-	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
+	CreateAttestationCertificiate(privateKey *cose.SupportedCOSEPrivateKey) []byte
 
 	PINHash() []byte
 	SetPINHash(pin []byte)
@@ -145,7 +144,7 @@ type basicAttestationStatement struct {
 }
 
 func makeAttestedCredentialData(credentialSource *identities.CredentialSource) []byte {
-	encodedCredentialPublicKey := cose.EncodeKeyAsCOSE(&credentialSource.PrivateKey.PublicKey)
+	encodedCredentialPublicKey := cose.MarshalCOSEPublicKey(credentialSource.PrivateKey.Public())
 	return util.Flatten([][]byte{aaguid[:], util.ToBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
 }
 
@@ -166,15 +165,15 @@ type makeCredentialOptions struct {
 }
 
 type makeCredentialArgs struct {
-	ClientDataHash   []byte                                   `cbor:"1,keyasint,omitempty"`
-	Rp               webauthn.PublicKeyCredentialRpEntity     `cbor:"2,keyasint,omitempty"`
-	User             webauthn.PublicKeyCrendentialUserEntity  `cbor:"3,keyasint,omitempty"`
-	PubKeyCredParams []webauthn.PublicKeyCredentialParams     `cbor:"4,keyasint,omitempty"`
-	ExcludeList      []webauthn.PublicKeyCredentialDescriptor `cbor:"5,keyasint,omitempty"`
-	Extensions       map[string]interface{}                   `cbor:"6,keyasint,omitempty"`
-	Options          *makeCredentialOptions                   `cbor:"7,keyasint,omitempty"`
-	PINUVAuthParam          []byte                                   `cbor:"8,keyasint,omitempty"`
-	PINUVAuthProtocol      uint32                                   `cbor:"9,keyasint,omitempty"`
+	ClientDataHash    []byte                                   `cbor:"1,keyasint,omitempty"`
+	Rp                webauthn.PublicKeyCredentialRpEntity     `cbor:"2,keyasint,omitempty"`
+	User              webauthn.PublicKeyCrendentialUserEntity  `cbor:"3,keyasint,omitempty"`
+	PubKeyCredParams  []webauthn.PublicKeyCredentialParams     `cbor:"4,keyasint,omitempty"`
+	ExcludeList       []webauthn.PublicKeyCredentialDescriptor `cbor:"5,keyasint,omitempty"`
+	Extensions        map[string]interface{}                   `cbor:"6,keyasint,omitempty"`
+	Options           *makeCredentialOptions                   `cbor:"7,keyasint,omitempty"`
+	PINUVAuthParam    []byte                                   `cbor:"8,keyasint,omitempty"`
+	PINUVAuthProtocol uint32                                   `cbor:"9,keyasint,omitempty"`
 }
 
 func (args makeCredentialArgs) String() string {
@@ -240,7 +239,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	authenticatorData := makeAuthData(args.Rp.Id, credentialSource, attestedCredentialData, flags)
 
 	attestationCert := server.client.CreateAttestationCertificiate(credentialSource.PrivateKey)
-	attestationSignature := crypto.Sign(credentialSource.PrivateKey, append(authenticatorData, args.ClientDataHash...))
+	attestationSignature := credentialSource.PrivateKey.Sign(append(authenticatorData, args.ClientDataHash...))
 	attestationStatement := basicAttestationStatement{
 		Alg: cose.COSE_ALGORITHM_ID_ES256,
 		Sig: attestationSignature,
@@ -299,12 +298,12 @@ type getAssertionOptions struct {
 }
 
 type getAssertionArgs struct {
-	RPID           string                                   `cbor:"1,keyasint"`
-	ClientDataHash []byte                                   `cbor:"2,keyasint"`
-	AllowList      []webauthn.PublicKeyCredentialDescriptor `cbor:"3,keyasint"`
-	Options        getAssertionOptions                      `cbor:"5,keyasint"`
-	PINUVAuthParam        []byte                                   `cbor:"6,keyasint,omitempty"`
-	PINUVAuthProtocol    uint32                                   `cbor:"7,keyasint,omitempty"`
+	RPID              string                                   `cbor:"1,keyasint"`
+	ClientDataHash    []byte                                   `cbor:"2,keyasint"`
+	AllowList         []webauthn.PublicKeyCredentialDescriptor `cbor:"3,keyasint"`
+	Options           getAssertionOptions                      `cbor:"5,keyasint"`
+	PINUVAuthParam    []byte                                   `cbor:"6,keyasint,omitempty"`
+	PINUVAuthProtocol uint32                                   `cbor:"7,keyasint,omitempty"`
 }
 
 type getAssertionResponse struct {
@@ -354,7 +353,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	}
 
 	authData := makeAuthData(args.RPID, credentialSource, nil, flags)
-	signature := crypto.Sign(credentialSource.PrivateKey, util.Flatten([][]byte{authData, args.ClientDataHash}))
+	signature := credentialSource.PrivateKey.Sign(util.Flatten([][]byte{authData, args.ClientDataHash}))
 
 	credentialDescriptor := credentialSource.CTAPDescriptor()
 	response := getAssertionResponse{
@@ -389,12 +388,12 @@ var clientPINSubcommandDescriptions = map[clientPINSubcommand]string{
 }
 
 type clientPINArgs struct {
-	PINUVAuthProtocol     uint32              `cbor:"1,keyasint"`
-	SubCommand      clientPINSubcommand `cbor:"2,keyasint"`
-	KeyAgreement    *cose.COSEPublicKey `cbor:"3,keyasint,omitempty"`
-	PINUVAuthParam         []byte              `cbor:"4,keyasint,omitempty"`
-	NewPINEncoding  []byte              `cbor:"5,keyasint,omitempty"`
-	PINHashEncoding []byte              `cbor:"6,keyasint,omitempty"`
+	PINUVAuthProtocol uint32              `cbor:"1,keyasint"`
+	SubCommand        clientPINSubcommand `cbor:"2,keyasint"`
+	KeyAgreement      *cose.COSEEC2Key    `cbor:"3,keyasint,omitempty"`
+	PINUVAuthParam    []byte              `cbor:"4,keyasint,omitempty"`
+	NewPINEncoding    []byte              `cbor:"5,keyasint,omitempty"`
+	PINHashEncoding   []byte              `cbor:"6,keyasint,omitempty"`
 }
 
 func (args clientPINArgs) String() string {
@@ -408,9 +407,9 @@ func (args clientPINArgs) String() string {
 }
 
 type clientPINResponse struct {
-	KeyAgreement *cose.COSEPublicKey `cbor:"1,keyasint,omitempty"`
-	PinToken     []byte              `cbor:"2,keyasint,omitempty"`
-	Retries      *uint8              `cbor:"3,keyasint,omitempty"`
+	KeyAgreement *cose.COSEEC2Key `cbor:"1,keyasint,omitempty"`
+	PinToken     []byte           `cbor:"2,keyasint,omitempty"`
+	Retries      *uint8           `cbor:"3,keyasint,omitempty"`
 }
 
 func (args clientPINResponse) String() string {
@@ -420,7 +419,7 @@ func (args clientPINResponse) String() string {
 		args.Retries)
 }
 
-func (server *CTAPServer) getPINSharedSecret(remoteKey cose.COSEPublicKey) []byte {
+func (server *CTAPServer) getPINSharedSecret(remoteKey cose.COSEEC2Key) []byte {
 	pinKey := server.client.PINKeyAgreement()
 	return crypto.HashSHA256(pinKey.ECDH(util.BytesToBigInt(remoteKey.X), util.BytesToBigInt(remoteKey.Y)))
 }
@@ -492,7 +491,7 @@ func (server *CTAPServer) handleGetRetries() []byte {
 func (server *CTAPServer) handleGetKeyAgreement(args clientPINArgs) []byte {
 	key := server.client.PINKeyAgreement()
 	response := clientPINResponse{
-		KeyAgreement: &cose.COSEPublicKey{
+		KeyAgreement: &cose.COSEEC2Key{
 			KeyType:   int8(cose.COSE_KEY_TYPE_EC2),
 			Algorithm: int8(cose.COSE_ALGORITHM_ID_ECDH_HKDF_256),
 			X:         key.X.Bytes(),

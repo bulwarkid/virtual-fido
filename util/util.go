@@ -64,6 +64,12 @@ func ToBE[T any](val T) []byte {
 	return buffer.Bytes()
 }
 
+func FromBE[T any](valBytes []byte) T {
+	buffer := bytes.NewBuffer(valBytes)
+	val := ReadBE[T](buffer)
+	return val
+}
+
 func Write(writer io.Writer, data []byte) {
 	//fmt.Printf("\tWRITE: [%d]byte{%v}\n", len(data), data)
 	_, err := writer.Write(data)

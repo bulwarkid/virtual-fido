@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"github.com/bulwarkid/virtual-fido/cose"
 	"github.com/bulwarkid/virtual-fido/crypto"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/bulwarkid/virtual-fido/webauthn"
@@ -67,7 +68,7 @@ type U2FClient interface {
 	SealingEncryptionKey() []byte
 	NewPrivateKey() *ecdsa.PrivateKey
 	NewAuthenticationCounterId() uint32
-	CreateAttestationCertificiate(privateKey *ecdsa.PrivateKey) []byte
+	CreateAttestationCertificiate(privateKey *cose.SupportedCOSEPrivateKey) []byte
 	ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool
 	ApproveU2FAuthentication(keyHandle *webauthn.KeyHandle) bool
 }
@@ -163,10 +164,11 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 		return util.ToBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
 	}
 
-	cert := server.client.CreateAttestationCertificiate(privateKey)
+	cosePrivateKey := &cose.SupportedCOSEPrivateKey{ECDSA: privateKey}
+	cert := server.client.CreateAttestationCertificiate(cosePrivateKey)
 
 	signatureDataBytes := util.Flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
-	signature := crypto.Sign(privateKey, signatureDataBytes)
+	signature := cosePrivateKey.Sign(signatureDataBytes)
 
 	return util.Flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, util.ToBE(u2f_SW_NO_ERROR)})
 }
@@ -190,6 +192,7 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 	}
 	privateKey, err := x509.ParseECPrivateKey(keyHandle.PrivateKey)
 	util.CheckErr(err, "Could not decode private key")
+	cosePrivateKey := &cose.SupportedCOSEPrivateKey{ECDSA: privateKey}
 
 	if control == u2f_AUTH_CONTROL_CHECK_ONLY {
 		return util.ToBE(u2f_SW_CONDITIONS_NOT_SATISFIED)
@@ -201,7 +204,7 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 		}
 		counter := server.client.NewAuthenticationCounterId()
 		signatureDataBytes := util.Flatten([][]byte{application, {1}, util.ToBE(counter), challenge})
-		signature := crypto.Sign(privateKey, signatureDataBytes)
+		signature := cosePrivateKey.Sign(signatureDataBytes)
 		return util.Flatten([][]byte{{1}, util.ToBE(counter), signature, util.ToBE(u2f_SW_NO_ERROR)})
 	} else {
 		// No error specific to invalid control byte, so return WRONG_LENGTH to indicate data error

@@ -2,19 +2,18 @@ package identities
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"crypto/x509"
 	"fmt"
 
+	"github.com/bulwarkid/virtual-fido/cose"
 	"github.com/bulwarkid/virtual-fido/crypto"
-	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/bulwarkid/virtual-fido/webauthn"
 )
 
 type CredentialSource struct {
 	Type             string
 	ID               []byte
-	PrivateKey       *ecdsa.PrivateKey
+	PrivateKey       *cose.SupportedCOSEPrivateKey
 	RelyingParty     webauthn.PublicKeyCredentialRpEntity
 	User             webauthn.PublicKeyCrendentialUserEntity
 	SignatureCounter int32
@@ -40,10 +39,11 @@ func NewIdentityVault() *IdentityVault {
 func (vault *IdentityVault) NewIdentity(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
 	credentialID := crypto.RandomBytes(16)
 	privateKey := crypto.GenerateECDSAKey()
+	cosePrivateKey := &cose.SupportedCOSEPrivateKey{ECDSA: privateKey}
 	credentialSource := CredentialSource{
 		Type:             "public-key",
 		ID:               credentialID,
-		PrivateKey:       privateKey,
+		PrivateKey:       cosePrivateKey,
 		RelyingParty:     relyingParty,
 		User:             user,
 		SignatureCounter: 0,
@@ -89,8 +89,7 @@ func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, 
 func (vault *IdentityVault) Export() []SavedCredentialSource {
 	sources := make([]SavedCredentialSource, 0)
 	for _, source := range vault.CredentialSources {
-		key, err := x509.MarshalECPrivateKey(source.PrivateKey)
-		util.CheckErr(err, "Could not marshall private key")
+		key := cose.MarshalCOSEPrivateKey(source.PrivateKey)
 		savedSource := SavedCredentialSource{
 			Type:             source.Type,
 			ID:               source.ID,
@@ -106,9 +105,13 @@ func (vault *IdentityVault) Export() []SavedCredentialSource {
 
 func (vault *IdentityVault) Import(sources []SavedCredentialSource) error {
 	for _, source := range sources {
-		key, err := x509.ParseECPrivateKey(source.PrivateKey)
+		key, err := cose.UnmarshalCOSEPrivateKey(source.PrivateKey)
 		if err != nil {
-			return fmt.Errorf("Invalid private key for source: %w", err)
+			oldFormatKey, err := x509.ParseECPrivateKey(source.PrivateKey)
+			if err != nil {
+				return fmt.Errorf("Invalid private key for source: %w", err)
+			}
+			key = &cose.SupportedCOSEPrivateKey{ECDSA: oldFormatKey}
 		}
 		decodedSource := CredentialSource{
 			Type:             source.Type,
