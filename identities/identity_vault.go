@@ -14,15 +14,15 @@ type CredentialSource struct {
 	Type             string
 	ID               []byte
 	PrivateKey       *cose.SupportedCOSEPrivateKey
-	RelyingParty     webauthn.PublicKeyCredentialRpEntity
-	User             webauthn.PublicKeyCrendentialUserEntity
+	RelyingParty     *webauthn.PublicKeyCredentialRPEntity
+	User             *webauthn.PublicKeyCrendentialUserEntity
 	SignatureCounter int32
 }
 
 func (source *CredentialSource) CTAPDescriptor() webauthn.PublicKeyCredentialDescriptor {
 	return webauthn.PublicKeyCredentialDescriptor{
 		Type:       "public-key",
-		Id:         source.ID,
+		ID:         source.ID,
 		Transports: []string{},
 	}
 }
@@ -36,7 +36,7 @@ func NewIdentityVault() *IdentityVault {
 	return &IdentityVault{CredentialSources: sources}
 }
 
-func (vault *IdentityVault) NewIdentity(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
+func (vault *IdentityVault) NewIdentity(relyingParty *webauthn.PublicKeyCredentialRPEntity, user *webauthn.PublicKeyCrendentialUserEntity) *CredentialSource {
 	credentialID := crypto.RandomBytes(16)
 	privateKey := crypto.GenerateECDSAKey()
 	cosePrivateKey := &cose.SupportedCOSEPrivateKey{ECDSA: privateKey}
@@ -70,10 +70,10 @@ func (vault *IdentityVault) DeleteIdentity(id []byte) bool {
 func (vault *IdentityVault) GetMatchingCredentialSources(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) []*CredentialSource {
 	sources := make([]*CredentialSource, 0)
 	for _, credentialSource := range vault.CredentialSources {
-		if credentialSource.RelyingParty.Id == relyingPartyID {
+		if credentialSource.RelyingParty.ID == relyingPartyID {
 			if allowList != nil {
 				for _, allowedSource := range allowList {
-					if bytes.Equal(allowedSource.Id, credentialSource.ID) {
+					if bytes.Equal(allowedSource.ID, credentialSource.ID) {
 						sources = append(sources, credentialSource)
 						break
 					}
@@ -94,8 +94,8 @@ func (vault *IdentityVault) Export() []SavedCredentialSource {
 			Type:             source.Type,
 			ID:               source.ID,
 			PrivateKey:       key,
-			RelyingParty:     source.RelyingParty,
-			User:             source.User,
+			RelyingParty:     *source.RelyingParty,
+			User:             *source.User,
 			SignatureCounter: source.SignatureCounter,
 		}
 		sources = append(sources, savedSource)
@@ -117,8 +117,8 @@ func (vault *IdentityVault) Import(sources []SavedCredentialSource) error {
 			Type:             source.Type,
 			ID:               source.ID,
 			PrivateKey:       key,
-			RelyingParty:     source.RelyingParty,
-			User:             source.User,
+			RelyingParty:     &source.RelyingParty,
+			User:             &source.User,
 			SignatureCounter: source.SignatureCounter,
 		}
 		vault.AddIdentity(&decodedSource)

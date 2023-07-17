@@ -70,7 +70,7 @@ type CTAPClient interface {
 	SupportsResidentKey() bool
 	SupportsPIN() bool
 
-	NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource
+	NewCredentialSource(relyingParty *webauthn.PublicKeyCredentialRPEntity, user *webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource
 	GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *identities.CredentialSource
 	CreateAttestationCertificiate(privateKey *cose.SupportedCOSEPrivateKey) []byte
 
@@ -166,8 +166,8 @@ type makeCredentialOptions struct {
 
 type makeCredentialArgs struct {
 	ClientDataHash    []byte                                   `cbor:"1,keyasint,omitempty"`
-	Rp                webauthn.PublicKeyCredentialRpEntity     `cbor:"2,keyasint,omitempty"`
-	User              webauthn.PublicKeyCrendentialUserEntity  `cbor:"3,keyasint,omitempty"`
+	RP                *webauthn.PublicKeyCredentialRPEntity    `cbor:"2,keyasint,omitempty"`
+	User              *webauthn.PublicKeyCrendentialUserEntity `cbor:"3,keyasint,omitempty"`
 	PubKeyCredParams  []webauthn.PublicKeyCredentialParams     `cbor:"4,keyasint,omitempty"`
 	ExcludeList       []webauthn.PublicKeyCredentialDescriptor `cbor:"5,keyasint,omitempty"`
 	Extensions        map[string]interface{}                   `cbor:"6,keyasint,omitempty"`
@@ -179,7 +179,7 @@ type makeCredentialArgs struct {
 func (args makeCredentialArgs) String() string {
 	return fmt.Sprintf("ctapMakeCredentialArgs{ ClientDataHash: 0x%s, Relying Party: %s, User: %s, PublicKeyCredentialParams: %#v, ExcludeList: %#v, Extensions: %#v, Options: %#v, PinAuth: %#v, PinProtocol: %d }",
 		hex.EncodeToString(args.ClientDataHash),
-		args.Rp,
+		args.RP,
 		args.User,
 		args.PubKeyCredParams,
 		args.ExcludeList,
@@ -228,15 +228,15 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 		}
 	}
 
-	if !server.client.ApproveAccountCreation(args.Rp.Name) {
+	if !server.client.ApproveAccountCreation(args.RP.Name) {
 		ctapLogger.Printf("ERROR: Unapproved action (Create account)")
 		return []byte{byte(ctap2ErrOperationDenied)}
 	}
 	flags = flags | authDataFlagUserPresent
 
-	credentialSource := server.client.NewCredentialSource(args.Rp, args.User)
+	credentialSource := server.client.NewCredentialSource(args.RP, args.User)
 	attestedCredentialData := makeAttestedCredentialData(credentialSource)
-	authenticatorData := makeAuthData(args.Rp.Id, credentialSource, attestedCredentialData, flags)
+	authenticatorData := makeAuthData(args.RP.ID, credentialSource, attestedCredentialData, flags)
 
 	attestationCert := server.client.CreateAttestationCertificiate(credentialSource.PrivateKey)
 	attestationSignature := credentialSource.PrivateKey.Sign(append(authenticatorData, args.ClientDataHash...))

@@ -81,7 +81,7 @@ func (client *DefaultFIDOClient) SupportsResidentKey() bool {
 	return true
 }
 
-func (client *DefaultFIDOClient) NewCredentialSource(relyingParty webauthn.PublicKeyCredentialRpEntity, user webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource {
+func (client *DefaultFIDOClient) NewCredentialSource(relyingParty *webauthn.PublicKeyCredentialRPEntity, user *webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource {
 	newSource := client.vault.NewIdentity(relyingParty, user)
 	client.saveData()
 	return newSource

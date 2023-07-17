@@ -7,32 +7,32 @@ import (
 	"github.com/bulwarkid/virtual-fido/cose"
 )
 
-type PublicKeyCredentialRpEntity struct {
-	Id   string `cbor:"id" json:"id"`
+type PublicKeyCredentialRPEntity struct {
+	ID   string `cbor:"id" json:"id"`
 	Name string `cbor:"name" json:"name"`
 }
 
-func (rp PublicKeyCredentialRpEntity) String() string {
-	return fmt.Sprintf("RpEntity{ ID: %s, Name: %s }",
-		rp.Id, rp.Name)
+func (rp PublicKeyCredentialRPEntity) String() string {
+	return fmt.Sprintf("RPEntity{ ID: %s, Name: %s }",
+		rp.ID, rp.Name)
 }
 
 type PublicKeyCrendentialUserEntity struct {
-	Id          []byte `cbor:"id" json:"id"`
+	ID          []byte `cbor:"id" json:"id"`
 	DisplayName string `cbor:"displayName" json:"display_name"`
 	Name        string `cbor:"name" json:"name"`
 }
 
 func (user PublicKeyCrendentialUserEntity) String() string {
 	return fmt.Sprintf("User{ ID: %s, DisplayName: %s, Name: %s }",
-		hex.EncodeToString(user.Id),
+		hex.EncodeToString(user.ID),
 		user.DisplayName,
 		user.Name)
 }
 
 type PublicKeyCredentialDescriptor struct {
 	Type       string   `cbor:"type"`
-	Id         []byte   `cbor:"id"`
+	ID         []byte   `cbor:"id"`
 	Transports []string `cbor:"transports,omitempty"`
 }
 

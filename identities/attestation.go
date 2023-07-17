@@ -13,9 +13,9 @@ import (
 )
 
 func CreateSelfSignedAttestationCertificate(
-		certificateAuthority *x509.Certificate, 
-		certificateAuthorityPrivateKey *ecdsa.PrivateKey, 
-		targetPrivateKey *cose.SupportedCOSEPrivateKey) (*x509.Certificate, error) {
+	certificateAuthority *x509.Certificate,
+	certificateAuthorityPrivateKey *ecdsa.PrivateKey,
+	targetPrivateKey *cose.SupportedCOSEPrivateKey) (*x509.Certificate, error) {
 	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
 	templateCert := &x509.Certificate{
 		Version:      2,
@@ -34,10 +34,10 @@ func CreateSelfSignedAttestationCertificate(
 		BasicConstraintsValid: true,
 	}
 	certBytes, err := x509.CreateCertificate(
-		rand.Reader, 
-		templateCert, 
-		certificateAuthority, 
-		targetPrivateKey.Public().Any(), 
+		rand.Reader,
+		templateCert,
+		certificateAuthority,
+		targetPrivateKey.Public().Any(),
 		certificateAuthorityPrivateKey)
 	if err != nil {
 		return nil, err
