@@ -44,6 +44,7 @@ type DefaultFIDOClient struct {
 	certPrivateKey        *ecdsa.PrivateKey
 	authenticationCounter uint32
 
+	pinEnabled bool
 	pinToken        []byte
 	pinKeyAgreement *crypto.ECDHKey
 	pinRetries      int32
@@ -58,9 +59,11 @@ func NewDefaultClient(
 	rootAttestationCertificate *x509.Certificate,
 	rootAttestationCertPrivateKey *ecdsa.PrivateKey,
 	secretEncryptionKey [32]byte,
+	enablePIN bool,
 	requestApprover ClientRequestApprover,
 	dataSaver ClientDataSaver) *DefaultFIDOClient {
 	client := &DefaultFIDOClient{
+		pinEnabled: enablePIN,
 		deviceEncryptionKey:   secretEncryptionKey[:],
 		certificateAuthority:  rootAttestationCertificate,
 		certPrivateKey:        rootAttestationCertPrivateKey,
@@ -121,7 +124,7 @@ func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *identities
 // -----------------------
 
 func (client *DefaultFIDOClient) SupportsPIN() bool {
-	return true
+	return client.pinEnabled
 }
 
 func (client *DefaultFIDOClient) PINHash() []byte {
