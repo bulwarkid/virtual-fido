@@ -8,7 +8,7 @@ Class=USB
 ClassGuid={36FC9E60-C465-11CF-8056-444553540000}
 Provider=%ManufacturerName%
 CatalogFile=usbip_vhci_ude.cat
-DriverVer = 06/18/2022,0.3.6.0
+DriverVer = 07/19/2021,0.3.5.0
 PnpLockDown=1
 
 [DestinationDirs]

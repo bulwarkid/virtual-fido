@@ -12,7 +12,7 @@ Provider=%Provider%
 CatalogFile=usbip_vhci.cat
 
 PnpLockDown=1
-DriverVer = 06/18/2022,0.3.6.0
+DriverVer = 07/19/2021,0.3.5.0
 
 [Manufacturer]
 %StdMfg%=Standard,NTamd64
