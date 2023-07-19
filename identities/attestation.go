@@ -14,7 +14,7 @@ import (
 
 func CreateSelfSignedAttestationCertificate(
 	certificateAuthority *x509.Certificate,
-	certificateAuthorityPrivateKey *ecdsa.PrivateKey,
+	certificateAuthorityPrivateKey *cose.SupportedCOSEPrivateKey,
 	targetPrivateKey *cose.SupportedCOSEPrivateKey) (*x509.Certificate, error) {
 	// TODO: Fill in fields like SerialNumber and SubjectKeyIdentifier
 	templateCert := &x509.Certificate{
@@ -38,18 +38,23 @@ func CreateSelfSignedAttestationCertificate(
 		templateCert,
 		certificateAuthority,
 		targetPrivateKey.Public().Any(),
-		certificateAuthorityPrivateKey)
+		certificateAuthorityPrivateKey.Any())
 	if err != nil {
 		return nil, err
 	}
 	return x509.ParseCertificate(certBytes)
 }
 
-func CreateCAPrivateKey() (*ecdsa.PrivateKey, error) {
-	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+func CreateCAPrivateKey() (*cose.SupportedCOSEPrivateKey, error) {
+	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	coseKey := cose.SupportedCOSEPrivateKey{ECDSA: ecdsaKey}
+	return &coseKey, nil
 }
 
-func CreateSelfSignedCA(privateKey *ecdsa.PrivateKey) (*x509.Certificate, error) {
+func CreateSelfSignedCA(privateKey *cose.SupportedCOSEPrivateKey) (*x509.Certificate, error) {
 	authority := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
 		Subject: pkix.Name{
@@ -63,7 +68,7 @@ func CreateSelfSignedCA(privateKey *ecdsa.PrivateKey) (*x509.Certificate, error)
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	certBytes, err := x509.CreateCertificate(rand.Reader, authority, authority, &privateKey.PublicKey, privateKey)
+	certBytes, err := x509.CreateCertificate(rand.Reader, authority, authority, privateKey.Public().Any(), privateKey.Any())
 	if err != nil {
 		return nil, err
 	}

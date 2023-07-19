@@ -41,10 +41,10 @@ type ClientDataSaver interface {
 type DefaultFIDOClient struct {
 	deviceEncryptionKey   []byte
 	certificateAuthority  *x509.Certificate
-	certPrivateKey        *ecdsa.PrivateKey
+	certPrivateKey        *cose.SupportedCOSEPrivateKey
 	authenticationCounter uint32
 
-	pinEnabled bool
+	pinEnabled      bool
 	pinToken        []byte
 	pinKeyAgreement *crypto.ECDHKey
 	pinRetries      int32
@@ -57,13 +57,13 @@ type DefaultFIDOClient struct {
 
 func NewDefaultClient(
 	rootAttestationCertificate *x509.Certificate,
-	rootAttestationCertPrivateKey *ecdsa.PrivateKey,
+	rootAttestationCertPrivateKey *cose.SupportedCOSEPrivateKey,
 	secretEncryptionKey [32]byte,
 	enablePIN bool,
 	requestApprover ClientRequestApprover,
 	dataSaver ClientDataSaver) *DefaultFIDOClient {
 	client := &DefaultFIDOClient{
-		pinEnabled: enablePIN,
+		pinEnabled:            enablePIN,
 		deviceEncryptionKey:   secretEncryptionKey[:],
 		certificateAuthority:  rootAttestationCertificate,
 		certPrivateKey:        rootAttestationCertPrivateKey,
@@ -188,8 +188,7 @@ func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *webauthn.Key
 }
 
 func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
-	privKeyBytes, err := x509.MarshalECPrivateKey(client.certPrivateKey)
-	util.CheckErr(err, "Could not marshal private key")
+	privKeyBytes := cose.MarshalCOSEPrivateKey(client.certPrivateKey)
 	identityData := client.vault.Export()
 	state := identities.FIDODeviceConfig{
 		EncryptionKey:          client.deviceEncryptionKey,
@@ -209,8 +208,12 @@ func (client *DefaultFIDOClient) importData(data []byte, passphrase string) erro
 	util.CheckErr(err, "Could not decrypt vault data")
 	cert, err := x509.ParseCertificate(state.AttestationCertificate)
 	util.CheckErr(err, "Could not parse x509 cert")
-	privateKey, err := x509.ParseECPrivateKey(state.AttestationPrivateKey)
-	util.CheckErr(err, "Could not parse private key")
+	privateKey, err := cose.UnmarshalCOSEPrivateKey(state.AttestationPrivateKey)
+	if err != nil {
+		privateKeyECDSA, err := x509.ParseECPrivateKey(state.AttestationPrivateKey)
+		util.CheckErr(err, "Could not parse private key")
+		privateKey = &cose.SupportedCOSEPrivateKey{ECDSA: privateKeyECDSA}
+	}
 	client.deviceEncryptionKey = state.EncryptionKey
 	client.certificateAuthority = cert
 	client.certPrivateKey = privateKey
