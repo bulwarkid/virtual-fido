@@ -85,18 +85,6 @@ func (key *SupportedCOSEPrivateKey) Public() *SupportedCOSEPublicKey {
 	return &coseKey
 }
 
-func (key *SupportedCOSEPrivateKey) Any() any {
-	if key.ECDSA != nil {
-		return key.ECDSA
-	} else if key.Ed25519 != nil {
-		return key.Ed25519
-	} else if key.RSA != nil {
-		return key.RSA
-	} else {
-		panic("No supported private key data!")
-	}
-}
-
 func (key *SupportedCOSEPrivateKey) Sign(data []byte) []byte {
 	if key.ECDSA != nil {
 		return crypto.SignECDSA(key.ECDSA, data)
@@ -146,18 +134,6 @@ func (key *SupportedCOSEPublicKey) Verify(data []byte, signature []byte) bool {
 		return crypto.VerifyEd25519(key.Ed25519, data, signature)
 	} else if key.RSA != nil {
 		return crypto.VerifyRSA(key.RSA, data, signature)
-	} else {
-		panic("No supported private key data!")
-	}
-}
-
-func (key *SupportedCOSEPublicKey) Any() any {
-	if key.ECDSA != nil {
-		return key.ECDSA
-	} else if key.Ed25519 != nil {
-		return key.Ed25519
-	} else if key.RSA != nil {
-		return key.RSA
 	} else {
 		panic("No supported private key data!")
 	}

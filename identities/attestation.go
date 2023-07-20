@@ -12,6 +12,33 @@ import (
 	"github.com/bulwarkid/virtual-fido/cose"
 )
 
+// We need two functions here because Go's type system isn't enough to support this
+func extractPublicKey(key *cose.SupportedCOSEPublicKey) any {
+	if key.ECDSA != nil {
+		return key.ECDSA
+	} else if key.Ed25519 != nil {
+		return *key.Ed25519
+	} else if key.RSA != nil {
+		return key.RSA
+	} else {
+		panic("No supported private key data!")
+	}
+
+}
+func extractPrivateKey(key *cose.SupportedCOSEPrivateKey) any {
+	if key.ECDSA != nil {
+		return key.ECDSA
+	} else if key.Ed25519 != nil {
+		return *key.Ed25519
+	} else if key.RSA != nil {
+		return key.RSA
+	} else {
+		panic("No supported private key data!")
+	}
+
+}
+
+
 func CreateSelfSignedAttestationCertificate(
 	certificateAuthority *x509.Certificate,
 	certificateAuthorityPrivateKey *cose.SupportedCOSEPrivateKey,
@@ -37,8 +64,8 @@ func CreateSelfSignedAttestationCertificate(
 		rand.Reader,
 		templateCert,
 		certificateAuthority,
-		targetPrivateKey.Public().Any(),
-		certificateAuthorityPrivateKey.Any())
+		extractPublicKey(targetPrivateKey.Public()),
+		extractPrivateKey(certificateAuthorityPrivateKey))
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +95,11 @@ func CreateSelfSignedCA(privateKey *cose.SupportedCOSEPrivateKey) (*x509.Certifi
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	certBytes, err := x509.CreateCertificate(rand.Reader, authority, authority, privateKey.Public().Any(), privateKey.Any())
+	certBytes, err := x509.CreateCertificate(
+		rand.Reader, 
+		authority, authority, 
+		extractPublicKey(privateKey.Public()), 
+		extractPrivateKey(privateKey))
 	if err != nil {
 		return nil, err
 	}
