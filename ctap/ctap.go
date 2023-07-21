@@ -70,7 +70,11 @@ type CTAPClient interface {
 	SupportsResidentKey() bool
 	SupportsPIN() bool
 
-	NewCredentialSource(relyingParty *webauthn.PublicKeyCredentialRPEntity, user *webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource
+	NewCredentialSource(
+		PubKeyCredParams []webauthn.PublicKeyCredentialParams,
+		ExcludeList []webauthn.PublicKeyCredentialDescriptor,
+		relyingParty *webauthn.PublicKeyCredentialRPEntity,
+		user *webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource
 	GetAssertionSource(relyingPartyID string, allowList []webauthn.PublicKeyCredentialDescriptor) *identities.CredentialSource
 	CreateAttestationCertificiate(privateKey *cose.SupportedCOSEPrivateKey) []byte
 
@@ -234,7 +238,11 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	}
 	flags = flags | authDataFlagUserPresent
 
-	credentialSource := server.client.NewCredentialSource(args.RP, args.User)
+	credentialSource := server.client.NewCredentialSource(args.PubKeyCredParams, args.ExcludeList, args.RP, args.User)
+	if credentialSource == nil {
+		ctapLogger.Printf("ERROR: Unsupported Algorithm\n\n")
+		return []byte{byte(ctap2ErrUnsupportedAlgorithm)}
+	}
 	attestedCredentialData := makeAttestedCredentialData(credentialSource)
 	authenticatorData := makeAuthData(args.RP.ID, credentialSource, attestedCredentialData, flags)
 

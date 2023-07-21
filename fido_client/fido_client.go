@@ -84,7 +84,21 @@ func (client *DefaultFIDOClient) SupportsResidentKey() bool {
 	return true
 }
 
-func (client *DefaultFIDOClient) NewCredentialSource(relyingParty *webauthn.PublicKeyCredentialRPEntity, user *webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource {
+func (client *DefaultFIDOClient) NewCredentialSource(
+	PubKeyCredParams []webauthn.PublicKeyCredentialParams,
+	ExcludeList []webauthn.PublicKeyCredentialDescriptor,
+	relyingParty *webauthn.PublicKeyCredentialRPEntity,
+	user *webauthn.PublicKeyCrendentialUserEntity) *identities.CredentialSource {
+	supported := false
+	for _, param := range PubKeyCredParams {
+		if param.Algorithm == cose.COSE_ALGORITHM_ID_ES256 && param.Type == "public-key" {
+			supported = true
+			break
+		}
+	}
+	if !supported {
+		return nil
+	}
 	newSource := client.vault.NewIdentity(relyingParty, user)
 	client.saveData()
 	return newSource
