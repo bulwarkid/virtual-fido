@@ -137,12 +137,27 @@ func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *identities
 // PIN Management Methods
 // -----------------------
 
+func (client *DefaultFIDOClient) EnablePIN() {
+	client.pinEnabled = true
+	client.saveData()
+}
+
+func (client *DefaultFIDOClient) DisablePIN() {
+	client.pinEnabled = false
+	client.saveData()
+}
+
 func (client *DefaultFIDOClient) SupportsPIN() bool {
 	return client.pinEnabled
 }
 
 func (client *DefaultFIDOClient) PINHash() []byte {
 	return client.pinHash
+}
+
+func (client *DefaultFIDOClient) SetPIN(pin []byte) {
+	pinHash := crypto.HashSHA256(pin)[:16]
+	client.SetPINHash(pinHash)
 }
 
 func (client *DefaultFIDOClient) SetPINHash(newHash []byte) {
@@ -209,6 +224,7 @@ func (client *DefaultFIDOClient) exportData(passphrase string) []byte {
 		AttestationCertificate: client.certificateAuthority.Raw,
 		AttestationPrivateKey:  privKeyBytes,
 		AuthenticationCounter:  client.authenticationCounter,
+		PINEnabled:             client.pinEnabled,
 		PINHash:                client.pinHash,
 		Sources:                identityData,
 	}
@@ -232,6 +248,7 @@ func (client *DefaultFIDOClient) importData(data []byte, passphrase string) erro
 	client.certificateAuthority = cert
 	client.certPrivateKey = privateKey
 	client.authenticationCounter = state.AuthenticationCounter
+	client.pinEnabled = state.PINEnabled
 	client.pinHash = state.PINHash
 	client.vault = identities.NewIdentityVault()
 	client.vault.Import(state.Sources)

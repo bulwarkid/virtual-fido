@@ -268,7 +268,7 @@ type getInfoOptions struct {
 	CanResidentKey  bool  `cbor:"rk"`
 	HasClientPIN    *bool `cbor:"clientPin,omitempty"`
 	CanUserPresence bool  `cbor:"up"`
-	// CanUserVerification bool `cbor:"uv"`
+	// CanUserVerification bool  `cbor:"uv"`
 }
 
 type getInfoResponse struct {

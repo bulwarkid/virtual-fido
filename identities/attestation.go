@@ -38,7 +38,6 @@ func extractPrivateKey(key *cose.SupportedCOSEPrivateKey) any {
 
 }
 
-
 func CreateSelfSignedAttestationCertificate(
 	certificateAuthority *x509.Certificate,
 	certificateAuthorityPrivateKey *cose.SupportedCOSEPrivateKey,
@@ -96,9 +95,9 @@ func CreateSelfSignedCA(privateKey *cose.SupportedCOSEPrivateKey) (*x509.Certifi
 		BasicConstraintsValid: true,
 	}
 	certBytes, err := x509.CreateCertificate(
-		rand.Reader, 
-		authority, authority, 
-		extractPublicKey(privateKey.Public()), 
+		rand.Reader,
+		authority, authority,
+		extractPublicKey(privateKey.Public()),
 		extractPrivateKey(privateKey))
 	if err != nil {
 		return nil, err

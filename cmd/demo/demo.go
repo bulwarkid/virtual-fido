@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	virtual_fido "github.com/bulwarkid/virtual-fido"
@@ -59,6 +60,35 @@ func deleteIdentity(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("No identity found with prefix (%s)\n", identityID)
 	}
+}
+
+func enablePIN(cmd *cobra.Command, args []string) {
+	client := createClient()
+	client.EnablePIN()
+	cmd.Println("PIN enabled")
+}
+
+func disablePIN(cmd *cobra.Command, args []string) {
+	client := createClient()
+	client.DisablePIN()
+	cmd.Println("PIN disabled")
+}
+
+var newPIN int
+
+func setPIN(cmd *cobra.Command, args []string) {
+	if newPIN < 0 {
+		cmd.PrintErr("Invalid PIN: PIN must be positive")
+		return
+	}
+	newPINString := strconv.Itoa(newPIN)
+	if len(newPINString) < 4 {
+		cmd.PrintErr("Invalid PIN: PIN must be 4 digits")
+		return
+	}
+	client := createClient()
+	client.SetPIN([]byte(newPINString))
+	cmd.Println("PIN set")
 }
 
 func start(cmd *cobra.Command, args []string) {
@@ -116,9 +146,35 @@ func init() {
 		Short: "Delete identity in vault",
 		Run:   deleteIdentity,
 	}
-	delete.Flags().StringVarP(&identityID, "identity", "", "", "Identity hash to delete")
+	delete.Flags().StringVar(&identityID, "identity", "", "Identity hash to delete")
 	delete.MarkFlagRequired("identity")
 	rootCmd.AddCommand(delete)
+
+	pinCommand := &cobra.Command{
+		Use:   "pin",
+		Short: "Modify PIN Behavior",
+	}
+	enablePINCommand := &cobra.Command{
+		Use:   "enable",
+		Short: "Enables PIN protection",
+		Run:   enablePIN,
+	}
+	pinCommand.AddCommand(enablePINCommand)
+	disablePINCommand := &cobra.Command{
+		Use:   "disable",
+		Short: "Disables PIN protection",
+		Run:   disablePIN,
+	}
+	pinCommand.AddCommand(disablePINCommand)
+	setPINCommand := &cobra.Command{
+		Use:   "set",
+		Short: "Sets the PIN",
+		Run:   setPIN,
+	}
+	setPINCommand.Flags().IntVar(&newPIN, "pin", -1, "New PIN")
+	setPINCommand.MarkFlagRequired("pin")
+	pinCommand.AddCommand(setPINCommand)
+	rootCmd.AddCommand(pinCommand)
 }
 
 func main() {
