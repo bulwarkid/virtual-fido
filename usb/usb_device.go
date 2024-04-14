@@ -19,17 +19,21 @@ type USBDevice interface {
 }
 
 type USBDeviceImpl struct {
-	Index         int
+	index         int
 	ctapHIDServer *ctap_hid.CTAPHIDServer
 	outputLock    sync.Locker
 }
 
 func NewUSBDevice(ctapHIDServer *ctap_hid.CTAPHIDServer) *USBDeviceImpl {
 	return &USBDeviceImpl{
-		Index:         0,
+		index:         0,
 		ctapHIDServer: ctapHIDServer,
 		outputLock:    &sync.Mutex{},
 	}
+}
+
+func (device *USBDeviceImpl) Index() int {
+	return device.index
 }
 
 func (device *USBDeviceImpl) getDeviceDescriptor() USBDeviceDescriptor {
