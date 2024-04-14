@@ -240,12 +240,12 @@ func (device *USBDeviceImpl) handleControlMessage(setup USBSetupPacket, transfer
 	}
 }
 
-func (device *USBDeviceImpl) handleInputMessage(setup USBSetupPacket, transferBuffer []byte) {
+func (device *USBDeviceImpl) handleInputMessage(transferBuffer []byte) {
 	usbLogger.Printf("INPUT TRANSFER BUFFER: %#v\n\n", transferBuffer)
 	go device.ctapHIDServer.HandleMessage(transferBuffer)
 }
 
-func (device *USBDeviceImpl) handleOutputMessage(id uint32, setup USBSetupPacket, transferBuffer []byte, onFinish func()) {
+func (device *USBDeviceImpl) handleOutputMessage(id uint32, transferBuffer []byte, onFinish func()) {
 	// Only process one output message at a time in order to maintain message order
 	device.outputLock.Lock()
 	response := device.ctapHIDServer.GetResponse(id, 1000)
@@ -266,10 +266,10 @@ func (device *USBDeviceImpl) HandleMessage(id uint32, onFinish func(), endpoint 
 		device.handleControlMessage(setup, transferBuffer)
 		onFinish()
 	} else if endpoint == 1 {
-		go device.handleOutputMessage(id, setup, transferBuffer, onFinish)
+		go device.handleOutputMessage(id, transferBuffer, onFinish)
 		// handleOutputMessage should handle calling onFinish
 	} else if endpoint == 2 {
-		device.handleInputMessage(setup, transferBuffer)
+		device.handleInputMessage(transferBuffer)
 		onFinish()
 	} else {
 		panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))

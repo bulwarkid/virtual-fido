@@ -8,11 +8,11 @@ import (
 
 type DummyUSBDevice struct{}
 
-func (device *DummyUSBDevice) removeWaitingRequest(id uint32) bool {
+func (device *DummyUSBDevice) RemoveWaitingRequest(id uint32) bool {
 	return false
 }
 
-func (device *DummyUSBDevice) getDescriptor(descriptorType USBDescriptorType, index uint8) []byte {
+func (device *DummyUSBDevice) getDescriptor(descriptorType USBDescriptorType) []byte {
 	switch descriptorType {
 	case USB_DESCRIPTOR_DEVICE:
 		descriptor := USBDeviceDescriptor{
@@ -53,8 +53,8 @@ func (device *DummyUSBDevice) getDescriptor(descriptorType USBDescriptorType, in
 func (device *DummyUSBDevice) handleControlMessage(setup USBSetupPacket, transferBuffer []byte) {
 	switch setup.BRequest {
 	case USB_REQUEST_GET_DESCRIPTOR:
-		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
-		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
+		descriptorType, _ := getDescriptorTypeAndIndex(setup.WValue)
+		descriptor := device.getDescriptor(descriptorType)
 		copy(transferBuffer, descriptor)
 	case USB_REQUEST_SET_CONFIGURATION:
 		//fmt.Printf("SET_CONFIGURATION: No-op\n\n")
@@ -70,7 +70,7 @@ func (device *DummyUSBDevice) handleControlMessage(setup USBSetupPacket, transfe
 	}
 }
 
-func (device *DummyUSBDevice) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
+func (device *DummyUSBDevice) HandleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
 	fmt.Printf("DUMMY USB: %s\n\n", setup)
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)
