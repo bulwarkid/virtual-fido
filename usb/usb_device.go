@@ -1,4 +1,4 @@
-package usbip
+package usb
 
 import (
 	"bytes"
@@ -13,10 +13,9 @@ import (
 var usbLogger = util.NewLogger("[USB] ", util.LogLevelTrace)
 
 type USBDevice interface {
-	handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte)
-	removeWaitingRequest(id uint32) bool
-	usbipSummary() USBIPDeviceSummary
-	usbipSummaryHeader() USBIPDeviceSummaryHeader
+	Index() int
+	HandleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte)
+	RemoveWaitingRequest(id uint32) bool
 }
 
 type USBDeviceImpl struct {
@@ -185,44 +184,6 @@ func (device *USBDeviceImpl) getDescriptor(descriptorType USBDescriptorType, ind
 	}
 }
 
-func (device *USBDeviceImpl) usbipSummary() USBIPDeviceSummary {
-	return USBIPDeviceSummary{
-		Header:          device.usbipSummaryHeader(),
-		DeviceInterface: device.usbipInterfacesSummary(),
-	}
-}
-
-func (device *USBDeviceImpl) usbipSummaryHeader() USBIPDeviceSummaryHeader {
-	path := [256]byte{}
-	copy(path[:], []byte("/device/"+fmt.Sprint(device.Index)))
-	busId := [32]byte{}
-	copy(busId[:], []byte("2-2"))
-	return USBIPDeviceSummaryHeader{
-		Path:                path,
-		BusId:               busId,
-		Busnum:              2,
-		Devnum:              2,
-		Speed:               2,
-		IdVendor:            0,
-		IdProduct:           0,
-		BcdDevice:           0,
-		BDeviceClass:        0,
-		BDeviceSubclass:     0,
-		BDeviceProtocol:     0,
-		BConfigurationValue: 0,
-		BNumConfigurations:  1,
-		BNumInterfaces:      1,
-	}
-}
-
-func (device *USBDeviceImpl) usbipInterfacesSummary() USBIPDeviceInterface {
-	return USBIPDeviceInterface{
-		BInterfaceClass:    3,
-		BInterfaceSubclass: 0,
-		Padding:            0,
-	}
-}
-
 func (device *USBDeviceImpl) handleDeviceRequest(
 	setup USBSetupPacket,
 	transferBuffer []byte) {
@@ -295,11 +256,11 @@ func (device *USBDeviceImpl) handleOutputMessage(id uint32, setup USBSetupPacket
 	device.outputLock.Unlock()
 }
 
-func (device *USBDeviceImpl) removeWaitingRequest(id uint32) bool {
+func (device *USBDeviceImpl) RemoveWaitingRequest(id uint32) bool {
 	return device.ctapHIDServer.RemoveWaitingRequest(id)
 }
 
-func (device *USBDeviceImpl) handleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
+func (device *USBDeviceImpl) HandleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte) {
 	usbLogger.Printf("USB MESSAGE - ENDPOINT %d\n\n", endpoint)
 	if endpoint == 0 {
 		device.handleControlMessage(setup, transferBuffer)

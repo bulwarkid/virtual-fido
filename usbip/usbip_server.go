@@ -7,17 +7,18 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/bulwarkid/virtual-fido/usb"
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
 var usbipLogger = util.NewLogger("[USBIP] ", util.LogLevelTrace)
 
 type USBIPServer struct {
-	device        USBDevice
+	device        usb.USBDevice
 	responseMutex *sync.Mutex
 }
 
-func NewUSBIPServer(device USBDevice) *USBIPServer {
+func NewUSBIPServer(device usb.USBDevice) *USBIPServer {
 	server := new(USBIPServer)
 	server.device = device
 	server.responseMutex = &sync.Mutex{}
@@ -112,14 +113,14 @@ func (server *USBIPServer) handleCommandSubmit(conn *net.Conn, header USBIPMessa
 		}
 		server.responseMutex.Unlock()
 	}
-	server.device.handleMessage(header.SequenceNumber, onReturnSubmit, header.Endpoint, setup, transferBuffer)
+	server.device.HandleMessage(header.SequenceNumber, onReturnSubmit, header.Endpoint, setup, transferBuffer)
 }
 
 func (server *USBIPServer) handleCommandUnlink(conn *net.Conn, header USBIPMessageHeader) {
 	unlink := util.ReadBE[USBIPCommandUnlinkBody](*conn)
 	usbipLogger.Printf("[COMMAND UNLINK] %#v\n\n", unlink)
 	var status int32
-	if server.device.removeWaitingRequest(unlink.UnlinkSequenceNumber) {
+	if server.device.RemoveWaitingRequest(unlink.UnlinkSequenceNumber) {
 		status = -int32(syscall.ECONNRESET)
 	} else {
 		status = -int32(syscall.ENOENT)

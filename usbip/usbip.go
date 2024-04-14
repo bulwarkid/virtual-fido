@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/bulwarkid/virtual-fido/usb"
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
@@ -70,7 +71,7 @@ type USBIPOpRepDevlist struct {
 	Devices    []USBIPDeviceSummary
 }
 
-func newOpRepDevlist(device USBDevice) USBIPOpRepDevlist {
+func newOpRepDevlist(device usb.USBDevice) USBIPOpRepDevlist {
 	return USBIPOpRepDevlist{
 		Header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
@@ -79,7 +80,7 @@ func newOpRepDevlist(device USBDevice) USBIPOpRepDevlist {
 		},
 		NumDevices: 1,
 		Devices: []USBIPDeviceSummary{
-			device.usbipSummary(),
+			usbipSummary(device),
 		},
 	}
 }
@@ -93,14 +94,14 @@ func (reply USBIPOpRepImport) String() string {
 	return fmt.Sprintf("USBIPOpRepImport{ Header: %#v, Device: %s }", reply.header, reply.device)
 }
 
-func newOpRepImport(device USBDevice) USBIPOpRepImport {
+func newOpRepImport(device usb.USBDevice) USBIPOpRepImport {
 	return USBIPOpRepImport{
 		header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
 			CommandCode: USBIP_COMMAND_OP_REP_IMPORT,
 			Status:      0,
 		},
-		device: device.usbipSummaryHeader(),
+		device: usbipSummaryHeader(device),
 	}
 }
 
@@ -156,8 +157,8 @@ func (body USBIPCommandSubmitBody) String() string {
 		body.Setup())
 }
 
-func (body USBIPCommandSubmitBody) Setup() USBSetupPacket {
-	return util.ReadLE[USBSetupPacket](bytes.NewBuffer(body.SetupBytes[:]))
+func (body USBIPCommandSubmitBody) Setup() usb.USBSetupPacket {
+	return util.ReadLE[usb.USBSetupPacket](bytes.NewBuffer(body.SetupBytes[:]))
 }
 
 type USBIPCommandUnlinkBody struct {
@@ -228,4 +229,43 @@ type USBIPDeviceInterface struct {
 	BInterfaceClass    uint8
 	BInterfaceSubclass uint8
 	Padding            uint8
+}
+
+func usbipSummary(device usb.USBDevice) USBIPDeviceSummary {
+	return USBIPDeviceSummary{
+		Header:          usbipSummaryHeader(device),
+		DeviceInterface: usbipInterfacesSummary(),
+	}
+}
+
+
+func usbipSummaryHeader(device usb.USBDevice) USBIPDeviceSummaryHeader {
+	path := [256]byte{}
+	copy(path[:], []byte("/device/"+fmt.Sprint(device.Index())))
+	busId := [32]byte{}
+	copy(busId[:], []byte("2-2"))
+	return USBIPDeviceSummaryHeader{
+		Path:                path,
+		BusId:               busId,
+		Busnum:              2,
+		Devnum:              2,
+		Speed:               2,
+		IdVendor:            0,
+		IdProduct:           0,
+		BcdDevice:           0,
+		BDeviceClass:        0,
+		BDeviceSubclass:     0,
+		BDeviceProtocol:     0,
+		BConfigurationValue: 0,
+		BNumConfigurations:  1,
+		BNumInterfaces:      1,
+	}
+}
+
+func usbipInterfacesSummary() USBIPDeviceInterface {
+	return USBIPDeviceInterface{
+		BInterfaceClass:    3,
+		BInterfaceSubclass: 0,
+		Padding:            0,
+	}
 }

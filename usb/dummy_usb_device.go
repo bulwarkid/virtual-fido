@@ -1,4 +1,4 @@
-package usbip
+package usb
 
 import (
 	"fmt"
@@ -10,44 +10,6 @@ type DummyUSBDevice struct{}
 
 func (device *DummyUSBDevice) removeWaitingRequest(id uint32) bool {
 	return false
-}
-
-func (device *DummyUSBDevice) usbipSummary() USBIPDeviceSummary {
-	return USBIPDeviceSummary{
-		Header:          device.usbipSummaryHeader(),
-		DeviceInterface: device.usbipInterfacesSummary(),
-	}
-}
-
-func (device *DummyUSBDevice) usbipInterfacesSummary() USBIPDeviceInterface {
-	return USBIPDeviceInterface{
-		BInterfaceClass:    3,
-		BInterfaceSubclass: 0,
-		Padding:            0,
-	}
-}
-
-func (device *DummyUSBDevice) usbipSummaryHeader() USBIPDeviceSummaryHeader {
-	path := [256]byte{}
-	copy(path[:], []byte("/device/0"))
-	busId := [32]byte{}
-	copy(busId[:], []byte("2-2"))
-	return USBIPDeviceSummaryHeader{
-		Path:                path,
-		BusId:               busId,
-		Busnum:              2,
-		Devnum:              2,
-		Speed:               2,
-		IdVendor:            0,
-		IdProduct:           0,
-		BcdDevice:           0,
-		BDeviceClass:        0,
-		BDeviceSubclass:     0,
-		BDeviceProtocol:     0,
-		BConfigurationValue: 0,
-		BNumConfigurations:  1,
-		BNumInterfaces:      1,
-	}
 }
 
 func (device *DummyUSBDevice) getDescriptor(descriptorType USBDescriptorType, index uint8) []byte {

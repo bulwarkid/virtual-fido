@@ -1,4 +1,4 @@
-package usbip
+package usb
 
 import "fmt"
 
