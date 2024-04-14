@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/spf13/cobra v1.5.0
-	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
+	golang.org/x/crypto v0.22.0
 )
 
 require (
