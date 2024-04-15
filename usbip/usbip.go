@@ -11,8 +11,8 @@ import (
 const (
 	USBIP_VERSION = 0x0111
 
-	USBIP_CMD_SUBMIT     = 0x1
-	USBIP_CMD_UNLINK     = 0x2
+	USBIP_CMD_SUBMIT = 0x1
+	USBIP_CMD_UNLINK = 0x2
 	USBIP_RET_SUBMIT = 0x3
 	USBIP_RET_UNLINK = 0x4
 
@@ -71,7 +71,7 @@ type USBIPOpRepDevlist struct {
 	Devices    []USBIPDeviceSummary
 }
 
-func newOpRepDevlist(device usb.USBDevice) USBIPOpRepDevlist {
+func newOpRepDevlist() USBIPOpRepDevlist {
 	return USBIPOpRepDevlist{
 		Header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
@@ -80,7 +80,7 @@ func newOpRepDevlist(device usb.USBDevice) USBIPOpRepDevlist {
 		},
 		NumDevices: 1,
 		Devices: []USBIPDeviceSummary{
-			usbipSummary(device),
+			usbipSummary(),
 		},
 	}
 }
@@ -94,14 +94,14 @@ func (reply USBIPOpRepImport) String() string {
 	return fmt.Sprintf("USBIPOpRepImport{ Header: %#v, Device: %s }", reply.header, reply.device)
 }
 
-func newOpRepImport(device usb.USBDevice) USBIPOpRepImport {
+func newOpRepImport() USBIPOpRepImport {
 	return USBIPOpRepImport{
 		header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
 			CommandCode: USBIP_COMMAND_OP_REP_IMPORT,
 			Status:      0,
 		},
-		device: usbipSummaryHeader(device),
+		device: usbipSummaryHeader(),
 	}
 }
 
@@ -147,11 +147,11 @@ func (header USBIPMessageHeader) replyHeader() USBIPMessageHeader {
 		command = USBIP_RET_UNLINK
 	}
 	return USBIPMessageHeader{
-		Command: command,
+		Command:        command,
 		SequenceNumber: header.SequenceNumber,
-		DeviceId: header.DeviceId,
-		Direction: USBIP_DIR_OUT,
-		Endpoint: header.Endpoint,
+		DeviceId:       header.DeviceId,
+		Direction:      USBIP_DIR_OUT,
+		Endpoint:       header.Endpoint,
 	}
 }
 
@@ -248,16 +248,17 @@ type USBIPDeviceInterface struct {
 	Padding            uint8
 }
 
-func usbipSummary(device usb.USBDevice) USBIPDeviceSummary {
+func usbipSummary() USBIPDeviceSummary {
 	return USBIPDeviceSummary{
-		Header:          usbipSummaryHeader(device),
+		Header:          usbipSummaryHeader(),
 		DeviceInterface: usbipInterfacesSummary(),
 	}
 }
 
-func usbipSummaryHeader(device usb.USBDevice) USBIPDeviceSummaryHeader {
+func usbipSummaryHeader() USBIPDeviceSummaryHeader {
+	// Both path and busId are hard-coded because we will only support one device
 	path := [256]byte{}
-	copy(path[:], []byte("/device/"+fmt.Sprint(device.Index())))
+	copy(path[:], []byte("/device/0"))
 	busId := [32]byte{}
 	copy(busId[:], []byte("2-2"))
 	return USBIPDeviceSummaryHeader{

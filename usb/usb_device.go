@@ -13,27 +13,20 @@ import (
 var usbLogger = util.NewLogger("[USB] ", util.LogLevelTrace)
 
 type USBDevice interface {
-	Index() int
 	HandleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte)
 	RemoveWaitingRequest(id uint32) bool
 }
 
 type USBDeviceImpl struct {
-	index         int
 	ctapHIDServer *ctap_hid.CTAPHIDServer
 	outputLock    sync.Locker
 }
 
 func NewUSBDevice(ctapHIDServer *ctap_hid.CTAPHIDServer) *USBDeviceImpl {
 	return &USBDeviceImpl{
-		index:         0,
 		ctapHIDServer: ctapHIDServer,
 		outputLock:    &sync.Mutex{},
 	}
-}
-
-func (device *USBDeviceImpl) Index() int {
-	return device.index
 }
 
 func (device *USBDeviceImpl) getDeviceDescriptor() USBDeviceDescriptor {
