@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/big"
 	"net"
+	"runtime/debug"
 	"time"
 	"unicode/utf16"
 
@@ -15,14 +16,23 @@ import (
 
 func Assert(val bool, message string) {
 	if !val {
-		panic(message)
+		panic(fmt.Sprintf("%s\n%s", message, string(debug.Stack())))
 	}
 }
 
 func CheckErr(err error, message string) {
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: %v - %v", message, err))
+		panic(fmt.Sprintf("ERROR: %v - %v\n%s", message, err, string(debug.Stack())))
 	}
+}
+
+func Try(try func(), catch func(val interface{})) {
+	defer func() {
+		if r := recover(); r != nil {
+			catch(r)
+		}
+	}()
+	try()
 }
 
 func CheckEOF(conn *net.Conn) {

@@ -11,10 +11,10 @@ import (
 const (
 	USBIP_VERSION = 0x0111
 
-	USBIP_COMMAND_SUBMIT     = 0x1
-	USBIP_COMMAND_UNLINK     = 0x2
-	USBIP_COMMAND_RET_SUBMIT = 0x3
-	USBIP_COMMAND_RET_UNLINK = 0x4
+	USBIP_CMD_SUBMIT     = 0x1
+	USBIP_CMD_UNLINK     = 0x2
+	USBIP_RET_SUBMIT = 0x3
+	USBIP_RET_UNLINK = 0x4
 
 	USBIP_DIR_OUT = 0x0
 	USBIP_DIR_IN  = 0x1
@@ -38,14 +38,14 @@ var USBIPControlCommandDescriptions = map[USBIPControlCommand]string{
 
 func commandString(command uint32) string {
 	switch command {
-	case USBIP_COMMAND_SUBMIT:
-		return "USBIP_COMMAND_SUBMIT"
-	case USBIP_COMMAND_UNLINK:
-		return "USBIP_COMMAND_UNLINK"
-	case USBIP_COMMAND_RET_SUBMIT:
-		return "USBIP_COMMAND_RET_SUBMIT"
-	case USBIP_COMMAND_RET_UNLINK:
-		return "USBIP_COMMAND_RET_UNLINK"
+	case USBIP_CMD_SUBMIT:
+		return "USBIP_CMD_SUBMIT"
+	case USBIP_CMD_UNLINK:
+		return "USBIP_CMD_UNLINK"
+	case USBIP_RET_SUBMIT:
+		return "USBIP_RET_SUBMIT"
+	case USBIP_RET_UNLINK:
+		return "USBIP_RET_UNLINK"
 	default:
 		panic(fmt.Sprintf("Unrecognized command: %d", command))
 	}
@@ -136,6 +136,23 @@ func (header USBIPMessageHeader) DirectionName() string {
 		direction = "USBIP_DIR_OUT"
 	}
 	return direction
+}
+
+func (header USBIPMessageHeader) replyHeader() USBIPMessageHeader {
+	var command uint32
+	switch header.Command {
+	case USBIP_CMD_SUBMIT:
+		command = USBIP_RET_SUBMIT
+	case USBIP_CMD_UNLINK:
+		command = USBIP_RET_UNLINK
+	}
+	return USBIPMessageHeader{
+		Command: command,
+		SequenceNumber: header.SequenceNumber,
+		DeviceId: header.DeviceId,
+		Direction: USBIP_DIR_OUT,
+		Endpoint: header.Endpoint,
+	}
 }
 
 type USBIPCommandSubmitBody struct {
@@ -237,7 +254,6 @@ func usbipSummary(device usb.USBDevice) USBIPDeviceSummary {
 		DeviceInterface: usbipInterfacesSummary(),
 	}
 }
-
 
 func usbipSummaryHeader(device usb.USBDevice) USBIPDeviceSummaryHeader {
 	path := [256]byte{}
