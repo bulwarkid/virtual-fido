@@ -15,15 +15,19 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
+func Panic(message string) {
+	panic(fmt.Sprintf("%s\n%s", message, string(debug.Stack())))
+}
+
 func Assert(val bool, message string) {
 	if !val {
-		panic(fmt.Sprintf("%s\n%s", message, string(debug.Stack())))
+		Panic(message)
 	}
 }
 
 func CheckErr(err error, message string) {
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: %v - %v\n%s", message, err, string(debug.Stack())))
+		Panic(fmt.Sprintf("ERROR: %v - %v", message, err))
 	}
 }
 
