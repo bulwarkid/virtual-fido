@@ -7,15 +7,11 @@ import (
 	"unsafe"
 
 	"github.com/bulwarkid/virtual-fido/ctap_hid"
+	"github.com/bulwarkid/virtual-fido/usbip"
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
 var usbLogger = util.NewLogger("[USB] ", util.LogLevelTrace)
-
-type USBDevice interface {
-	HandleMessage(id uint32, onFinish func(), endpoint uint32, setup USBSetupPacket, transferBuffer []byte)
-	RemoveWaitingRequest(id uint32) bool
-}
 
 type USBDeviceImpl struct {
 	ctapHIDServer *ctap_hid.CTAPHIDServer
@@ -271,4 +267,35 @@ func (device *USBDeviceImpl) HandleMessage(id uint32, onFinish func(), endpoint 
 	} else {
 		panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
 	}
+}
+
+func (device *USBDeviceImpl) BusID() string {
+	return "2-2"
+}
+
+func (device *USBDeviceImpl) DeviceSummary() usbip.USBIPDeviceSummary {
+	summary := usbip.USBIPDeviceSummary{
+		Header: usbip.USBIPDeviceSummaryHeader{
+			Busnum:              2,
+			Devnum:              2,
+			Speed:               2,
+			IdVendor:            0,
+			IdProduct:           0,
+			BcdDevice:           0,
+			BDeviceClass:        0,
+			BDeviceSubclass:     0,
+			BDeviceProtocol:     0,
+			BConfigurationValue: 0,
+			BNumConfigurations:  1,
+			BNumInterfaces:      1,
+		},
+		DeviceInterface: usbip.USBIPDeviceInterface{
+			BInterfaceClass:    3,
+			BInterfaceSubclass: 0,
+			Padding:            0,
+		},
+	}
+	copy(summary.Header.Path[:], []byte("/device/0"))
+	copy(summary.Header.BusID[:], []byte("2-2"))
+	return summary
 }

@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"net"
 	"runtime/debug"
+	"strings"
 	"time"
 	"unicode/utf16"
 
@@ -162,4 +163,14 @@ func MarshalCBOR(val interface{}) []byte {
 	data, err := encMode.Marshal(val)
 	CheckErr(err, "Could not marshal CBOR")
 	return data
+}
+
+func CStringToString(data []byte) string {
+	// Converts a null-terminated series of bytes into a Go string
+	i := strings.Index(string(data), "\x00")
+	if i < 0 {
+		// We want to aggressively panic here because it is almost certainly an error
+		panic("No null termination in CString")
+	}
+	return string(data[:i])
 }

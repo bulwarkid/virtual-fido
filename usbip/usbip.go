@@ -1,11 +1,7 @@
 package usbip
 
 import (
-	"bytes"
 	"fmt"
-
-	"github.com/bulwarkid/virtual-fido/usb"
-	"github.com/bulwarkid/virtual-fido/util"
 )
 
 const (
@@ -71,17 +67,19 @@ type USBIPOpRepDevlist struct {
 	Devices    []USBIPDeviceSummary
 }
 
-func newOpRepDevlist() USBIPOpRepDevlist {
+func newOpRepDevlist(devices []USBIPDevice) USBIPOpRepDevlist {
+	summaries := make([]USBIPDeviceSummary, len(devices))
+	for i := range devices {
+		summaries[i] = devices[i].DeviceSummary()
+	}
 	return USBIPOpRepDevlist{
 		Header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
 			CommandCode: USBIP_COMMAND_OP_REP_DEVLIST,
 			Status:      0,
 		},
-		NumDevices: 1,
-		Devices: []USBIPDeviceSummary{
-			usbipSummary(),
-		},
+		NumDevices: uint32(len(devices)),
+		Devices:    summaries,
 	}
 }
 
@@ -94,14 +92,22 @@ func (reply USBIPOpRepImport) String() string {
 	return fmt.Sprintf("USBIPOpRepImport{ Header: %#v, Device: %s }", reply.header, reply.device)
 }
 
-func newOpRepImport() USBIPOpRepImport {
+func newOpRepImport(device USBIPDevice) USBIPOpRepImport {
 	return USBIPOpRepImport{
 		header: USBIPControlHeader{
 			Version:     USBIP_VERSION,
 			CommandCode: USBIP_COMMAND_OP_REP_IMPORT,
 			Status:      0,
 		},
-		device: usbipSummaryHeader(),
+		device: device.DeviceSummary().Header,
+	}
+}
+
+func opRepImportError(statusCode uint32) USBIPControlHeader {
+	return USBIPControlHeader{
+		Version:     USBIP_VERSION,
+		CommandCode: USBIP_COMMAND_OP_REP_IMPORT,
+		Status:      statusCode,
 	}
 }
 
@@ -171,11 +177,7 @@ func (body USBIPCommandSubmitBody) String() string {
 		body.StartFrame,
 		body.NumberOfPackets,
 		body.Interval,
-		body.Setup())
-}
-
-func (body USBIPCommandSubmitBody) Setup() usb.USBSetupPacket {
-	return util.ReadLE[usb.USBSetupPacket](bytes.NewBuffer(body.SetupBytes[:]))
+		body.SetupBytes)
 }
 
 type USBIPCommandUnlinkBody struct {
@@ -207,8 +209,8 @@ func (summary USBIPDeviceSummary) String() string {
 }
 
 type USBIPDeviceSummaryHeader struct {
-	Path                [256]byte
-	BusId               [32]byte
+	Path                [256]byte // Path on host system
+	BusID               [32]byte  // Bus ID on host system
 	Busnum              uint32
 	Devnum              uint32
 	Speed               uint32
@@ -227,7 +229,7 @@ func (header USBIPDeviceSummaryHeader) String() string {
 	return fmt.Sprintf(
 		"USBIPDeviceSummaryHeader{ Path: \"%s\", BusId: \"%s\", Busnum: %d, Devnum %d, Speed %d, IdVendor: %d, IdProduct: %d, BcdDevice: 0x%x, BDeviceClass: %d, BDeviceSubclass: %d, BDeviceProtocol: %d, BConfigurationValue: %d, BNumConfigurations: %d, BNumInterfaces: %d}",
 		string(header.Path[:]),
-		string(header.BusId[:]),
+		string(header.BusID[:]),
 		header.Busnum,
 		header.Devnum,
 		header.Speed,
@@ -248,41 +250,9 @@ type USBIPDeviceInterface struct {
 	Padding            uint8
 }
 
-func usbipSummary() USBIPDeviceSummary {
-	return USBIPDeviceSummary{
-		Header:          usbipSummaryHeader(),
-		DeviceInterface: usbipInterfacesSummary(),
-	}
-}
-
-func usbipSummaryHeader() USBIPDeviceSummaryHeader {
-	// Both path and busId are hard-coded because we will only support one device
-	path := [256]byte{}
-	copy(path[:], []byte("/device/0"))
-	busId := [32]byte{}
-	copy(busId[:], []byte("2-2"))
-	return USBIPDeviceSummaryHeader{
-		Path:                path,
-		BusId:               busId,
-		Busnum:              2,
-		Devnum:              2,
-		Speed:               2,
-		IdVendor:            0,
-		IdProduct:           0,
-		BcdDevice:           0,
-		BDeviceClass:        0,
-		BDeviceSubclass:     0,
-		BDeviceProtocol:     0,
-		BConfigurationValue: 0,
-		BNumConfigurations:  1,
-		BNumInterfaces:      1,
-	}
-}
-
-func usbipInterfacesSummary() USBIPDeviceInterface {
-	return USBIPDeviceInterface{
-		BInterfaceClass:    3,
-		BInterfaceSubclass: 0,
-		Padding:            0,
-	}
+type USBIPDevice interface {
+	HandleMessage(id uint32, onFinish func(), endpoint uint32, setupBytes [8]byte, transferBuffer []byte)
+	RemoveWaitingRequest(id uint32) bool
+	BusID() string
+	DeviceSummary() USBIPDeviceSummary
 }
