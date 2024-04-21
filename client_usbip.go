@@ -15,6 +15,6 @@ func startClient(client FIDOClient) {
 	u2fServer := u2f.NewU2FServer(client)
 	ctapHIDServer := ctap_hid.NewCTAPHIDServer(ctapServer, u2fServer)
 	usbDevice := usb.NewUSBDevice(ctapHIDServer)
-	server := usbip.NewUSBIPServer(usbDevice)
+	server := usbip.NewUSBIPServer([]usbip.USBIPDevice{usbDevice})
 	server.Start()
 }
