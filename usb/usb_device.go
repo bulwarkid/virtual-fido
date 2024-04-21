@@ -65,22 +65,20 @@ func (device *USBDevice) RemoveWaitingRequest(id uint32) bool {
 	return device.delegate.RemoveWaitingRequest(id)
 }
 
-func (device *USBDevice) HandleMessage(id uint32, onFinish func(), endpoint uint32, setupBytes [8]byte, transferBuffer []byte) {
+func (device *USBDevice) HandleMessage(id uint32, onFinish func(response []byte), endpoint uint32, setupBytes [8]byte, data []byte) {
 	setup := util.ReadBE[usbSetupPacket](bytes.NewBuffer(setupBytes[:]))
 	usbLogger.Printf("USB MESSAGE - ENDPOINT %d\n\n", endpoint)
 	switch usbEndpoint(endpoint) {
 	case usbEndpointControl:
-		if reply := device.handleControlMessage(setup); reply != nil {
-			copy(transferBuffer, reply)
-		}
-		onFinish()
+		reply := device.handleControlMessage(setup)
+		onFinish(reply)
 	case usbEndpointOutput:
-		go device.handleOutputMessage(id, transferBuffer, onFinish)
+		go device.handleOutputMessage(id, onFinish)
 		// handleOutputMessage should handle calling onFinish
 	case usbEndpointInput:
-		usbLogger.Printf("INPUT TRANSFER BUFFER: %#v\n\n", transferBuffer)
-		go device.delegate.HandleMessage(transferBuffer)
-		onFinish()
+		usbLogger.Printf("INPUT DATA: %#v\n\n", data)
+		go device.delegate.HandleMessage(data)
+		onFinish(nil)
 	default:
 		util.Panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
 	}
@@ -99,13 +97,12 @@ func (device *USBDevice) handleControlMessage(setup usbSetupPacket) []byte {
 	return nil
 }
 
-func (device *USBDevice) handleOutputMessage(id uint32, transferBuffer []byte, onFinish func()) {
+func (device *USBDevice) handleOutputMessage(id uint32, onFinish func(response []byte)) {
 	// Only process one output message at a time in order to maintain message order
 	device.outputLock.Lock()
 	response := device.delegate.GetResponse(id, 1000)
 	if response != nil {
-		copy(transferBuffer, response)
-		onFinish()
+		onFinish(response)
 	}
 	device.outputLock.Unlock()
 }

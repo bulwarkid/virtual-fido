@@ -122,7 +122,10 @@ func (conn *usbipConnection) handleCommandSubmit(device USBIPDevice, header usbi
 		util.CheckErr(err, "Could not read transfer buffer")
 	}
 	// Getting the reponse may not be immediate, so we need a callback
-	onReturnSubmit := func() {
+	onReturnSubmit := func(response []byte) {
+		if response != nil {
+			copy(transferBuffer, response)
+		}
 		replyHeader := header.replyHeader()
 		replyBody := usbipReturnSubmitBody{
 			Status:          0,
