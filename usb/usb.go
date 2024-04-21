@@ -2,256 +2,249 @@ package usb
 
 import "fmt"
 
-type USBRequestType uint8
+type usbRequestType uint8
 
 const (
-	USB_REQUEST_GET_STATUS        USBRequestType = 0
-	USB_REQUEST_CLEAR_FEATURE     USBRequestType = 1
-	USB_REQUEST_SET_FEATURE       USBRequestType = 3
-	USB_REQUEST_SET_ADDRESS       USBRequestType = 5
-	USB_REQUEST_GET_DESCRIPTOR    USBRequestType = 6
-	USB_REQUEST_SET_DESCRIPTOR    USBRequestType = 7
-	USB_REQUEST_GET_CONFIGURATION USBRequestType = 8
-	USB_REQUEST_SET_CONFIGURATION USBRequestType = 9
-	USB_REQUEST_GET_INTERFACE     USBRequestType = 10
-	USB_REQUEST_SET_INTERFACE     USBRequestType = 11
-	USB_REQUEST_SYNCH_FRAME       USBRequestType = 12
+	usbRequestGetStatus        usbRequestType = 0
+	usbRequestClearFeature     usbRequestType = 1
+	usbRequestSetFeature       usbRequestType = 3
+	usbRequestSetAddress       usbRequestType = 5
+	usbRequestGetDescriptor    usbRequestType = 6
+	usbRequestSetDescriptor    usbRequestType = 7
+	usbRequestGetConfiguration usbRequestType = 8
+	usbRequestSetConfiguration usbRequestType = 9
+	usbRequestGetInterface     usbRequestType = 10
+	usbRequestSetInterface     usbRequestType = 11
+	usbRequestSynchFrame       usbRequestType = 12
 )
 
-var deviceRequestDescriptons = map[USBRequestType]string{
-	USB_REQUEST_GET_STATUS:        "USB_REQUEST_GET_STATUS",
-	USB_REQUEST_CLEAR_FEATURE:     "USB_REQUEST_CLEAR_FEATURE",
-	USB_REQUEST_SET_FEATURE:       "USB_REQUEST_SET_FEATURE",
-	USB_REQUEST_SET_ADDRESS:       "USB_REQUEST_SET_ADDRESS",
-	USB_REQUEST_GET_DESCRIPTOR:    "USB_REQUEST_GET_DESCRIPTOR",
-	USB_REQUEST_SET_DESCRIPTOR:    "USB_REQUEST_SET_DESCRIPTOR",
-	USB_REQUEST_GET_CONFIGURATION: "USB_REQUEST_GET_CONFIGURATION",
-	USB_REQUEST_SET_CONFIGURATION: "USB_REQUEST_SET_CONFIGURATION",
-	USB_REQUEST_GET_INTERFACE:     "USB_REQUEST_GET_INTERFACE",
-	USB_REQUEST_SET_INTERFACE:     "USB_REQUEST_SET_INTERFACE",
-	USB_REQUEST_SYNCH_FRAME:       "USB_REQUEST_SYNCH_FRAME",
+var deviceRequestDescriptons = map[usbRequestType]string{
+	usbRequestGetStatus:        "usbRequestGetStatus",
+	usbRequestClearFeature:     "usbRequestClearFeature",
+	usbRequestSetFeature:       "usbRequestSetFeature",
+	usbRequestSetAddress:       "usbRequestSetAddress",
+	usbRequestGetDescriptor:    "usbRequestGetDescriptor",
+	usbRequestSetDescriptor:    "usbRequestSetDescriptor",
+	usbRequestGetConfiguration: "usbRequestGetConfiguration",
+	usbRequestSetConfiguration: "usbRequestSetConfiguration",
+	usbRequestGetInterface:     "usbRequestGetInterface",
+	usbRequestSetInterface:     "usbRequestSetInterface",
+	usbRequestSynchFrame:       "usbRequestSynchFrame",
 }
 
-type USBDescriptorType uint8
+type usbDescriptorType uint8
 
 const (
-	USB_DESCRIPTOR_DEVICE                    USBDescriptorType = 1
-	USB_DESCRIPTOR_CONFIGURATION             USBDescriptorType = 2
-	USB_DESCRIPTOR_STRING                    USBDescriptorType = 3
-	USB_DESCRIPTOR_INTERFACE                 USBDescriptorType = 4
-	USB_DESCRIPTOR_ENDPOINT                  USBDescriptorType = 5
-	USB_DESCRIPTOR_DEVICE_QUALIFIER          USBDescriptorType = 6
-	USB_DESCRIPTOR_OTHER_SPEED_CONFIGURATION USBDescriptorType = 7
-	USB_DESCRIPTOR_INTERFACE_POWER           USBDescriptorType = 8
-	USB_DESCRIPTOR_HID                       USBDescriptorType = 33
-	USB_DESCRIPTOR_HID_REPORT                USBDescriptorType = 34
+	usbDescriptorDevice                  usbDescriptorType = 1
+	usbDescriptorConfiguration           usbDescriptorType = 2
+	usbDescriptorString                  usbDescriptorType = 3
+	usbDescriptorInterface               usbDescriptorType = 4
+	usbDescriptorEndpoint                usbDescriptorType = 5
+	usbDescriptorDeviceQualifier         usbDescriptorType = 6
+	usbDescriptorOtherSpeedConfiguration usbDescriptorType = 7
+	usbDescriptorInterfacePower          usbDescriptorType = 8
+	usbDescriptorHID                     usbDescriptorType = 33
+	usbDescriptorHIDReport               usbDescriptorType = 34
 )
 
-var descriptorTypeDescriptions = map[USBDescriptorType]string{
-	USB_DESCRIPTOR_DEVICE:                    "USB_DESCRIPTOR_DEVICE",
-	USB_DESCRIPTOR_CONFIGURATION:             "USB_DESCRIPTOR_CONFIGURATION",
-	USB_DESCRIPTOR_STRING:                    "USB_DESCRIPTOR_STRING",
-	USB_DESCRIPTOR_INTERFACE:                 "USB_DESCRIPTOR_INTERFACE",
-	USB_DESCRIPTOR_ENDPOINT:                  "USB_DESCRIPTOR_ENDPOINT",
-	USB_DESCRIPTOR_DEVICE_QUALIFIER:          "USB_DESCRIPTOR_DEVICE_QUALIFIER",
-	USB_DESCRIPTOR_OTHER_SPEED_CONFIGURATION: "USB_DESCRIPTOR_OTHER_SPEED_CONFIGURATION",
-	USB_DESCRIPTOR_INTERFACE_POWER:           "USB_DESCRIPTOR_INTERFACE_POWER",
-	USB_DESCRIPTOR_HID:                       "USB_DESCRIPTOR_HID",
-	USB_DESCRIPTOR_HID_REPORT:                "USB_DESCRIPTOR_HID_REPORT",
+var descriptorTypeDescriptions = map[usbDescriptorType]string{
+	usbDescriptorDevice:                  "usbDescriptorDevice",
+	usbDescriptorConfiguration:           "usbDescriptorConfiguration",
+	usbDescriptorString:                  "usbDescriptorString",
+	usbDescriptorInterface:               "usbDescriptorInterface",
+	usbDescriptorEndpoint:                "usbDescriptorEndpoint",
+	usbDescriptorDeviceQualifier:         "usbDescriptorDeviceQualifier",
+	usbDescriptorOtherSpeedConfiguration: "usbDescriptorOtherSpeedConfiguration",
+	usbDescriptorInterfacePower:          "usbDescriptorInterfacePower",
+	usbDescriptorHID:                     "usbDescriptorHID",
+	usbDescriptorHIDReport:               "usbDescriptorHIDReport",
 }
 
-type USBHIDRequestType uint8
+type usbHIDRequestType uint8
 
 const (
-	USB_HID_REQUEST_GET_REPORT     USBHIDRequestType = 1
-	USB_HID_REQUEST_GET_IDLE       USBHIDRequestType = 2
-	USB_HID_REQUEST_GET_PROTOCOL   USBHIDRequestType = 3
-	USB_HID_REQUEST_GET_DESCRIPTOR USBHIDRequestType = 6
-	USB_HID_REQUEST_SET_DESCRIPTOR USBHIDRequestType = 7
-	USB_HID_REQUEST_SET_REPORT     USBHIDRequestType = 9
-	USB_HID_REQUEST_SET_IDLE       USBHIDRequestType = 10
-	USB_HID_REQUEST_SET_PROTOCOL   USBHIDRequestType = 11
+	usbHIDRequestGetReport     usbHIDRequestType = 1
+	usbHIDRequestGetIdle       usbHIDRequestType = 2
+	usbHIDRequestGetProtocol   usbHIDRequestType = 3
+	usbHIDRequestGetDescriptor usbHIDRequestType = 6
+	usbHIDRequestSetDescriptor usbHIDRequestType = 7
+	usbHIDRequestSetReport     usbHIDRequestType = 9
+	usbHIDRequestSetIdle       usbHIDRequestType = 10
+	usbHIDRequestSetProtocol   usbHIDRequestType = 11
 )
 
-var interfaceRequestDescriptions = map[USBHIDRequestType]string{
-	USB_HID_REQUEST_GET_REPORT:     "USB_HID_REQUEST_GET_REPORT",
-	USB_HID_REQUEST_GET_IDLE:       "USB_HID_REQUEST_GET_IDLE",
-	USB_HID_REQUEST_GET_PROTOCOL:   "USB_HID_REQUEST_GET_PROTOCOL",
-	USB_HID_REQUEST_GET_DESCRIPTOR: "USB_HID_REQUEST_GET_DESCRIPTOR",
-	USB_HID_REQUEST_SET_DESCRIPTOR: "USB_HID_REQUEST_SET_DESCRIPTOR",
-	USB_HID_REQUEST_SET_REPORT:     "USB_HID_REQUEST_SET_REPORT",
-	USB_HID_REQUEST_SET_IDLE:       "USB_HID_REQUEST_SET_IDLE",
-	USB_HID_REQUEST_SET_PROTOCOL:   "USB_HID_REQUEST_SET_PROTOCOL",
+var interfaceRequestDescriptions = map[usbHIDRequestType]string{
+	usbHIDRequestGetReport:     "usbHIDRequestGetReport",
+	usbHIDRequestGetIdle:       "usbHIDRequestGetIdle",
+	usbHIDRequestGetProtocol:   "usbHIDRequestGetProtocol",
+	usbHIDRequestGetDescriptor: "usbHIDRequestGetDescriptor",
+	usbHIDRequestSetDescriptor: "usbHIDRequestSetDescriptor",
+	usbHIDRequestSetReport:     "usbHIDRequestSetReport",
+	usbHIDRequestSetIdle:       "usbHIDRequestSetIdle",
+	usbHIDRequestSetProtocol:   "usbHIDRequestSetProtocol",
 }
 
-type USBDirection uint8
+type usbDirection uint8
 
 const (
-	USB_HOST_TO_DEVICE USBDirection = 0
-	USB_DEVICE_TO_HOST USBDirection = 1
+	usbHostToDevice usbDirection = 0
+	usbDeviceToHost usbDirection = 1
 )
 
-var requestDirectionDescriptions = map[USBDirection]string{
-	USB_HOST_TO_DEVICE: "USB_HOST_TO_DEVICE",
-	USB_DEVICE_TO_HOST: "USB_DEVICE_TO_HOST",
+var requestDirectionDescriptions = map[usbDirection]string{
+	usbHostToDevice: "usbHostToDevice",
+	usbDeviceToHost: "usbDeviceToHost",
 }
 
-type USBRequestClass uint8
+type usbRequestClass uint8
 
 const (
-	USB_REQUEST_CLASS_STANDARD USBRequestClass = 0
-	USB_REQUEST_CLASS_CLASS    USBRequestClass = 1
-	USB_REQUEST_CLASS_VENDOR   USBRequestClass = 2
-	USB_REQUEST_CLASS_RESERVED USBRequestClass = 3
+	usbRequestClassStandard usbRequestClass = 0
+	usbRequestClassClass    usbRequestClass = 1
+	usbRequestClassVendor   usbRequestClass = 2
+	usbRequestClassReserved usbRequestClass = 3
 )
 
-var requestClassDescriptons = map[USBRequestClass]string{
-	USB_REQUEST_CLASS_STANDARD: "USB_REQUEST_CLASS_STANDARD",
-	USB_REQUEST_CLASS_CLASS:    "USB_REQUEST_CLASS_CLASS",
-	USB_REQUEST_CLASS_VENDOR:   "USB_REQUEST_CLASS_VENDOR",
-	USB_REQUEST_CLASS_RESERVED: "USB_REQUEST_CLASS_RESERVED",
+var requestClassDescriptons = map[usbRequestClass]string{
+	usbRequestClassStandard: "usbRequestClassStandard",
+	usbRequestClassClass:    "usbRequestClassClass",
+	usbRequestClassVendor:   "usbRequestClassVendor",
+	usbRequestClassReserved: "usbRequestClassReserved",
 }
 
-type USBRequestRecipient uint8
+type usbRequestRecipient uint8
 
 const (
-	USB_REQUEST_RECIPIENT_DEVICE    USBRequestRecipient = 0
-	USB_REQUEST_RECIPIENT_INTERFACE USBRequestRecipient = 1
-	USB_REQUEST_RECIPIENT_ENDPOINT  USBRequestRecipient = 2
-	USB_REQUEST_RECIPIENT_OTHER     USBRequestRecipient = 3
+	usbRequestRecipientDevice    usbRequestRecipient = 0
+	usbRequestRecipientInterface usbRequestRecipient = 1
+	usbRequestRecipientEndpoint  usbRequestRecipient = 2
+	usbRequestRecipientOther     usbRequestRecipient = 3
 )
 
-var requestRecipientDescriptions = map[USBRequestRecipient]string{
-	USB_REQUEST_RECIPIENT_DEVICE:    "USB_REQUEST_RECIPIENT_DEVICE",
-	USB_REQUEST_RECIPIENT_INTERFACE: "USB_REQUEST_RECIPIENT_INTERFACE",
-	USB_REQUEST_RECIPIENT_ENDPOINT:  "USB_REQUEST_RECIPIENT_ENDPOINT",
-	USB_REQUEST_RECIPIENT_OTHER:     "USB_REQUEST_RECIPIENT_OTHER",
+var requestRecipientDescriptions = map[usbRequestRecipient]string{
+	usbRequestRecipientDevice:    "usbRequestRecipientDevice",
+	usbRequestRecipientInterface: "usbRequestRecipientInterface",
+	usbRequestRecipientEndpoint:  "usbRequestRecipientEndpoint",
+	usbRequestRecipientOther:     "usbRequestRecipientOther",
 }
 
 const (
-	USB_CONFIG_ATTR_BASE          = 0b10000000
-	USB_CONFIG_ATTR_SELF_POWERED  = 0b01000000
-	USB_CONFIG_ATTR_REMOTE_WAKEUP = 0b00100000
+	usbConfigAttributeBase         = 0b10000000
+	usbConfigAttributeSelfPowered  = 0b01000000
+	usbConfigAttributeRemoteWakeup = 0b00100000
 
-	USB_INTERFACE_CLASS_HID = 3
+	usbInterfaceClassHID = 3
 
-	USB_LANGID_ENG_USA = 0x0409
+	usbLangIDEngUSA = 0x0409
 )
 
-type USBSetupPacket struct {
-	BmRequestType uint8
-	BRequest      USBRequestType
-	WValue        uint16
-	WIndex        uint16
-	WLength       uint16
+type usbSetupPacket struct {
+	bmRequestType uint8
+	bRequest      usbRequestType
+	wValue        uint16
+	wIndex        uint16
+	wLength       uint16
 }
 
-func (setup USBSetupPacket) String() string {
+func (setup usbSetupPacket) String() string {
 	var requestDescription string
 	var ok bool
-	if setup.recipient() == USB_REQUEST_RECIPIENT_DEVICE {
-		requestDescription, ok = deviceRequestDescriptons[setup.BRequest]
+	if setup.recipient() == usbRequestRecipientDevice {
+		requestDescription, ok = deviceRequestDescriptons[setup.bRequest]
 	} else {
-		requestDescription, ok = interfaceRequestDescriptions[USBHIDRequestType(setup.BRequest)]
+		requestDescription, ok = interfaceRequestDescriptions[usbHIDRequestType(setup.bRequest)]
 	}
 	if !ok {
-		requestDescription = fmt.Sprintf("0x%x", setup.BRequest)
+		requestDescription = fmt.Sprintf("0x%x", setup.bRequest)
 	}
 	return fmt.Sprintf("USBSetupPacket{ Direction: %s, RequestType: %s, Recipient: %s, BRequest: %s, WValue: 0x%x, WIndex: %d, WLength: %d }",
 		requestDirectionDescriptions[setup.direction()],
 		requestClassDescriptons[setup.requestClass()],
 		requestRecipientDescriptions[setup.recipient()],
 		requestDescription,
-		setup.WValue,
-		setup.WIndex,
-		setup.WLength)
+		setup.wValue,
+		setup.wIndex,
+		setup.wLength)
 }
 
-func (setup *USBSetupPacket) direction() USBDirection {
-	return USBDirection((setup.BmRequestType >> 7) & 1)
+func (setup *usbSetupPacket) direction() usbDirection {
+	return usbDirection((setup.bmRequestType >> 7) & 1)
 }
 
-func (setup *USBSetupPacket) requestClass() USBRequestClass {
-	return USBRequestClass((setup.BmRequestType >> 4) & 0b11)
+func (setup *usbSetupPacket) requestClass() usbRequestClass {
+	return usbRequestClass((setup.bmRequestType >> 4) & 0b11)
 }
 
-func (setup *USBSetupPacket) recipient() USBRequestRecipient {
-	return USBRequestRecipient(setup.BmRequestType & 0b1111)
+func (setup *usbSetupPacket) recipient() usbRequestRecipient {
+	return usbRequestRecipient(setup.bmRequestType & 0b1111)
 }
 
-type USBDeviceDescriptor struct {
-	BLength            uint8
-	BDescriptorType    USBDescriptorType
-	BcdUSB             uint16
-	BDeviceClass       uint8
-	BDeviceSubclass    uint8
-	BDeviceProtocol    uint8
-	BMaxPacketSize     uint8
-	IdVendor           uint16
-	IdProduct          uint16
-	BcdDevice          uint16
-	IManufacturer      uint8
-	IProduct           uint8
-	ISerialNumber      uint8
-	BNumConfigurations uint8
+type usbDeviceDescriptor struct {
+	bLength            uint8
+	bDescriptorType    usbDescriptorType
+	bcdUSB             uint16
+	bDeviceClass       uint8
+	bDeviceSubclass    uint8
+	bDeviceProtocol    uint8
+	bMaxPacketSize     uint8
+	idVendor           uint16
+	idProduct          uint16
+	bcdDevice          uint16
+	iManufacturer      uint8
+	iProduct           uint8
+	iSerialNumber      uint8
+	bNumConfigurations uint8
 }
 
-type USBConfigurationDescriptor struct {
-	BLength             uint8
-	BDescriptorType     USBDescriptorType
-	WTotalLength        uint16
-	BNumInterfaces      uint8
-	BConfigurationValue uint8
-	IConfiguration      uint8
-	BmAttributes        uint8
-	BMaxPower           uint8
+type usbConfigurationDescriptor struct {
+	bLength             uint8
+	bDescriptorType     usbDescriptorType
+	wTotalLength        uint16
+	bNumInterfaces      uint8
+	bConfigurationValue uint8
+	iConfiguration      uint8
+	bmAttributes        uint8
+	bMaxPower           uint8
 }
 
-type USBInterfaceDescriptor struct {
-	BLength            uint8
-	BDescriptorType    USBDescriptorType
-	BInterfaceNumber   uint8
-	BAlternateSetting  uint8
-	BNumEndpoints      uint8
-	BInterfaceClass    uint8
-	BInterfaceSubclass uint8
-	BInterfaceProtocol uint8
-	IInterface         uint8
+type usbInterfaceDescriptor struct {
+	bLength            uint8
+	bDescriptorType    usbDescriptorType
+	bInterfaceNumber   uint8
+	bAlternateSetting  uint8
+	bNumEndpoints      uint8
+	bInterfaceClass    uint8
+	bInterfaceSubclass uint8
+	bInterfaceProtocol uint8
+	iInterface         uint8
 }
 
-type USBHIDDescriptor struct {
-	BLength                 uint8
-	BDescriptorType         USBDescriptorType
-	BcdHID                  uint16
-	BCountryCode            uint8
-	BNumDescriptors         uint8
-	BClassDescriptorType    USBDescriptorType
-	WReportDescriptorLength uint16
+type usbHIDDescriptor struct {
+	bLength                 uint8
+	bDescriptorType         usbDescriptorType
+	bcdHID                  uint16
+	bCountryCode            uint8
+	bNumDescriptors         uint8
+	bClassDescriptorType    usbDescriptorType
+	wReportDescriptorLength uint16
 }
 
-type USBEndpointDescriptor struct {
-	BLength          uint8
-	BDescriptorType  USBDescriptorType
-	BEndpointAddress uint8
-	BmAttributes     uint8
-	WMaxPacketSize   uint16
-	BInterval        uint8
+type usbEndpointDescriptor struct {
+	bLength          uint8
+	bDescriptorType  usbDescriptorType
+	bEndpointAddress uint8
+	bmAttributes     uint8
+	wMaxPacketSize   uint16
+	bInterval        uint8
 }
 
-type USBStringDescriptorHeader struct {
-	BLength         uint8
-	BDescriptorType USBDescriptorType
+type usbStringDescriptorHeader struct {
+	bLength         uint8
+	bDescriptorType usbDescriptorType
 }
 
-type USBISOPacketDescriptor struct {
-	Offset       uint32
-	Length       uint32
-	ActualLength uint32
-	Status       uint32
-}
-
-func getDescriptorTypeAndIndex(wValue uint16) (USBDescriptorType, uint8) {
-	descriptorType := USBDescriptorType(wValue >> 8)
+func getDescriptorTypeAndIndex(wValue uint16) (usbDescriptorType, uint8) {
+	descriptorType := usbDescriptorType(wValue >> 8)
 	descriptorIndex := uint8(wValue & 0xFF)
 	return descriptorType, descriptorIndex
 }
