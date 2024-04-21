@@ -5,77 +5,82 @@ import (
 )
 
 const (
-	USBIP_VERSION = 0x0111
-
-	USBIP_CMD_SUBMIT = 0x1
-	USBIP_CMD_UNLINK = 0x2
-	USBIP_RET_SUBMIT = 0x3
-	USBIP_RET_UNLINK = 0x4
-
-	USBIP_DIR_OUT = 0x0
-	USBIP_DIR_IN  = 0x1
+	usbipVersion = 0x0111
 )
 
-type USBIPControlCommand uint16
+type usbipDirection uint32
 
 const (
-	USBIP_COMMAND_OP_REQ_DEVLIST USBIPControlCommand = 0x8005
-	USBIP_COMMAND_OP_REP_DEVLIST USBIPControlCommand = 0x0005
-	USBIP_COMMAND_OP_REQ_IMPORT  USBIPControlCommand = 0x8003
-	USBIP_COMMAND_OP_REP_IMPORT  USBIPControlCommand = 0x0003
+	usbipDirOut usbipDirection = 0x0
+	usbipDirIn  usbipDirection = 0x1
 )
 
-var USBIPControlCommandDescriptions = map[USBIPControlCommand]string{
-	USBIP_COMMAND_OP_REQ_DEVLIST: "USBIP_COMMAND_OP_REQ_DEVLIST",
-	USBIP_COMMAND_OP_REP_DEVLIST: "USBIP_COMMAND_OP_REP_DEVLIST",
-	USBIP_COMMAND_OP_REQ_IMPORT:  "USBIP_COMMAND_OP_REQ_IMPORT",
-	USBIP_COMMAND_OP_REP_IMPORT:  "USBIP_COMMAND_OP_REP_IMPORT",
+var usbipDirectionDescriptions = map[usbipDirection]string{
+	usbipDirOut: "usbipDirOut",
+	usbipDirIn: "usbipDirIn",
 }
 
-func commandString(command uint32) string {
-	switch command {
-	case USBIP_CMD_SUBMIT:
-		return "USBIP_CMD_SUBMIT"
-	case USBIP_CMD_UNLINK:
-		return "USBIP_CMD_UNLINK"
-	case USBIP_RET_SUBMIT:
-		return "USBIP_RET_SUBMIT"
-	case USBIP_RET_UNLINK:
-		return "USBIP_RET_UNLINK"
-	default:
-		panic(fmt.Sprintf("Unrecognized command: %d", command))
-	}
+type usbipControlCommand uint16
+
+const (
+	usbipCommandOpReqDevlist usbipControlCommand = 0x8005
+	usbipCommandOpRepDevlist usbipControlCommand = 0x0005
+	usbipCommandOpReqImport  usbipControlCommand = 0x8003
+	usbipCommandOpRepImport  usbipControlCommand = 0x0003
+)
+
+var usbipControlCommandDescriptions = map[usbipControlCommand]string{
+	usbipCommandOpReqDevlist: "usbipCommandOpReqDevlist",
+	usbipCommandOpRepDevlist: "usbipCommandOpRepDevlist",
+	usbipCommandOpReqImport:  "usbipCommandOpReqImport",
+	usbipCommandOpRepImport:  "usbipCommandOpRepImport",
 }
 
-type USBIPControlHeader struct {
+type usbipCommand uint32
+
+const (
+	usbipCmdSubmit usbipCommand = 0x1
+	usbipCmdUnlink usbipCommand = 0x2
+	usbipRetSubmit usbipCommand = 0x3
+	usbipRetUnlink usbipCommand = 0x4
+)
+
+var usbipCommandDescriptions = map[usbipCommand]string{
+	usbipCmdSubmit: "usbipCmdSubmit",
+	usbipCmdUnlink: "usbipCmdUnlink",
+	usbipRetSubmit: "usbipRetSubmit",
+	usbipRetUnlink: "usbipRetUnlink",
+}
+
+type usbipControlHeader struct {
 	Version     uint16
-	CommandCode USBIPControlCommand
+	Command usbipControlCommand
 	Status      uint32
 }
 
-func (header *USBIPControlHeader) String() string {
-	commandDesc, ok := USBIPControlCommandDescriptions[USBIPControlCommand(header.CommandCode)]
+func (header *usbipControlHeader) String() string {
+	commandDesc, ok := usbipControlCommandDescriptions[usbipControlCommand(header.Command)]
 	if !ok {
-		commandDesc = fmt.Sprintf("0x%x", header.CommandCode)
+		commandDesc = fmt.Sprintf("0x%x", header.Command)
 	}
 	return fmt.Sprintf("USBIPControlHeader{ Version: 0x%04x, Command: %s, Status: 0x%08x }", header.Version, commandDesc, header.Status)
 }
 
-type USBIPOpRepDevlist struct {
-	Header     USBIPControlHeader
+type usbipOpRepDevlist struct {
+	Header     usbipControlHeader
 	NumDevices uint32
 	Devices    []USBIPDeviceSummary
 }
 
-func newOpRepDevlist(devices []USBIPDevice) USBIPOpRepDevlist {
+func newOpRepDevlist(devices []USBIPDevice) usbipOpRepDevlist {
 	summaries := make([]USBIPDeviceSummary, len(devices))
 	for i := range devices {
 		summaries[i] = devices[i].DeviceSummary()
 	}
-	return USBIPOpRepDevlist{
-		Header: USBIPControlHeader{
-			Version:     USBIP_VERSION,
-			CommandCode: USBIP_COMMAND_OP_REP_DEVLIST,
+	return usbipOpRepDevlist{
+		Header: usbipControlHeader{
+			Version:     usbipVersion,
+			Command: usbipCommandOpRepDevlist,
 			Status:      0,
 		},
 		NumDevices: uint32(len(devices)),
@@ -83,85 +88,71 @@ func newOpRepDevlist(devices []USBIPDevice) USBIPOpRepDevlist {
 	}
 }
 
-type USBIPOpRepImport struct {
-	header USBIPControlHeader
-	device USBIPDeviceSummaryHeader
+type usbipOpRepImport struct {
+	Header usbipControlHeader
+	Device USBIPDeviceSummaryHeader
 }
 
-func (reply USBIPOpRepImport) String() string {
-	return fmt.Sprintf("USBIPOpRepImport{ Header: %#v, Device: %s }", reply.header, reply.device)
+func (reply usbipOpRepImport) String() string {
+	return fmt.Sprintf("USBIPOpRepImport{ Header: %#v, Device: %s }", reply.Header, reply.Device)
 }
 
-func newOpRepImport(device USBIPDevice) USBIPOpRepImport {
-	return USBIPOpRepImport{
-		header: USBIPControlHeader{
-			Version:     USBIP_VERSION,
-			CommandCode: USBIP_COMMAND_OP_REP_IMPORT,
+func newOpRepImport(device USBIPDevice) usbipOpRepImport {
+	return usbipOpRepImport{
+		Header: usbipControlHeader{
+			Version:     usbipVersion,
+			Command: usbipCommandOpRepImport,
 			Status:      0,
 		},
-		device: device.DeviceSummary().Header,
+		Device: device.DeviceSummary().Header,
 	}
 }
 
-func opRepImportError(statusCode uint32) USBIPControlHeader {
-	return USBIPControlHeader{
-		Version:     USBIP_VERSION,
-		CommandCode: USBIP_COMMAND_OP_REP_IMPORT,
+func opRepImportError(statusCode uint32) usbipControlHeader {
+	return usbipControlHeader{
+		Version:     usbipVersion,
+		Command: usbipCommandOpRepImport,
 		Status:      statusCode,
 	}
 }
 
-type USBIPMessageHeader struct {
-	Command        uint32
+type usbipMessageHeader struct {
+	Command        usbipCommand
 	SequenceNumber uint32
-	DeviceId       uint32
-	Direction      uint32
+	DeviceID       uint32
+	Direction      usbipDirection
 	Endpoint       uint32
 }
 
-func (header USBIPMessageHeader) String() string {
-	deviceID := fmt.Sprintf("%d-%d", header.DeviceId>>16, header.DeviceId&0xFF)
+func (header usbipMessageHeader) String() string {
+	deviceID := fmt.Sprintf("%d-%d", header.DeviceID>>16, header.DeviceID&0xFF)
 	return fmt.Sprintf(
 		"USBIPMessageHeader{ Command: %v, SequenceNumber: %d, DeviceID: %v, Direction: %v, Endpoint: %d }",
-		header.CommandName(),
+		usbipCommandDescriptions[header.Command],
 		header.SequenceNumber,
 		deviceID,
-		header.DirectionName(),
+		usbipDirectionDescriptions[header.Direction],
 		header.Endpoint)
 }
 
-func (header USBIPMessageHeader) CommandName() string {
-	return commandString(header.Command)
-}
-
-func (header USBIPMessageHeader) DirectionName() string {
-	var direction string
-	if header.Direction == USBIP_DIR_IN {
-		direction = "USBIP_DIR_IN"
-	} else {
-		direction = "USBIP_DIR_OUT"
-	}
-	return direction
-}
-
-func (header USBIPMessageHeader) replyHeader() USBIPMessageHeader {
-	var command uint32
+func (header usbipMessageHeader) replyHeader() usbipMessageHeader {
+	var command usbipCommand
 	switch header.Command {
-	case USBIP_CMD_SUBMIT:
-		command = USBIP_RET_SUBMIT
-	case USBIP_CMD_UNLINK:
-		command = USBIP_RET_UNLINK
+	case usbipCmdSubmit:
+		command = usbipRetSubmit
+	case usbipCmdUnlink:
+		command = usbipRetUnlink
 	}
-	return USBIPMessageHeader{
+	return usbipMessageHeader{
 		Command:        command,
 		SequenceNumber: header.SequenceNumber,
-		DeviceId:       header.DeviceId,
-		Direction:      USBIP_DIR_OUT,
+		DeviceID:       header.DeviceID,
+		Direction:      usbipDirOut,
 		Endpoint:       header.Endpoint,
 	}
 }
 
-type USBIPCommandSubmitBody struct {
+type usbipCommandSubmitBody struct {
 	TransferFlags        uint32
 	TransferBufferLength uint32
 	StartFrame           uint32
@@ -170,7 +161,7 @@ type USBIPCommandSubmitBody struct {
 	SetupBytes           [8]byte
 }
 
-func (body USBIPCommandSubmitBody) String() string {
+func (body usbipCommandSubmitBody) String() string {
 	return fmt.Sprintf("USBIPCommandSubmitBody{ TransferFlags: 0x%x, TransferBufferLength: %d, StartFrame: %d, NumberOfPackets: %d, Interval: %d, Setup: %s }",
 		body.TransferFlags,
 		body.TransferBufferLength,
@@ -180,12 +171,7 @@ func (body USBIPCommandSubmitBody) String() string {
 		body.SetupBytes)
 }
 
-type USBIPCommandUnlinkBody struct {
-	UnlinkSequenceNumber uint32
-	Padding              [24]byte
-}
-
-type USBIPReturnSubmitBody struct {
+type usbipReturnSubmitBody struct {
 	Status          uint32
 	ActualLength    uint32
 	StartFrame      uint32
@@ -194,7 +180,12 @@ type USBIPReturnSubmitBody struct {
 	Padding         uint64
 }
 
-type USBIPReturnUnlinkBody struct {
+type usbipCommandUnlinkBody struct {
+	UnlinkSequenceNumber uint32
+	Padding              [24]byte
+}
+
+type usbipReturnUnlinkBody struct {
 	Status  int32
 	Padding [24]byte
 }
