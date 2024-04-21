@@ -104,7 +104,7 @@ func (server *CTAPServer) HandleMessage(data []byte) []byte {
 	case ctapCommandMakeCredential:
 		return server.handleMakeCredential(data[1:])
 	case ctapCommandGetInfo:
-		return server.handleGetInfo(data[1:])
+		return server.handleGetInfo()
 	case ctapCommandGetAssertion:
 		return server.handleGetAssertion(data[1:])
 	case ctapCommandClientPIN:
@@ -280,7 +280,7 @@ type getInfoResponse struct {
 	PINUVAuthProtocols []uint32 `cbor:"6,keyasint,omitempty"`
 }
 
-func (server *CTAPServer) handleGetInfo(data []byte) []byte {
+func (server *CTAPServer) handleGetInfo() []byte {
 	response := getInfoResponse{
 		Versions: []string{"FIDO_2_0", "U2F_V2"},
 		AAGUID:   aaguid,
@@ -473,7 +473,7 @@ func (server *CTAPServer) handleClientPIN(data []byte) []byte {
 	case clientPINSubcommandGetRetries:
 		response = server.handleGetRetries()
 	case clientPinSubcommandGetKeyAgreement:
-		response = server.handleGetKeyAgreement(args)
+		response = server.handleGetKeyAgreement()
 	case clientPINSubcommandSetPIN:
 		response = server.handleSetPIN(args)
 	case clientPINSubcommandChangePIN:
@@ -496,7 +496,7 @@ func (server *CTAPServer) handleGetRetries() []byte {
 	return append([]byte{byte(ctap1ErrSuccess)}, util.MarshalCBOR(response)...)
 }
 
-func (server *CTAPServer) handleGetKeyAgreement(args clientPINArgs) []byte {
+func (server *CTAPServer) handleGetKeyAgreement() []byte {
 	key := server.client.PINKeyAgreement()
 	response := clientPINResponse{
 		KeyAgreement: &cose.COSEEC2Key{
