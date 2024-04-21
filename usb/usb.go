@@ -179,6 +179,14 @@ func (setup *usbSetupPacket) recipient() usbRequestRecipient {
 	return usbRequestRecipient(setup.BmRequestType & 0b1111)
 }
 
+type usbEndpoint uint32
+
+const (
+	usbEndpointControl usbEndpoint = 0
+	usbEndpointOutput usbEndpoint = 1
+	usbEndpointInput usbEndpoint = 2
+)
+
 type usbDeviceDescriptor struct {
 	BLength            uint8
 	BDescriptorType    usbDescriptorType

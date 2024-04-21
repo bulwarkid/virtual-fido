@@ -68,30 +68,32 @@ func (device *USBDevice) RemoveWaitingRequest(id uint32) bool {
 func (device *USBDevice) HandleMessage(id uint32, onFinish func(), endpoint uint32, setupBytes [8]byte, transferBuffer []byte) {
 	setup := util.ReadBE[usbSetupPacket](bytes.NewBuffer(setupBytes[:]))
 	usbLogger.Printf("USB MESSAGE - ENDPOINT %d\n\n", endpoint)
-	if endpoint == 0 {
+	switch usbEndpoint(endpoint) {
+	case usbEndpointControl:
 		if reply := device.handleControlMessage(setup); reply != nil {
 			copy(transferBuffer, reply)
 		}
 		onFinish()
-	} else if endpoint == 1 {
+	case usbEndpointOutput:
 		go device.handleOutputMessage(id, transferBuffer, onFinish)
 		// handleOutputMessage should handle calling onFinish
-	} else if endpoint == 2 {
+	case usbEndpointInput:
 		usbLogger.Printf("INPUT TRANSFER BUFFER: %#v\n\n", transferBuffer)
 		go device.delegate.HandleMessage(transferBuffer)
 		onFinish()
-	} else {
+	default:
 		util.Panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
 	}
 }
 
 func (device *USBDevice) handleControlMessage(setup usbSetupPacket) []byte {
 	usbLogger.Printf("CONTROL MESSAGE: %s\n\n", setup)
-	if setup.recipient() == usbRequestRecipientDevice {
+	switch setup.recipient() {
+	case usbRequestRecipientDevice:
 		return device.handleDeviceRequest(setup)
-	} else if setup.recipient() == usbRequestRecipientInterface {
+	case usbRequestRecipientInterface:
 		return device.handleInterfaceRequest(setup)
-	} else {
+	default:
 		util.Panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
 	}
 	return nil
