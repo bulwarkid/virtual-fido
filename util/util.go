@@ -120,7 +120,7 @@ func SizeOf[T any]() uint8 {
 	return uint8(buffer.Len())
 }
 
-func Flatten[T any](arrays [][]T) []T {
+func Concat[T any](arrays ...[]T) []T {
 	output := make([]T, 0)
 	for _, arr := range arrays {
 		output = append(output, arr...)

@@ -149,7 +149,7 @@ type basicAttestationStatement struct {
 
 func makeAttestedCredentialData(credentialSource *identities.CredentialSource) []byte {
 	encodedCredentialPublicKey := cose.MarshalCOSEPublicKey(credentialSource.PrivateKey.Public())
-	return util.Flatten([][]byte{aaguid[:], util.ToBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey})
+	return util.Concat(aaguid[:], util.ToBE(uint16(len(credentialSource.ID))), credentialSource.ID, encodedCredentialPublicKey)
 }
 
 func makeAuthData(rpID string, credentialSource *identities.CredentialSource, attestedCredentialData []byte, flags authDataFlags) []byte {
@@ -159,7 +159,7 @@ func makeAuthData(rpID string, credentialSource *identities.CredentialSource, at
 		attestedCredentialData = []byte{}
 	}
 	rpIdHash := sha256.Sum256([]byte(rpID))
-	return util.Flatten([][]byte{rpIdHash[:], {uint8(flags)}, util.ToBE(credentialSource.SignatureCounter), attestedCredentialData})
+	return util.Concat(rpIdHash[:], []byte{uint8(flags)}, util.ToBE(credentialSource.SignatureCounter), attestedCredentialData)
 }
 
 type makeCredentialOptions struct {
@@ -361,7 +361,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	}
 
 	authData := makeAuthData(args.RPID, credentialSource, nil, flags)
-	signature := credentialSource.PrivateKey.Sign(util.Flatten([][]byte{authData, args.ClientDataHash}))
+	signature := credentialSource.PrivateKey.Sign(util.Concat(authData, args.ClientDataHash))
 
 	credentialDescriptor := credentialSource.CTAPDescriptor()
 	response := getAssertionResponse{

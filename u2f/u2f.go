@@ -167,10 +167,10 @@ func (server *U2FServer) handleU2FRegister(header U2FMessageHeader, request []by
 	cosePrivateKey := &cose.SupportedCOSEPrivateKey{ECDSA: privateKey}
 	cert := server.client.CreateAttestationCertificiate(cosePrivateKey)
 
-	signatureDataBytes := util.Flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
+	signatureDataBytes := util.Concat([]byte{0}, application, challenge, keyHandle, encodedPublicKey)
 	signature := cosePrivateKey.Sign(signatureDataBytes)
 
-	return util.Flatten([][]byte{{0x05}, encodedPublicKey, {uint8(len(keyHandle))}, keyHandle, cert, signature, util.ToBE(u2f_SW_NO_ERROR)})
+	return util.Concat([]byte{0x05}, encodedPublicKey, []byte{uint8(len(keyHandle))}, keyHandle, cert, signature, util.ToBE(u2f_SW_NO_ERROR))
 }
 
 func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request []byte) []byte {
@@ -203,9 +203,9 @@ func (server *U2FServer) handleU2FAuthenticate(header U2FMessageHeader, request 
 			}
 		}
 		counter := server.client.NewAuthenticationCounterId()
-		signatureDataBytes := util.Flatten([][]byte{application, {1}, util.ToBE(counter), challenge})
+		signatureDataBytes := util.Concat(application, []byte{1}, util.ToBE(counter), challenge)
 		signature := cosePrivateKey.Sign(signatureDataBytes)
-		return util.Flatten([][]byte{{1}, util.ToBE(counter), signature, util.ToBE(u2f_SW_NO_ERROR)})
+		return util.Concat([]byte{1}, util.ToBE(counter), signature, util.ToBE(u2f_SW_NO_ERROR))
 	} else {
 		// No error specific to invalid control byte, so return WRONG_LENGTH to indicate data error
 		return util.ToBE(u2f_SW_WRONG_LENGTH)

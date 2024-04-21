@@ -107,7 +107,7 @@ func (header ctapHIDMessageHeader) String() string {
 }
 
 func newCTAPHIDMessageHeader(ctapHIDChannelID ctapHIDChannelID, command ctapHIDCommand, length uint16) []byte {
-	return util.Flatten([][]byte{util.ToLE(ctapHIDChannelID), util.ToLE(command), util.ToBE(length)})
+	return util.Concat(util.ToLE(ctapHIDChannelID), util.ToLE(command), util.ToBE(length))
 }
 
 const (

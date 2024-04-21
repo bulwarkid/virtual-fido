@@ -141,7 +141,7 @@ func TestU2FRegistration(t *testing.T) {
 	server := NewU2FServer(client)
 	challenge := crypto.RandomBytes(32)
 	application := crypto.RandomBytes(32)
-	registration := util.Flatten([][]byte{u2fHeader(u2f_COMMAND_REGISTER, 0, 0), {0, 0, 64}, util.ToBE(512), challenge, application})
+	registration := util.Concat(u2fHeader(u2f_COMMAND_REGISTER, 0, 0), []byte{0, 0, 64}, util.ToBE(512), challenge, application)
 	response := server.HandleMessage(registration)
 	code, publicKey, keyHandle, certificate, signature, returnCode := parseRegistrationResponse(response, t)
 	if code != 0x05 {
@@ -156,7 +156,7 @@ func TestU2FRegistration(t *testing.T) {
 	if returnCode != u2f_SW_NO_ERROR {
 		t.Fatalf("Incorrect return code: %d", returnCode)
 	}
-	signatureBytes := util.Flatten([][]byte{{0}, application, challenge, keyHandle, encodedPublicKey})
+	signatureBytes := util.Concat([]byte{0}, application, challenge, keyHandle, encodedPublicKey)
 	if !crypto.VerifyECDSA(publicKey, signatureBytes, signature) {
 		t.Fatalf("Could not verify signature returned by Authenticate")
 	}

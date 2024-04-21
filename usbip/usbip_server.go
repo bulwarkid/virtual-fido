@@ -133,7 +133,7 @@ func (conn *usbipConnection) handleCommandSubmit(device USBIPDevice, header usbi
 			Padding:         0,
 		}
 		usbipLogger.Printf("[RETURN SUBMIT] %v %#v\n\n", replyHeader, replyBody)
-		reply := util.Flatten([][]byte{util.ToBE(replyHeader), util.ToBE(replyBody)})
+		reply := util.Concat(util.ToBE(replyHeader), util.ToBE(replyBody))
 		if header.Direction == usbipDirIn {
 			reply = append(reply, transferBuffer...)
 		}
@@ -156,10 +156,10 @@ func (conn *usbipConnection) handleCommandUnlink(device USBIPDevice, header usbi
 		Status:  status,
 		Padding: [24]byte{},
 	}
-	reply := util.Flatten([][]byte{
+	reply := util.Concat(
 		util.ToBE(replyHeader),
 		util.ToBE(replyBody),
-	})
+	)
 	conn.writeResponse(reply)
 }
 

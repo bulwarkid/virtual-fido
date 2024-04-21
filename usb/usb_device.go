@@ -178,7 +178,7 @@ func (device *USBDevice) getDescriptor(descriptorType usbDescriptorType, index u
 		}
 		header.bLength = uint8(unsafe.Sizeof(header)) + uint8(len(message))
 		usbLogger.Printf("STRING: Length: %d Message: \"%s\" Bytes: %v\n\n", header.bLength, message, message)
-		return util.Flatten([][]byte{util.ToLE(header), message})
+		return util.Concat(util.ToLE(header), message)
 	default:
 		util.Panic(fmt.Sprintf("Invalid Descriptor type: %d", descriptorType))
 	}
