@@ -146,9 +146,9 @@ func (header usbipMessageHeader) replyHeader() usbipMessageHeader {
 	return usbipMessageHeader{
 		Command:        command,
 		SequenceNumber: header.SequenceNumber,
-		DeviceID:       header.DeviceID,
-		Direction:      usbipDirOut,
-		Endpoint:       header.Endpoint,
+		DeviceID:       0,
+		Direction:      0,
+		Endpoint:       0,
 	}
 }
 
