@@ -69,7 +69,9 @@ func (device *USBDevice) HandleMessage(id uint32, onFinish func(), endpoint uint
 	setup := util.ReadBE[usbSetupPacket](bytes.NewBuffer(setupBytes[:]))
 	usbLogger.Printf("USB MESSAGE - ENDPOINT %d\n\n", endpoint)
 	if endpoint == 0 {
-		device.handleControlMessage(setup, transferBuffer)
+		if reply := device.handleControlMessage(setup); reply != nil {
+			copy(transferBuffer, reply)
+		}
 		onFinish()
 	} else if endpoint == 1 {
 		go device.handleOutputMessage(id, transferBuffer, onFinish)
@@ -83,18 +85,16 @@ func (device *USBDevice) HandleMessage(id uint32, onFinish func(), endpoint uint
 	}
 }
 
-func (device *USBDevice) handleControlMessage(setup usbSetupPacket, transferBuffer []byte) {
+func (device *USBDevice) handleControlMessage(setup usbSetupPacket) []byte {
 	usbLogger.Printf("CONTROL MESSAGE: %s\n\n", setup)
-	if setup.direction() == usbHostToDevice {
-		usbLogger.Printf("TRANSFER BUFFER: %v\n\n", transferBuffer)
-	}
 	if setup.recipient() == usbRequestRecipientDevice {
-		device.handleDeviceRequest(setup, transferBuffer)
+		return device.handleDeviceRequest(setup)
 	} else if setup.recipient() == usbRequestRecipientInterface {
-		device.handleInterfaceRequest(setup, transferBuffer)
+		return device.handleInterfaceRequest(setup)
 	} else {
 		util.Panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
 	}
+	return nil
 }
 
 func (device *USBDevice) handleOutputMessage(id uint32, transferBuffer []byte, onFinish func()) {
@@ -108,25 +108,25 @@ func (device *USBDevice) handleOutputMessage(id uint32, transferBuffer []byte, o
 	device.outputLock.Unlock()
 }
 
-func (device *USBDevice) handleDeviceRequest(setup usbSetupPacket, transferBuffer []byte) {
+func (device *USBDevice) handleDeviceRequest(setup usbSetupPacket) []byte {
 	switch setup.BRequest {
 	case usbRequestGetDescriptor:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
-		descriptor := device.getDescriptor(descriptorType, descriptorIndex)
-		copy(transferBuffer, descriptor)
+		return device.getDescriptor(descriptorType, descriptorIndex)
 	case usbRequestSetConfiguration:
 		usbLogger.Printf("SET_CONFIGURATION: No-op\n\n")
 		// TODO: Handle configuration changes
 		// No-op since we can't change configuration
-		return
+		return nil
 	case usbRequestGetStatus:
-		copy(transferBuffer, []byte{1})
+		return []byte{1}
 	default:
 		util.Panic(fmt.Sprintf("Invalid CMD_SUBMIT bRequest: %d", setup.BRequest))
 	}
+	return nil
 }
 
-func (device *USBDevice) handleInterfaceRequest(setup usbSetupPacket, transferBuffer []byte) {
+func (device *USBDevice) handleInterfaceRequest(setup usbSetupPacket) []byte {
 	switch usbHIDRequestType(setup.BRequest) {
 	case usbHIDRequestSetIdle:
 		// No-op since we are made in software
@@ -139,13 +139,14 @@ func (device *USBDevice) handleInterfaceRequest(setup usbSetupPacket, transferBu
 		switch descriptorType {
 		case usbDescriptorHIDReport:
 			usbLogger.Printf("HID REPORT: %v\n\n", device.getHIDReport())
-			copy(transferBuffer, device.getHIDReport())
+			return device.getHIDReport()
 		default:
 			util.Panic(fmt.Sprintf("Invalid USB Interface descriptor: %d - %d", descriptorType, descriptorIndex))
 		}
 	default:
 		util.Panic(fmt.Sprintf("Invalid USB Interface bRequest: %d", setup.BRequest))
 	}
+	return nil
 }
 
 func (device *USBDevice) getDescriptor(descriptorType usbDescriptorType, index uint8) []byte {
