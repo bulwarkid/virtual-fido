@@ -139,108 +139,108 @@ const (
 )
 
 type usbSetupPacket struct {
-	bmRequestType uint8
-	bRequest      usbRequestType
-	wValue        uint16
-	wIndex        uint16
-	wLength       uint16
+	BmRequestType uint8
+	BRequest      usbRequestType
+	WValue        uint16
+	WIndex        uint16
+	WLength       uint16
 }
 
 func (setup usbSetupPacket) String() string {
 	var requestDescription string
 	var ok bool
 	if setup.recipient() == usbRequestRecipientDevice {
-		requestDescription, ok = deviceRequestDescriptons[setup.bRequest]
+		requestDescription, ok = deviceRequestDescriptons[setup.BRequest]
 	} else {
-		requestDescription, ok = interfaceRequestDescriptions[usbHIDRequestType(setup.bRequest)]
+		requestDescription, ok = interfaceRequestDescriptions[usbHIDRequestType(setup.BRequest)]
 	}
 	if !ok {
-		requestDescription = fmt.Sprintf("0x%x", setup.bRequest)
+		requestDescription = fmt.Sprintf("0x%x", setup.BRequest)
 	}
 	return fmt.Sprintf("USBSetupPacket{ Direction: %s, RequestType: %s, Recipient: %s, BRequest: %s, WValue: 0x%x, WIndex: %d, WLength: %d }",
 		requestDirectionDescriptions[setup.direction()],
 		requestClassDescriptons[setup.requestClass()],
 		requestRecipientDescriptions[setup.recipient()],
 		requestDescription,
-		setup.wValue,
-		setup.wIndex,
-		setup.wLength)
+		setup.WValue,
+		setup.WIndex,
+		setup.WLength)
 }
 
 func (setup *usbSetupPacket) direction() usbDirection {
-	return usbDirection((setup.bmRequestType >> 7) & 1)
+	return usbDirection((setup.BmRequestType >> 7) & 1)
 }
 
 func (setup *usbSetupPacket) requestClass() usbRequestClass {
-	return usbRequestClass((setup.bmRequestType >> 4) & 0b11)
+	return usbRequestClass((setup.BmRequestType >> 4) & 0b11)
 }
 
 func (setup *usbSetupPacket) recipient() usbRequestRecipient {
-	return usbRequestRecipient(setup.bmRequestType & 0b1111)
+	return usbRequestRecipient(setup.BmRequestType & 0b1111)
 }
 
 type usbDeviceDescriptor struct {
-	bLength            uint8
-	bDescriptorType    usbDescriptorType
-	bcdUSB             uint16
-	bDeviceClass       uint8
-	bDeviceSubclass    uint8
-	bDeviceProtocol    uint8
-	bMaxPacketSize     uint8
-	idVendor           uint16
-	idProduct          uint16
-	bcdDevice          uint16
-	iManufacturer      uint8
-	iProduct           uint8
-	iSerialNumber      uint8
-	bNumConfigurations uint8
+	BLength            uint8
+	BDescriptorType    usbDescriptorType
+	BcdUSB             uint16
+	BDeviceClass       uint8
+	BDeviceSubclass    uint8
+	BDeviceProtocol    uint8
+	BMaxPacketSize     uint8
+	IDVendor           uint16
+	IDProduct          uint16
+	BcdDevice          uint16
+	IManufacturer      uint8
+	IProduct           uint8
+	ISerialNumber      uint8
+	BNumConfigurations uint8
 }
 
 type usbConfigurationDescriptor struct {
-	bLength             uint8
-	bDescriptorType     usbDescriptorType
-	wTotalLength        uint16
-	bNumInterfaces      uint8
-	bConfigurationValue uint8
-	iConfiguration      uint8
-	bmAttributes        uint8
-	bMaxPower           uint8
+	BLength             uint8
+	BDescriptorType     usbDescriptorType
+	WTotalLength        uint16
+	BNumInterfaces      uint8
+	BConfigurationValue uint8
+	IConfiguration      uint8
+	BmAttributes        uint8
+	BMaxPower           uint8
 }
 
 type usbInterfaceDescriptor struct {
-	bLength            uint8
-	bDescriptorType    usbDescriptorType
-	bInterfaceNumber   uint8
-	bAlternateSetting  uint8
-	bNumEndpoints      uint8
-	bInterfaceClass    uint8
-	bInterfaceSubclass uint8
-	bInterfaceProtocol uint8
-	iInterface         uint8
+	BLength            uint8
+	BDescriptorType    usbDescriptorType
+	BInterfaceNumber   uint8
+	BAlternateSetting  uint8
+	BNumEndpoints      uint8
+	BInterfaceClass    uint8
+	BInterfaceSubclass uint8
+	BInterfaceProtocol uint8
+	IInterface         uint8
 }
 
 type usbHIDDescriptor struct {
-	bLength                 uint8
-	bDescriptorType         usbDescriptorType
-	bcdHID                  uint16
-	bCountryCode            uint8
-	bNumDescriptors         uint8
-	bClassDescriptorType    usbDescriptorType
-	wReportDescriptorLength uint16
+	BLength                 uint8
+	BDescriptorType         usbDescriptorType
+	BcdHID                  uint16
+	BCountryCode            uint8
+	BNumDescriptors         uint8
+	BClassDescriptorType    usbDescriptorType
+	WReportDescriptorLength uint16
 }
 
 type usbEndpointDescriptor struct {
-	bLength          uint8
-	bDescriptorType  usbDescriptorType
-	bEndpointAddress uint8
-	bmAttributes     uint8
-	wMaxPacketSize   uint16
-	bInterval        uint8
+	BLength          uint8
+	BDescriptorType  usbDescriptorType
+	BEndpointAddress uint8
+	BmAttributes     uint8
+	WMaxPacketSize   uint16
+	BInterval        uint8
 }
 
 type usbStringDescriptorHeader struct {
-	bLength         uint8
-	bDescriptorType usbDescriptorType
+	BLength         uint8
+	BDescriptorType usbDescriptorType
 }
 
 func getDescriptorTypeAndIndex(wValue uint16) (usbDescriptorType, uint8) {
