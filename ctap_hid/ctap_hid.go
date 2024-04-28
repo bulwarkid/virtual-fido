@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/bulwarkid/virtual-fido/util"
 )
@@ -119,71 +118,39 @@ type CTAPHIDClient interface {
 }
 
 type CTAPHIDServer struct {
-	ctapServer          CTAPHIDClient
-	u2fServer           CTAPHIDClient
-	maxChannelID        ctapHIDChannelID
-	channels            map[ctapHIDChannelID]*ctapHIDChannel
-	responses           chan []byte
-	responsesLock       sync.Locker
-	waitingForResponses *sync.Map
+	ctapServer      CTAPHIDClient
+	u2fServer       CTAPHIDClient
+	maxChannelID    ctapHIDChannelID
+	channels        map[ctapHIDChannelID]*ctapHIDChannel
+	responsesLock   sync.Locker
+	responseHandler func(response []byte)
 }
 
 func NewCTAPHIDServer(ctapServer CTAPHIDClient, u2fServer CTAPHIDClient) *CTAPHIDServer {
 	server := &CTAPHIDServer{
-		ctapServer:          ctapServer,
-		u2fServer:           u2fServer,
-		maxChannelID:        0,
-		channels:            make(map[ctapHIDChannelID]*ctapHIDChannel),
-		responses:           make(chan []byte, 100),
-		responsesLock:       &sync.Mutex{},
-		waitingForResponses: &sync.Map{},
+		ctapServer:      ctapServer,
+		u2fServer:       u2fServer,
+		maxChannelID:    0,
+		channels:        make(map[ctapHIDChannelID]*ctapHIDChannel),
+		responsesLock:   &sync.Mutex{},
+		responseHandler: nil,
 	}
 	server.channels[ctapHIDBroadcastChannel] = newCTAPHIDChannel(server, ctapHIDBroadcastChannel)
 	return server
 }
 
-func (server *CTAPHIDServer) HasResponse() bool {
-	return len(server.responses) > 0
-}
-
-func (server *CTAPHIDServer) GetResponse(id uint32, timeout int64) []byte {
-	killSwitch := make(chan bool)
-	timeoutSwitch := make(chan interface{})
-	server.waitingForResponses.Store(id, killSwitch)
-	if timeout > 0 {
-		go func() {
-			time.Sleep(time.Millisecond * time.Duration(timeout))
-			timeoutSwitch <- nil
-		}()
-	}
-	select {
-	case response := <-server.responses:
-		// ctapHIDLogger.Printf("CTAPHID RESPONSE: %#v\n\n", response)
-		return response
-	case <-killSwitch:
-		server.waitingForResponses.Delete(id)
-		return nil
-	case <-timeoutSwitch:
-		return []byte{}
-	}
-}
-
-func (server *CTAPHIDServer) RemoveWaitingRequest(id uint32) bool {
-	killSwitch, ok := server.waitingForResponses.Load(id)
-	if ok {
-		killSwitch.(chan bool) <- true
-		return true
-	} else {
-		return false
-	}
+func (server *CTAPHIDServer) SetResponseHandler(handler func(response []byte)) {
+	server.responseHandler = handler
 }
 
 func (server *CTAPHIDServer) sendResponse(response [][]byte) {
 	// Packets should be sequential and continuous per transaction
 	server.responsesLock.Lock()
 	// ctapHIDLogger.Printf("ADDING MESSAGE: %#v\n\n", response)
-	for _, packet := range response {
-		server.responses <- packet
+	if server.responseHandler != nil {
+		for _, packet := range response {
+			server.responseHandler(packet)
+		}
 	}
 	server.responsesLock.Unlock()
 }

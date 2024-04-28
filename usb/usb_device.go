@@ -3,7 +3,6 @@ package usb
 import (
 	"bytes"
 	"fmt"
-	"sync"
 	"unsafe"
 
 	"github.com/bulwarkid/virtual-fido/usbip"
@@ -13,21 +12,24 @@ import (
 var usbLogger = util.NewLogger("[USB] ", util.LogLevelTrace)
 
 type USBDeviceDelegate interface {
-	RemoveWaitingRequest(id uint32) bool
 	HandleMessage(transferBuffer []byte)
-	GetResponse(id uint32, timeout int64) []byte
+	SetResponseHandler(handler func(response []byte))
 }
 
 type USBDevice struct {
-	delegate   USBDeviceDelegate
-	outputLock sync.Locker
+	delegate        USBDeviceDelegate
+	requestBuffer *util.RequestBuffer
 }
 
 func NewUSBDevice(delegate USBDeviceDelegate) *USBDevice {
-	return &USBDevice{
-		delegate:   delegate,
-		outputLock: &sync.Mutex{},
+	device := &USBDevice{
+		delegate:        delegate,
+		requestBuffer:   util.MakeRequestBuffer(),
 	}
+	delegate.SetResponseHandler(func(response []byte) {
+		device.handleResponse(response)
+	})
+	return device
 }
 
 func (device *USBDevice) BusID() string {
@@ -62,19 +64,25 @@ func (device *USBDevice) DeviceSummary() usbip.USBIPDeviceSummary {
 }
 
 func (device *USBDevice) RemoveWaitingRequest(id uint32) bool {
-	return device.delegate.RemoveWaitingRequest(id)
+	return device.requestBuffer.CancelRequest(id)
 }
 
 func (device *USBDevice) HandleMessage(id uint32, onFinish func(response []byte), endpoint uint32, setupBytes [8]byte, data []byte) {
-	setup := util.ReadBE[usbSetupPacket](bytes.NewBuffer(setupBytes[:]))
-	usbLogger.Printf("USB MESSAGE - ENDPOINT %d\n\n", endpoint)
+	setup := util.ReadLE[usbSetupPacket](bytes.NewBuffer(setupBytes[:]))
+	usbLogger.Printf("USB MESSAGE - ENDPOINT %d SETUP: %s\n\n", endpoint, setup)
 	switch usbEndpoint(endpoint) {
 	case usbEndpointControl:
 		reply := device.handleControlMessage(setup)
 		onFinish(reply)
 	case usbEndpointOutput:
-		go device.handleOutputMessage(id, onFinish)
-		// handleOutputMessage should handle calling onFinish
+		device.requestBuffer.Request(id, onFinish)
+		util.SetTimeout(1000, func() {
+			// If the request hasn't finished yet, cancel it and return nil
+			if device.requestBuffer.CancelRequest(id) {
+				onFinish(nil)
+			}
+		})
+		// onFinish will be called when a response is returned
 	case usbEndpointInput:
 		usbLogger.Printf("INPUT DATA: %#v\n\n", data)
 		go device.delegate.HandleMessage(data)
@@ -84,8 +92,11 @@ func (device *USBDevice) HandleMessage(id uint32, onFinish func(response []byte)
 	}
 }
 
+func (device *USBDevice) handleResponse(response []byte) {
+	device.requestBuffer.Respond(response)
+}
+
 func (device *USBDevice) handleControlMessage(setup usbSetupPacket) []byte {
-	usbLogger.Printf("CONTROL MESSAGE: %s\n\n", setup)
 	switch setup.recipient() {
 	case usbRequestRecipientDevice:
 		return device.handleDeviceRequest(setup)
@@ -95,16 +106,6 @@ func (device *USBDevice) handleControlMessage(setup usbSetupPacket) []byte {
 		util.Panic(fmt.Sprintf("Invalid CMD_SUBMIT recipient: %d", setup.recipient()))
 	}
 	return nil
-}
-
-func (device *USBDevice) handleOutputMessage(id uint32, onFinish func(response []byte)) {
-	// Only process one output message at a time in order to maintain message order
-	device.outputLock.Lock()
-	response := device.delegate.GetResponse(id, 1000)
-	if response != nil {
-		onFinish(response)
-	}
-	device.outputLock.Unlock()
 }
 
 func (device *USBDevice) handleDeviceRequest(setup usbSetupPacket) []byte {
@@ -134,7 +135,7 @@ func (device *USBDevice) handleInterfaceRequest(setup usbSetupPacket) []byte {
 		// No-op since we are always in report protocol, no boot protocol
 	case usbHIDRequestGetDescriptor:
 		descriptorType, descriptorIndex := getDescriptorTypeAndIndex(setup.WValue)
-		usbLogger.Printf("GET INTERFACE DESCRIPTOR: Type: %s Index: %d\n\n", descriptorTypeDescriptions[descriptorType], descriptorIndex)
+		usbLogger.Printf("GET INTERFACE DESCRIPTOR - Type: %s Index: %d\n\n", descriptorType, descriptorIndex)
 		switch descriptorType {
 		case usbDescriptorHIDReport:
 			usbLogger.Printf("HID REPORT: %v\n\n", device.getHIDReport())

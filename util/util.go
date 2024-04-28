@@ -178,3 +178,19 @@ func CStringToString(data []byte) string {
 	}
 	return string(data[:i])
 }
+
+func TimeoutSwitch(duration int) chan bool {
+	timeoutSwitch := make(chan bool)
+	go func() {
+		time.Sleep(time.Millisecond * time.Duration(duration))
+		timeoutSwitch <- false
+	}()
+	return timeoutSwitch
+}
+
+func SetTimeout(duration int, f func()) {
+	go func() {
+		time.Sleep(time.Millisecond * time.Duration(duration))
+		f()
+	}()
+}

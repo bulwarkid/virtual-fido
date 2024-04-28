@@ -162,7 +162,7 @@ type usbipCommandSubmitBody struct {
 }
 
 func (body usbipCommandSubmitBody) String() string {
-	return fmt.Sprintf("USBIPCommandSubmitBody{ TransferFlags: 0x%x, TransferBufferLength: %d, StartFrame: %d, NumberOfPackets: %d, Interval: %d, Setup: %s }",
+	return fmt.Sprintf("USBIPCommandSubmitBody{ TransferFlags: 0x%x, TransferBufferLength: %d, StartFrame: %d, NumberOfPackets: %d, Interval: %d, Setup: %#v }",
 		body.TransferFlags,
 		body.TransferBufferLength,
 		body.StartFrame,

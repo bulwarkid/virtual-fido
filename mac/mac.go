@@ -15,13 +15,10 @@ var macLogger = util.NewLogger("[MAC] ", util.LogLevelTrace)
 
 var ctapHIDServer *ctap_hid.CTAPHIDServer
 
-func sendResponsesLoop() {
-	for {
-		response := ctapHIDServer.GetResponse(0, 10000)
-		if response != nil && len(response) > 0 {
-			//macLogger.Printf("Sending Bytes: %#v\n\n", response)
-			C.send_data(C.CBytes(response), C.int(len(response)))
-		}
+func handleResponse(response []byte) {
+	if len(response) > 0 {
+		//macLogger.Printf("Sending Bytes: %#v\n\n", response)
+		C.send_data(C.CBytes(response), C.int(len(response)))
 	}
 }
 
@@ -33,7 +30,7 @@ func receiveDataCallback(dataPointer unsafe.Pointer, length C.int) {
 }
 
 func Start(server *ctap_hid.CTAPHIDServer) {
-	go sendResponsesLoop()
+	server.SetResponseHandler(handleResponse)
 	ctapHIDServer = server
 	C.start_device()
 }

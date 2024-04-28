@@ -21,23 +21,24 @@ func TestOpenChannel(t *testing.T) {
 	initCmd := byte((1 << 7) | 0x06)
 	nonce := crypto.RandomBytes(8)
 	initializationMessage := util.Concat(
-		
-			util.ToLE[uint32](0xFFFFFFFF),
-			[]byte{initCmd},
-			util.ToBE[uint16](8),
-			nonce)
-	server.HandleMessage(initializationMessage)
-	response := server.GetResponse(0, 1000)
-	correctResponse := util.Concat(
 		util.ToLE[uint32](0xFFFFFFFF),
 		[]byte{initCmd},
-		util.ToBE[uint16](17),
-		nonce,
-		util.ToLE[uint32](1),
-		[]byte{2, 0, 0, 1, 0b00000100},
-	)
-	correctResponse = util.Pad(correctResponse, 64)
-	if !bytes.Equal(response, correctResponse) {
-		t.Errorf("Initialization message returned incorrect response: %#v vs %#v", response, correctResponse)
+		util.ToBE[uint16](8),
+		nonce)
+	responseHandler := func(response []byte) {
+		correctResponse := util.Concat(
+			util.ToLE[uint32](0xFFFFFFFF),
+			[]byte{initCmd},
+			util.ToBE[uint16](17),
+			nonce,
+			util.ToLE[uint32](1),
+			[]byte{2, 0, 0, 1, 0b00000100},
+		)
+		correctResponse = util.Pad(correctResponse, 64)
+		if !bytes.Equal(response, correctResponse) {
+			t.Errorf("Initialization message returned incorrect response: %#v vs %#v", response, correctResponse)
+		}
 	}
+	server.SetResponseHandler(responseHandler)
+	server.HandleMessage(initializationMessage)
 }

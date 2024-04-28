@@ -10,6 +10,7 @@ import (
 )
 
 var usbipLogger = util.NewLogger("[USBIP] ", util.LogLevelTrace)
+var errLogger = util.NewLogger("[ERR] ", util.LogLevelEnabled)
 
 type USBIPServer struct {
 	devices []USBIPDevice
@@ -27,7 +28,10 @@ func (server *USBIPServer) Start() {
 	util.CheckErr(err, "Could not create listener")
 	for {
 		connection, err := listener.Accept()
-		util.CheckErr(err, "Connection accept error")
+		if err != nil {
+			usbipLogger.Printf("Connection accept error: %v", err)
+			continue
+		}
 		if !strings.HasPrefix(connection.RemoteAddr().String(), "127.0.0.1") {
 			usbipLogger.Printf("Connection attempted from non-local address: %s", connection.RemoteAddr().String())
 			connection.Close()
@@ -37,7 +41,7 @@ func (server *USBIPServer) Start() {
 		util.Try(func() {
 			usbipConn.handle()
 		}, func(err interface{}) {
-			usbipLogger.Printf("%#v", err)
+			errLogger.Printf("%v", err)
 		})
 	}
 }
@@ -108,7 +112,7 @@ func (conn *usbipConnection) handleCommands(device USBIPDevice) {
 				usbipLogger.Printf("Unsupported Command: %#v\n\n", header)
 			}
 		}, func(err interface{}) {
-			usbipLogger.Printf("%#v", err)
+			errLogger.Printf("%v", err)
 		})
 	}
 }
@@ -138,6 +142,7 @@ func (conn *usbipConnection) handleCommandSubmit(device USBIPDevice, header usbi
 		usbipLogger.Printf("[RETURN SUBMIT] %v %#v\n\n", replyHeader, replyBody)
 		reply := util.Concat(util.ToBE(replyHeader), util.ToBE(replyBody))
 		if header.Direction == usbipDirIn {
+			usbipLogger.Printf("[RETURN SUBMIT] DATA: %#v\n\n", transferBuffer)
 			reply = append(reply, transferBuffer...)
 		}
 		conn.writeResponse(reply)

@@ -60,6 +60,13 @@ var descriptorTypeDescriptions = map[usbDescriptorType]string{
 	usbDescriptorHIDReport:               "usbDescriptorHIDReport",
 }
 
+func (descriptor usbDescriptorType) String() string {
+	if s, ok := descriptorTypeDescriptions[descriptor]; ok {
+		return s
+	}
+	return "Invalid"
+}
+
 type usbHIDRequestType uint8
 
 const (
@@ -183,8 +190,8 @@ type usbEndpoint uint32
 
 const (
 	usbEndpointControl usbEndpoint = 0
-	usbEndpointOutput usbEndpoint = 1
-	usbEndpointInput usbEndpoint = 2
+	usbEndpointOutput  usbEndpoint = 1
+	usbEndpointInput   usbEndpoint = 2
 )
 
 type usbDeviceDescriptor struct {
