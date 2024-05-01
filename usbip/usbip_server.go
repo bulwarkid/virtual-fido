@@ -147,7 +147,7 @@ func (conn *usbipConnection) handleCommandSubmit(device USBIPDevice, header usbi
 		}
 		conn.writeResponse(reply)
 	}
-	device.HandleMessage(header.SequenceNumber, onReturnSubmit, header.Endpoint, command.SetupBytes, transferBuffer)
+	device.HandleMessage(header.SequenceNumber, onReturnSubmit, header.Endpoint, command.SetupBytes[:], transferBuffer)
 }
 
 func (conn *usbipConnection) handleCommandUnlink(device USBIPDevice, header usbipMessageHeader) {

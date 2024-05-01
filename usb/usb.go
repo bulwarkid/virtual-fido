@@ -178,12 +178,27 @@ func (setup *usbSetupPacket) direction() usbDirection {
 	return usbDirection((setup.BmRequestType >> 7) & 1)
 }
 
+func (setup *usbSetupPacket) setDirection(direction usbDirection) {
+	setup.BmRequestType &= ^(uint8(1) << 7)
+	setup.BmRequestType |= (uint8(direction) << 7)
+}
+
 func (setup *usbSetupPacket) requestClass() usbRequestClass {
 	return usbRequestClass((setup.BmRequestType >> 4) & 0b11)
 }
 
+func (setup *usbSetupPacket) setRequestClass(class usbRequestClass) {
+	setup.BmRequestType &= ^(uint8(0b11) << 4)
+	setup.BmRequestType |= uint8(class) << 4
+}
+
 func (setup *usbSetupPacket) recipient() usbRequestRecipient {
 	return usbRequestRecipient(setup.BmRequestType & 0b1111)
+}
+
+func (setup *usbSetupPacket) setRecipient(recipient usbRequestRecipient) {
+	setup.BmRequestType &= ^uint8(0b1111)
+	setup.BmRequestType |= uint8(recipient)
 }
 
 type usbEndpoint uint32
@@ -233,6 +248,8 @@ type usbInterfaceDescriptor struct {
 	BInterfaceProtocol uint8
 	IInterface         uint8
 }
+
+const usbHIDCountryCodeNone uint8 = 0
 
 type usbHIDDescriptor struct {
 	BLength                 uint8

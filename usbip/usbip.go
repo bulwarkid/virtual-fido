@@ -242,7 +242,7 @@ type USBIPDeviceInterface struct {
 }
 
 type USBIPDevice interface {
-	HandleMessage(id uint32, onFinish func(response []byte), endpoint uint32, setupBytes [8]byte, transferBuffer []byte)
+	HandleMessage(id uint32, onFinish func(response []byte), endpoint uint32, setupBytes []byte, transferBuffer []byte)
 	RemoveWaitingRequest(id uint32) bool
 	BusID() string
 	DeviceSummary() USBIPDeviceSummary

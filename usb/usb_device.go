@@ -67,8 +67,8 @@ func (device *USBDevice) RemoveWaitingRequest(id uint32) bool {
 	return device.requestBuffer.CancelRequest(id)
 }
 
-func (device *USBDevice) HandleMessage(id uint32, onFinish func(response []byte), endpoint uint32, setupBytes [8]byte, data []byte) {
-	setup := util.ReadLE[usbSetupPacket](bytes.NewBuffer(setupBytes[:]))
+func (device *USBDevice) HandleMessage(id uint32, onFinish func(response []byte), endpoint uint32, setupBytes []byte, data []byte) {
+	setup := util.ReadLE[usbSetupPacket](bytes.NewBuffer(setupBytes))
 	usbLogger.Printf("USB MESSAGE - ENDPOINT %d SETUP: %s\n\n", endpoint, setup)
 	switch usbEndpoint(endpoint) {
 	case usbEndpointControl:
@@ -238,7 +238,7 @@ func (device *USBDevice) getHIDDescriptor(hidReportDescriptor []byte) usbHIDDesc
 		BLength:                 util.SizeOf[usbHIDDescriptor](),
 		BDescriptorType:         usbDescriptorHID,
 		BcdHID:                  0x0101,
-		BCountryCode:            0,
+		BCountryCode:            usbHIDCountryCodeNone,
 		BNumDescriptors:         1,
 		BClassDescriptorType:    usbDescriptorHIDReport,
 		WReportDescriptorLength: uint16(len(hidReportDescriptor)),
