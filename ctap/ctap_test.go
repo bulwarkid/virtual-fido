@@ -148,3 +148,20 @@ func TestGetAssertion(t *testing.T) {
 	util.CheckErr(err, "Could not decode response")
 	test.Assert(t, bytes.Equal(response.Credential.ID, identity.ID), "Did not return correct identity")
 }
+
+func TestGetInfo(t *testing.T) {
+	client := &dummyCTAPClient{}
+	ctap := NewCTAPServer(client)
+	argBytes := util.Concat([]byte{byte(ctapCommandGetInfo)})
+	responseBytes := ctap.HandleMessage(argBytes)
+	test.AssertNotNil(t, responseBytes, "Response is nil")
+	test.AssertEqual(t, ctapStatusCode(responseBytes[0]), ctap1ErrSuccess, "Response is not success")
+	var response getInfoResponse
+	err := cbor.Unmarshal(responseBytes[1:], &response)
+	util.CheckErr(err, "Could not decode response")
+	test.AssertContains(t, response.Versions, "U2F_V2", "U2F not supported")
+	test.AssertContains(t, response.Versions, "FIDO_2_0", "FIDO2.0 not supported")
+	test.Assert(t, !bytes.Equal(make([]byte,16), response.AAGUID[:]), "AAGUID is empty")
+	test.Assert(t, response.Options.CanResidentKey, "Cant use resident keys")
+	test.Assert(t, !response.Options.IsPlatform, "Is not marked a non-platform auth")
+}

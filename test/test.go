@@ -29,3 +29,12 @@ func AssertNotNil[A any, T nillable[A]](t *testing.T, val T, msg string) {
 		t.Fatalf(msg)
 	}
 }
+
+func AssertContains[T comparable](t *testing.T, arr []T, val T, msg string) {
+	for _, val2 := range arr {
+		if val2 == val {
+			return
+		}
+	}
+	t.Fatalf(msg)
+}
