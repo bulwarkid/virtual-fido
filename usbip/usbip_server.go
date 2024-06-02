@@ -135,7 +135,7 @@ func (conn *usbipConnection) handleCommandSubmit(device USBIPDevice, header usbi
 			Status:          0,
 			ActualLength:    uint32(len(transferBuffer)),
 			StartFrame:      0,
-			NumberOfPackets: 0xFFFFFFFF, // This is a single packet transfer
+			NumberOfPackets: 0,
 			ErrorCount:      0,
 			Padding:         0,
 		}
