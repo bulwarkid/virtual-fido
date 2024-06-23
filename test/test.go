@@ -18,6 +18,22 @@ func AssertEqual[T comparable](t *testing.T, val1 T, val2 T, msg string) {
 	}
 }
 
+func AssertArrEqual[T comparable](t *testing.T, val1 []T, val2 []T, msg string) {
+	equal := true
+	if len(val1) != len(val2) {
+		equal = false
+	} else {
+		for i := range val1 {
+			if val1[i] != val2[i] {
+				equal = false
+			}
+		}
+	}
+	if !equal {
+		t.Fatalf("%#v != %#v: %s", val1, val2, msg)
+	}
+}
+
 func AssertNotEqual[T comparable](t *testing.T, val1 T, val2 T, msg string) {
 	if val1 == val2 {
 		t.Fatalf(msg)

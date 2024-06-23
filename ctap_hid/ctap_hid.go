@@ -80,9 +80,9 @@ type ctapHIDChannel struct {
 
 func newCTAPHIDChannel(server *CTAPHIDServer, channelId ctapHIDChannelID) *ctapHIDChannel {
 	return &ctapHIDChannel{
-		server:            server,
-		channelId:         channelId,
-		messageLock:       &sync.Mutex{},
+		server:      server,
+		channelId:   channelId,
+		messageLock: &sync.Mutex{},
 		transaction: nil,
 	}
 }
@@ -95,7 +95,12 @@ func (channel *ctapHIDChannel) handleMessage(message []byte) {
 		channel.transaction.addMessage(message)
 	}
 	if channel.transaction.done {
-		channel.handleFinalizedMessage(*channel.transaction.header, channel.transaction.payload)
+		if channel.transaction.errorCode != 0 {
+			response := ctapHidError(channel.channelId, channel.transaction.errorCode)
+			channel.server.sendResponse(response)
+		} else if !channel.transaction.cancelled {
+			channel.handleFinalizedMessage(channel.transaction.result.header, channel.transaction.result.payload)
+		}
 		channel.transaction = nil
 	}
 	channel.messageLock.Unlock()

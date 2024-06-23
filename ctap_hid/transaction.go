@@ -6,16 +6,18 @@ import (
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
+type transactionResult struct {
+	header ctapHIDMessageHeader
+	sequenceNumber uint8
+	payload []byte
+}
+
 // Combines either single messages or multiple messages into a single command header and payload
 type ctapHIDTransaction struct {
 	done      bool
-	header    *ctapHIDMessageHeader
-	payload   []byte
+	cancelled bool
 	errorCode ctapHIDErrorCode
-
-	inProgressHeader         *ctapHIDMessageHeader
-	inProgressSequenceNumber uint8
-	inProgressPayload        []byte
+	result *transactionResult
 }
 
 func newCTAPHIDTransaction(message []byte) *ctapHIDTransaction {
@@ -30,25 +32,27 @@ func newCTAPHIDTransaction(message []byte) *ctapHIDTransaction {
 		return &transaction
 	}
 	if command == ctapHIDCommandCancel {
-		ctapHIDLogger.Printf("CTAPHID COMMAND: CTAPHID_COMMAND_CANCEL\n\n")
 		transaction.cancel() // No response to cancel message
 		return &transaction
 	}
 	payloadLength := util.ReadBE[uint16](buffer)
-	header := ctapHIDMessageHeader{
-		ChannelID:     channelId,
-		Command:       command,
-		PayloadLength: payloadLength,
+	result := transactionResult{
+		header: ctapHIDMessageHeader{
+			ChannelID: channelId,
+			Command: command,
+			PayloadLength: payloadLength,
+		},
+		sequenceNumber: 0,
+		payload: buffer.Bytes(),
 	}
-	payload := buffer.Bytes()
-	if payloadLength > uint16(len(payload)) {
-		ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
-			len(payload), int(payloadLength)-len(payload))
-		transaction.inProgressHeader = &header
-		transaction.inProgressPayload = payload
-		transaction.inProgressSequenceNumber = 0
+	transaction.result = &result
+	if len(transaction.result.payload) >= int(transaction.result.header.PayloadLength) {
+		transaction.result.payload = transaction.result.payload[:transaction.result.header.PayloadLength]
+		transaction.finish()
 	} else {
-		transaction.finish(&header, payload[:payloadLength])
+		ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
+			len(transaction.result.payload), 
+			int(payloadLength)-len(transaction.result.payload))
 	}
 	return &transaction
 }
@@ -60,47 +64,50 @@ func (transaction *ctapHIDTransaction) addMessage(message []byte) {
 		return
 	}
 	buffer := bytes.NewBuffer(message)
-	util.ReadLE[ctapHIDChannelID](buffer)
-	val := util.ReadLE[uint8](buffer)
-	if val == uint8(ctapHIDCommandCancel) {
-		transaction.cancel()
-		return
-	} else if val&(1<<7) != 0 {
-		transaction.error(ctapHIDErrorInvalidSequence)
+	channelId := util.ReadLE[ctapHIDChannelID](buffer)
+	if channelId != transaction.result.header.ChannelID {
+		transaction.error(ctapHIDErrorInvalidChannel)
 		return
 	}
-	sequenceNumber := val
-	if sequenceNumber != transaction.inProgressSequenceNumber {
+	sequenceNumber := util.ReadLE[uint8](buffer)
+	if sequenceNumber == uint8(ctapHIDCommandCancel) {
+		transaction.cancel()
+		return
+	} else if sequenceNumber&(1<<7) != 0 {
+		transaction.error(ctapHIDErrorInvalidSequence)
+		return
+	} else if sequenceNumber != transaction.result.sequenceNumber {
 		transaction.error(ctapHIDErrorInvalidSequence)
 		return
 	}
 	payload := buffer.Bytes()
-	payloadLeft := int(transaction.inProgressHeader.PayloadLength) - len(transaction.inProgressPayload)
-	if payloadLeft > len(payload) {
-		// We need another followup message
-		ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n", len(payload), payloadLeft-len(payload))
-		transaction.inProgressPayload = append(transaction.inProgressPayload, payload...)
-		transaction.inProgressSequenceNumber += 1
+	transaction.result.payload = append(transaction.result.payload, payload...)
+	if len(transaction.result.payload) >= int(transaction.result.header.PayloadLength) {
+		transaction.result.payload = transaction.result.payload[:transaction.result.header.PayloadLength]
+		transaction.finish()
 	} else {
-		transaction.inProgressPayload = append(transaction.inProgressPayload, payload...)
-		finalPayload := transaction.inProgressPayload[:transaction.inProgressHeader.PayloadLength]
-		transaction.finish(transaction.header, finalPayload)
+		// We need another followup message
+		ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
+			len(transaction.result.payload), 
+			int(transaction.result.header.PayloadLength)-len(transaction.result.payload))
+		transaction.result.sequenceNumber += 1
 	}
 }
 
-func (transaction *ctapHIDTransaction) finish(header *ctapHIDMessageHeader, payload []byte) {
+func (transaction *ctapHIDTransaction) finish() {
 	transaction.done = true
-	transaction.header = header
-	transaction.payload = payload
 }
 
 func (transaction *ctapHIDTransaction) error(code ctapHIDErrorCode) {
+	ctapHIDLogger.Printf("CTAPHID TRANSACTION ERROR: %v\n\n", ctapHIDErrorCodeDescriptions[code])
 	transaction.done = true
 	transaction.errorCode = code
+	transaction.result = nil
 }
 
 func (transaction *ctapHIDTransaction) cancel() {
+	ctapHIDLogger.Printf("CTAPHID COMMAND: CTAPHID_COMMAND_CANCEL\n\n")
 	transaction.done = true
-	transaction.header = nil
-	transaction.payload = nil
+	transaction.cancelled = true
+	transaction.result = nil
 }
