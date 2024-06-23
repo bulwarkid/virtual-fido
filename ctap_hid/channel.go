@@ -27,6 +27,7 @@ func newCTAPHIDChannel(server *CTAPHIDServer, channelId ctapHIDChannelID) *ctapH
 
 func (channel *ctapHIDChannel) handleMessage(message []byte) {
 	channel.messageLock.Lock()
+	defer channel.messageLock.Unlock()
 	if channel.transaction == nil {
 		channel.transaction = newCTAPHIDTransaction(message)
 	} else {
@@ -40,7 +41,6 @@ func (channel *ctapHIDChannel) handleMessage(message []byte) {
 		}
 		channel.transaction = nil
 	}
-	channel.messageLock.Unlock()
 }
 
 func (channel *ctapHIDChannel) handleFinalizedMessage(header ctapHIDMessageHeader, payload []byte) {

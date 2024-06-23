@@ -42,13 +42,13 @@ func (server *CTAPHIDServer) SetResponseHandler(handler func(response []byte)) {
 func (server *CTAPHIDServer) sendResponsePackets(packets [][]byte) {
 	// Packets should be sequential and continuous per transaction
 	server.responsesLock.Lock()
+	defer server.responsesLock.Unlock()
 	// ctapHIDLogger.Printf("ADDING MESSAGE: %#v\n\n", response)
 	if server.responseHandler != nil {
 		for _, packet := range packets {
 			server.responseHandler(packet)
 		}
 	}
-	server.responsesLock.Unlock()
 }
 
 func (server *CTAPHIDServer) HandleMessage(message []byte) {
