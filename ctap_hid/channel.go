@@ -7,8 +7,6 @@ import (
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
-
-
 type ctapHIDChannel struct {
 	server      *CTAPHIDServer
 	channelId   ctapHIDChannelID
@@ -62,7 +60,7 @@ type ctapHIDInitResponse struct {
 	CapabilitiesFlags  ctapHIDCapabilityFlag
 }
 
-func (channel *ctapHIDChannel) handleBroadcastMessage(header ctapHIDMessageHeader, payload []byte){
+func (channel *ctapHIDChannel) handleBroadcastMessage(header ctapHIDMessageHeader, payload []byte) {
 	switch header.Command {
 	case ctapHIDCommandInit:
 		newChannel := channel.server.newChannel()

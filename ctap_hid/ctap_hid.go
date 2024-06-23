@@ -78,3 +78,29 @@ func (server *CTAPHIDServer) sendError(channelID ctapHIDChannelID, errorCode cta
 	response := ctapHidError(channelID, errorCode)
 	server.sendResponsePackets(response)
 }
+
+func createResponsePackets(channelId ctapHIDChannelID, command ctapHIDCommand, payload []byte) [][]byte {
+	packets := [][]byte{}
+	sequence := -1
+	for len(payload) > 0 {
+		packet := []byte{}
+		if sequence < 0 {
+			packet = append(packet, util.ToLE(channelId)...)
+			packet = append(packet, util.ToLE(command)...)
+			packet = append(packet, util.ToBE(uint16(len(payload)))...)
+		} else {
+			packet = append(packet, util.ToLE(channelId)...)
+			packet = append(packet, byte(uint8(sequence)))
+		}
+		sequence++
+		bytesLeft := ctapHIDMaxPacketSize - len(packet)
+		if bytesLeft > len(payload) {
+			bytesLeft = len(payload)
+		}
+		packet = append(packet, payload[:bytesLeft]...)
+		payload = payload[bytesLeft:]
+		packet = util.Pad(packet, ctapHIDMaxPacketSize)
+		packets = append(packets, packet)
+	}
+	return packets
+}

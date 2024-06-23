@@ -7,9 +7,9 @@ import (
 )
 
 type transactionResult struct {
-	header ctapHIDMessageHeader
+	header         ctapHIDMessageHeader
 	sequenceNumber uint8
-	payload []byte
+	payload        []byte
 }
 
 // Combines either single messages or multiple messages into a single command header and payload
@@ -17,7 +17,7 @@ type ctapHIDTransaction struct {
 	done      bool
 	cancelled bool
 	errorCode ctapHIDErrorCode
-	result *transactionResult
+	result    *transactionResult
 }
 
 func newCTAPHIDTransaction(message []byte) *ctapHIDTransaction {
@@ -38,12 +38,12 @@ func newCTAPHIDTransaction(message []byte) *ctapHIDTransaction {
 	payloadLength := util.ReadBE[uint16](buffer)
 	result := transactionResult{
 		header: ctapHIDMessageHeader{
-			ChannelID: channelId,
-			Command: command,
+			ChannelID:     channelId,
+			Command:       command,
 			PayloadLength: payloadLength,
 		},
 		sequenceNumber: 0,
-		payload: buffer.Bytes(),
+		payload:        buffer.Bytes(),
 	}
 	transaction.result = &result
 	if len(transaction.result.payload) >= int(transaction.result.header.PayloadLength) {
@@ -51,7 +51,7 @@ func newCTAPHIDTransaction(message []byte) *ctapHIDTransaction {
 		transaction.finish()
 	} else {
 		ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
-			len(transaction.result.payload), 
+			len(transaction.result.payload),
 			int(payloadLength)-len(transaction.result.payload))
 	}
 	return &transaction
@@ -88,7 +88,7 @@ func (transaction *ctapHIDTransaction) addMessage(message []byte) {
 	} else {
 		// We need another followup message
 		ctapHIDLogger.Printf("CTAPHID: Read %d bytes, Need %d more\n\n",
-			len(transaction.result.payload), 
+			len(transaction.result.payload),
 			int(transaction.result.header.PayloadLength)-len(transaction.result.payload))
 		transaction.result.sequenceNumber += 1
 	}

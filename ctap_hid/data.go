@@ -2,8 +2,6 @@ package ctap_hid
 
 import (
 	"fmt"
-
-	"github.com/bulwarkid/virtual-fido/util"
 )
 
 const (
@@ -103,30 +101,4 @@ func (header ctapHIDMessageHeader) String() string {
 		channelDesc,
 		description,
 		header.PayloadLength)
-}
-
-func createResponsePackets(channelId ctapHIDChannelID, command ctapHIDCommand, payload []byte) [][]byte {
-	packets := [][]byte{}
-	sequence := -1
-	for len(payload) > 0 {
-		packet := []byte{}
-		if sequence < 0 {
-			packet = append(packet, util.ToLE(channelId)...)
-			packet = append(packet, util.ToLE(command)...)
-			packet = append(packet, util.ToBE(uint16(len(payload)))...)
-		} else {
-			packet = append(packet, util.ToLE(channelId)...)
-			packet = append(packet, byte(uint8(sequence)))
-		}
-		sequence++
-		bytesLeft := ctapHIDMaxPacketSize - len(packet)
-		if bytesLeft > len(payload) {
-			bytesLeft = len(payload)
-		}
-		packet = append(packet, payload[:bytesLeft]...)
-		payload = payload[bytesLeft:]
-		packet = util.Pad(packet, ctapHIDMaxPacketSize)
-		packets = append(packets, packet)
-	}
-	return packets
 }
