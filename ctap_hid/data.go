@@ -105,14 +105,6 @@ func (header ctapHIDMessageHeader) String() string {
 		header.PayloadLength)
 }
 
-func keepConnectionAlive(server *CTAPHIDServer, channelId ctapHIDChannelID, status byte) func() {
-	return func() {
-		// ctapHIDLogger.Printf("sending keepalive message\n\n")
-		response := createResponsePackets(channelId, ctapHIDCommandKeepalive, []byte{status})
-		server.sendResponse(response)
-	}
-}
-
 func createResponsePackets(channelId ctapHIDChannelID, command ctapHIDCommand, payload []byte) [][]byte {
 	packets := [][]byte{}
 	sequence := -1
