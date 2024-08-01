@@ -104,22 +104,22 @@ func (vault *IdentityVault) Export() []SavedCredentialSource {
 }
 
 func (vault *IdentityVault) Import(sources []SavedCredentialSource) error {
-	for _, source := range sources {
-		key, err := cose.UnmarshalCOSEPrivateKey(source.PrivateKey)
+	for idx, _ := range sources {
+		key, err := cose.UnmarshalCOSEPrivateKey(sources[idx].PrivateKey)
 		if err != nil {
-			oldFormatKey, err := x509.ParseECPrivateKey(source.PrivateKey)
+			oldFormatKey, err := x509.ParseECPrivateKey(sources[idx].PrivateKey)
 			if err != nil {
 				return fmt.Errorf("Invalid private key for source: %w", err)
 			}
 			key = &cose.SupportedCOSEPrivateKey{ECDSA: oldFormatKey}
 		}
 		decodedSource := CredentialSource{
-			Type:             source.Type,
-			ID:               source.ID,
+			Type:             sources[idx].Type,
+			ID:               sources[idx].ID,
 			PrivateKey:       key,
-			RelyingParty:     &source.RelyingParty,
-			User:             &source.User,
-			SignatureCounter: source.SignatureCounter,
+			RelyingParty:     &sources[idx].RelyingParty,
+			User:             &sources[idx].User,
+			SignatureCounter: sources[idx].SignatureCounter,
 		}
 		vault.AddIdentity(&decodedSource)
 	}
