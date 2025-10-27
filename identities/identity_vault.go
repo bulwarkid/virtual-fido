@@ -17,6 +17,8 @@ type CredentialSource struct {
 	RelyingParty     *webauthn.PublicKeyCredentialRPEntity
 	User             *webauthn.PublicKeyCrendentialUserEntity
 	SignatureCounter int32
+	// hmac-secret support: per-credential secret value
+	CredRandom []byte
 }
 
 func (source *CredentialSource) CTAPDescriptor() webauthn.PublicKeyCredentialDescriptor {
@@ -40,12 +42,22 @@ func (vault *IdentityVault) NewIdentity(relyingParty *webauthn.PublicKeyCredenti
 	credentialID := crypto.RandomBytes(16)
 	privateKey := crypto.GenerateECDSAKey()
 	cosePrivateKey := &cose.SupportedCOSEPrivateKey{ECDSA: privateKey}
+	var rpCopy *webauthn.PublicKeyCredentialRPEntity
+	if relyingParty != nil {
+		val := *relyingParty
+		rpCopy = &val
+	}
+	var userCopy *webauthn.PublicKeyCrendentialUserEntity
+	if user != nil {
+		val := *user
+		userCopy = &val
+	}
 	credentialSource := CredentialSource{
 		Type:             "public-key",
 		ID:               credentialID,
 		PrivateKey:       cosePrivateKey,
-		RelyingParty:     relyingParty,
-		User:             user,
+		RelyingParty:     rpCopy,
+		User:             userCopy,
 		SignatureCounter: 0,
 	}
 	vault.AddIdentity(&credentialSource)
@@ -97,6 +109,7 @@ func (vault *IdentityVault) Export() []SavedCredentialSource {
 			RelyingParty:     *source.RelyingParty,
 			User:             *source.User,
 			SignatureCounter: source.SignatureCounter,
+			CredRandom:       source.CredRandom,
 		}
 		sources = append(sources, savedSource)
 	}
@@ -113,13 +126,16 @@ func (vault *IdentityVault) Import(sources []SavedCredentialSource) error {
 			}
 			key = &cose.SupportedCOSEPrivateKey{ECDSA: oldFormatKey}
 		}
+		rpCopy := source.RelyingParty
+		userCopy := source.User
 		decodedSource := CredentialSource{
 			Type:             source.Type,
 			ID:               source.ID,
 			PrivateKey:       key,
-			RelyingParty:     &source.RelyingParty,
-			User:             &source.User,
+			RelyingParty:     &rpCopy,
+			User:             &userCopy,
 			SignatureCounter: source.SignatureCounter,
+			CredRandom:       source.CredRandom,
 		}
 		vault.AddIdentity(&decodedSource)
 	}

@@ -18,6 +18,7 @@ type SavedCredentialSource struct {
 	RelyingParty     webauthn.PublicKeyCredentialRPEntity    `json:"relying_party"`
 	User             webauthn.PublicKeyCrendentialUserEntity `json:"user"`
 	SignatureCounter int32                                   `json:"signature_counter"`
+	CredRandom       []byte                                  `json:"cred_random,omitempty"`
 }
 
 type FIDODeviceConfig struct {
@@ -27,6 +28,7 @@ type FIDODeviceConfig struct {
 	AuthenticationCounter  uint32                  `json:"authentication_counter"`
 	PINEnabled             bool                    `json:"pin_enabled,omitempty"`
 	PINHash                []byte                  `json:"pin_hash,omitempty"`
+	FingerprintEnabled     bool                    `json:"fingerprint_enabled,omitempty"`
 	Sources                []SavedCredentialSource `json:"sources"`
 }
 

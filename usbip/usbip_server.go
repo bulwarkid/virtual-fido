@@ -1,6 +1,8 @@
 package usbip
 
 import (
+	"errors"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -41,7 +43,18 @@ func (server *USBIPServer) Start() {
 		util.Try(func() {
 			usbipConn.handle()
 		}, func(err interface{}) {
-			errLogger.Printf("%v", err)
+			switch e := err.(type) {
+			case *util.EOFError:
+				usbipLogger.Printf("USB/IP connection closed for %s", connection.RemoteAddr())
+			case error:
+				if errors.Is(e, io.EOF) || errors.Is(e, io.ErrUnexpectedEOF) {
+					usbipLogger.Printf("USB/IP connection closed for %s", connection.RemoteAddr())
+					return
+				}
+				errLogger.Printf("%v", err)
+			default:
+				errLogger.Printf("%v", err)
+			}
 		})
 	}
 }
@@ -101,6 +114,7 @@ func (conn *usbipConnection) handle() {
 
 func (conn *usbipConnection) handleCommands(device USBIPDevice) {
 	for {
+		connectionClosed := false
 		util.Try(func() {
 			header := util.ReadBE[usbipMessageHeader](conn.conn)
 			usbipLogger.Printf("[MESSAGE HEADER] %s\n\n", header)
@@ -112,8 +126,23 @@ func (conn *usbipConnection) handleCommands(device USBIPDevice) {
 				usbipLogger.Printf("Unsupported Command: %#v\n\n", header)
 			}
 		}, func(err interface{}) {
-			errLogger.Printf("%v", err)
+			switch e := err.(type) {
+			case *util.EOFError:
+				connectionClosed = true
+			case error:
+				if errors.Is(e, io.EOF) || errors.Is(e, io.ErrUnexpectedEOF) {
+					connectionClosed = true
+					return
+				}
+				errLogger.Printf("%v", err)
+			default:
+				errLogger.Printf("%v", err)
+			}
 		})
+		if connectionClosed {
+			usbipLogger.Printf("USB/IP command loop closed for %s", conn.conn.RemoteAddr())
+			return
+		}
 	}
 }
 

@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -25,8 +26,33 @@ func Assert(val bool, message string) {
 	}
 }
 
+type EOFError struct {
+	Message string
+	Err     error
+}
+
+func (e *EOFError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.Err == nil {
+		return e.Message
+	}
+	if e.Message == "" {
+		return e.Err.Error()
+	}
+	return fmt.Sprintf("%s - %v", e.Message, e.Err)
+}
+
+func isEOFError(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
+}
+
 func CheckErr(err error, message string) {
 	if err != nil {
+		if isEOFError(err) {
+			panic(&EOFError{Message: message, Err: err})
+		}
 		Panic(fmt.Sprintf("ERROR: %v - %v", message, err))
 	}
 }

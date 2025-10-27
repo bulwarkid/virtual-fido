@@ -8,7 +8,10 @@ const (
 	ctapHIDMaxPacketSize int = 64
 )
 
-const ctapHIDStatusUpneeded uint8 = 2
+const (
+    ctapHIDStatusProcessing uint8 = 1
+    ctapHIDStatusUpneeded   uint8 = 2
+)
 
 type ctapHIDChannelID uint32
 

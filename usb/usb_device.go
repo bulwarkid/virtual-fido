@@ -68,28 +68,26 @@ func (device *USBDevice) RemoveWaitingRequest(id uint32) bool {
 }
 
 func (device *USBDevice) HandleMessage(id uint32, onFinish func(response []byte), endpoint uint32, setupBytes []byte, data []byte) {
-	setup := util.ReadLE[usbSetupPacket](bytes.NewBuffer(setupBytes))
-	usbLogger.Printf("USB MESSAGE - ENDPOINT %d SETUP: %s\n\n", endpoint, setup)
-	switch usbEndpoint(endpoint) {
-	case usbEndpointControl:
-		reply := device.handleControlMessage(setup)
-		onFinish(reply)
-	case usbEndpointOutput:
-		device.requestBuffer.Request(id, onFinish)
-		util.SetTimeout(1000, func() {
-			// If the request hasn't finished yet, cancel it and return nil
-			if device.requestBuffer.CancelRequest(id) {
-				onFinish(nil)
-			}
-		})
-		// onFinish will be called when a response is returned
-	case usbEndpointInput:
-		usbLogger.Printf("INPUT DATA: %#v\n\n", data)
-		go device.delegate.HandleMessage(data)
-		onFinish(nil)
-	default:
-		util.Panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
-	}
+    setup := util.ReadLE[usbSetupPacket](bytes.NewBuffer(setupBytes))
+    usbLogger.Printf("USB MESSAGE - ENDPOINT %d SETUP: %s\n\n", endpoint, setup)
+    switch usbEndpoint(endpoint) {
+    case usbEndpointControl:
+        reply := device.handleControlMessage(setup)
+        onFinish(reply)
+    case usbEndpointOutput:
+        // This endpoint corresponds to INTERRUPT IN (host is reading from device).
+        // Keep the URB pending until a real HID frame is ready. Do NOT fabricate zeros.
+        // The response will be provided asynchronously via delegate's SetResponseHandler -> handleResponse.
+        device.requestBuffer.Request(id, onFinish)
+        // Do not auto-cancel; host may unlink if it wants to abort (handled via RemoveWaitingRequest).
+    case usbEndpointInput:
+        usbLogger.Printf("INPUT DATA: %#v\n\n", data)
+        go device.delegate.HandleMessage(data)
+        // ACK OUT transfer immediately; no data returned on OUT URB
+        onFinish(nil)
+    default:
+        util.Panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))
+    }
 }
 
 func (device *USBDevice) handleResponse(response []byte) {

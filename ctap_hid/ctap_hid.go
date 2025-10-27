@@ -52,14 +52,14 @@ func (server *CTAPHIDServer) sendResponsePackets(packets [][]byte) {
 }
 
 func (server *CTAPHIDServer) HandleMessage(message []byte) {
-	buffer := bytes.NewBuffer(message)
-	channelId := util.ReadLE[ctapHIDChannelID](buffer)
-	channel, exists := server.channels[channelId]
-	if !exists {
-		server.sendError(channelId, ctapHIDErrorInvalidChannel)
-		return
-	}
-	channel.handleMessage(message)
+    buffer := bytes.NewBuffer(message)
+    channelId := util.ReadBE[ctapHIDChannelID](buffer)
+    channel, exists := server.channels[channelId]
+    if !exists {
+        server.sendError(channelId, ctapHIDErrorInvalidChannel)
+        return
+    }
+    channel.handleMessage(message)
 }
 
 func (server *CTAPHIDServer) newChannel() *ctapHIDChannel {
@@ -80,27 +80,44 @@ func (server *CTAPHIDServer) sendError(channelID ctapHIDChannelID, errorCode cta
 }
 
 func createResponsePackets(channelId ctapHIDChannelID, command ctapHIDCommand, payload []byte) [][]byte {
-	packets := [][]byte{}
-	sequence := -1
-	for len(payload) > 0 {
-		packet := []byte{}
-		if sequence < 0 {
-			packet = append(packet, util.ToLE(channelId)...)
-			packet = append(packet, util.ToLE(command)...)
-			packet = append(packet, util.ToBE(uint16(len(payload)))...)
-		} else {
-			packet = append(packet, util.ToLE(channelId)...)
-			packet = append(packet, byte(uint8(sequence)))
-		}
-		sequence++
-		bytesLeft := ctapHIDMaxPacketSize - len(packet)
-		if bytesLeft > len(payload) {
-			bytesLeft = len(payload)
-		}
-		packet = append(packet, payload[:bytesLeft]...)
-		payload = payload[bytesLeft:]
-		packet = util.Pad(packet, ctapHIDMaxPacketSize)
-		packets = append(packets, packet)
-	}
-	return packets
+    packets := [][]byte{}
+    sequence := -1
+    remaining := len(payload)
+    for remaining > 0 {
+        packet := []byte{}
+        if sequence < 0 {
+            // INIT frame
+            packet = append(packet, util.ToBE(channelId)...)
+            packet = append(packet, util.ToLE(command)...)
+            packet = append(packet, util.ToBE(uint16(remaining))...)
+        } else {
+            // CONT frame
+            packet = append(packet, util.ToBE(channelId)...)
+            // Use current sequence value in header, then increment
+            packet = append(packet, byte(uint8(sequence)))
+        }
+        // Compute chunk size
+        bytesLeft := ctapHIDMaxPacketSize - len(packet)
+        chunk := bytesLeft
+        if chunk > remaining {
+            chunk = remaining
+        }
+        // Debug log per frame
+        if sequence < 0 {
+            // INIT frame log
+            ctapHIDLogger.Printf("CTAPHID TX INIT: ch=0x%x cmd=%s total=%d chunk=%d\n\n", channelId, ctapHIDCommandDescriptions[command], remaining, chunk)
+        } else {
+            ctapHIDLogger.Printf("CTAPHID TX CONT: ch=0x%x seq=%d chunk=%d remain=%d\n\n", channelId, sequence, chunk, remaining-chunk)
+        }
+        // Copy chunk and advance
+        packet = append(packet, payload[:chunk]...)
+        payload = payload[chunk:]
+        remaining -= chunk
+        // Increment sequence AFTER using it in the header
+        sequence++
+        // Pad and append
+        packet = util.Pad(packet, ctapHIDMaxPacketSize)
+        packets = append(packets, packet)
+    }
+    return packets
 }

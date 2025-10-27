@@ -8,7 +8,7 @@ import (
 )
 
 func makeHeader(channelId ctapHIDChannelID, command uint8, payloadLength uint16) []byte {
-	return util.Concat(util.ToLE(channelId), util.ToLE(command), util.ToBE(payloadLength))
+    return util.Concat(util.ToBE(channelId), util.ToLE(command), util.ToBE(payloadLength))
 }
 
 func TestSingleMessage(t *testing.T) {
@@ -31,7 +31,7 @@ func TestMultipleMessages(t *testing.T) {
 	message := util.Concat(makeHeader(channelId, uint8(ctapHIDCommandCBOR), uint16(len(payload))), payload1)
 	transaction := newCTAPHIDTransaction(message)
 	test.Assert(t, !transaction.done, "Transaction is done after one message")
-	transaction.addMessage(util.Concat(util.ToLE(channelId), []byte{0}, payload2))
+    transaction.addMessage(util.Concat(util.ToBE(channelId), []byte{0}, payload2))
 	test.Assert(t, transaction.done, "Transaction is not done")
 	result := transaction.result
 	test.AssertEqual(t, result.header.ChannelID, 1, "Channel ID is incorrect")

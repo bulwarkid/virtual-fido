@@ -24,6 +24,8 @@ Go to the [YubiKey test page](https://demo.yubico.com/webauthn-technical/registr
 
 Run `go run ./cmd/demo start` to attach the USB device. Run `go run ./cmd/demo --help` to see more commands, such as to list or delete credentials from the file.
 
+Fingerprint verification integrates with Windows Hello. Configure Windows Hello with a fingerprint for the current account before enabling the demo's fingerprint features.
+
 ### Linux
 
 Note that this tool requires elevated permissions.
