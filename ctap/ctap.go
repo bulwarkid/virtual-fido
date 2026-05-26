@@ -195,9 +195,9 @@ func (args makeCredentialArgs) String() string {
 }
 
 type makeCredentialResponse struct {
-	FormatIdentifer      string                    `cbor:"1,keyasint"`
-	AuthData             []byte                    `cbor:"2,keyasint"`
-	AttestationStatement basicAttestationStatement `cbor:"3,keyasint"`
+	FormatIdentifer      string      `cbor:"1,keyasint"`
+	AuthData             []byte      `cbor:"2,keyasint"`
+	AttestationStatement interface{} `cbor:"3,keyasint"`
 }
 
 func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
@@ -219,7 +219,13 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	}
 
 	if server.client.SupportsPIN() {
-		if args.PINUVAuthProtocol == 1 && args.PINUVAuthParam != nil {
+		if args.PINUVAuthParam != nil && len(args.PINUVAuthParam) == 0 {
+			// Empty pinUvAuthParam = probe per CTAP2 spec
+			if server.client.PINHash() != nil {
+				return []byte{byte(ctap2ErrPINInvalid)}
+			}
+			return []byte{byte(ctap2ErrNoPINSet)}
+		} else if args.PINUVAuthProtocol == 1 && args.PINUVAuthParam != nil {
 			pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
 			if !bytes.Equal(pinAuth, args.PINUVAuthParam) {
 				return []byte{byte(ctap2ErrPINAuthInvalid)}
@@ -246,29 +252,21 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	attestedCredentialData := makeAttestedCredentialData(credentialSource)
 	authenticatorData := makeAuthData(args.RP.ID, credentialSource, attestedCredentialData, flags)
 
-	attestationCert := server.client.CreateAttestationCertificiate(credentialSource.PrivateKey)
-	attestationSignature := credentialSource.PrivateKey.Sign(append(authenticatorData, args.ClientDataHash...))
-	attestationStatement := basicAttestationStatement{
-		Alg: cose.COSE_ALGORITHM_ID_ES256,
-		Sig: attestationSignature,
-		X5c: [][]byte{attestationCert},
-	}
-
 	response := makeCredentialResponse{
 		AuthData:             authenticatorData,
-		FormatIdentifer:      "packed",
-		AttestationStatement: attestationStatement,
+		FormatIdentifer:      "none",
+		AttestationStatement: map[string]interface{}{},
 	}
 	ctapLogger.Printf("MAKE CREDENTIAL RESPONSE: %#v\n\n", response)
 	return append([]byte{byte(ctap1ErrSuccess)}, util.MarshalCBOR(response)...)
 }
 
 type getInfoOptions struct {
-	IsPlatform      bool  `cbor:"plat"`
-	CanResidentKey  bool  `cbor:"rk"`
-	HasClientPIN    *bool `cbor:"clientPin,omitempty"`
-	CanUserPresence bool  `cbor:"up"`
-	// CanUserVerification bool  `cbor:"uv"`
+	IsPlatform          bool  `cbor:"plat"`
+	CanResidentKey      bool  `cbor:"rk"`
+	HasClientPIN        *bool `cbor:"clientPin,omitempty"`
+	CanUserPresence     bool  `cbor:"up"`
+	CanUserVerification bool  `cbor:"uv"`
 }
 
 type getInfoResponse struct {
@@ -288,7 +286,6 @@ func (server *CTAPServer) handleGetInfo() []byte {
 			IsPlatform:      false,
 			CanResidentKey:  server.client.SupportsResidentKey(),
 			CanUserPresence: true,
-			// CanUserVerification: true,
 		},
 	}
 	if server.client.SupportsPIN() {
@@ -333,7 +330,13 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	ctapLogger.Printf("GET ASSERTION: %#v\n\n", args)
 
 	if server.client.SupportsPIN() {
-		if args.PINUVAuthParam != nil {
+		if args.PINUVAuthParam != nil && len(args.PINUVAuthParam) == 0 {
+			// Empty pinUvAuthParam = probe per CTAP2 spec
+			if server.client.PINHash() != nil {
+				return []byte{byte(ctap2ErrPINInvalid)}
+			}
+			return []byte{byte(ctap2ErrNoPINSet)}
+		} else if args.PINUVAuthParam != nil {
 			if args.PINUVAuthProtocol != 1 {
 				return []byte{byte(ctap2ErrPINAuthInvalid)}
 			}
@@ -502,6 +505,7 @@ func (server *CTAPServer) handleGetKeyAgreement() []byte {
 		KeyAgreement: &cose.COSEEC2Key{
 			KeyType:   int8(cose.COSE_KEY_TYPE_EC2),
 			Algorithm: int8(cose.COSE_ALGORITHM_ID_ECDH_HKDF_256),
+			Curve:     int8(cose.COSE_CURVE_ID_P256),
 			X:         key.X.Bytes(),
 			Y:         key.Y.Bytes(),
 		},
