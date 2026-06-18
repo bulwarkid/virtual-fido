@@ -1,9 +1,9 @@
 package ctap
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 
@@ -221,7 +221,7 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	if server.client.SupportsPIN() {
 		if args.PINUVAuthProtocol == 1 && args.PINUVAuthParam != nil {
 			pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
-			if !bytes.Equal(pinAuth, args.PINUVAuthParam) {
+			if subtle.ConstantTimeCompare(pinAuth, args.PINUVAuthParam) != 1 {
 				return []byte{byte(ctap2ErrPINAuthInvalid)}
 			}
 			flags = flags | authDataFlagUserVerified
@@ -338,7 +338,7 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 				return []byte{byte(ctap2ErrPINAuthInvalid)}
 			}
 			pinAuth := server.derivePINAuth(server.client.PINToken(), args.ClientDataHash)
-			if !bytes.Equal(pinAuth, args.PINUVAuthParam) {
+			if subtle.ConstantTimeCompare(pinAuth, args.PINUVAuthParam) != 1 {
 				return []byte{byte(ctap2ErrPINAuthInvalid)}
 			}
 			flags = flags | authDataFlagUserVerified
@@ -519,7 +519,7 @@ func (server *CTAPServer) handleSetPIN(args clientPINArgs) []byte {
 	}
 	sharedSecret := server.getPINSharedSecret(*args.KeyAgreement)
 	pinAuth := server.derivePINAuth(sharedSecret, args.NewPINEncoding)
-	if !bytes.Equal(pinAuth, args.PINUVAuthParam) {
+	if subtle.ConstantTimeCompare(pinAuth, args.PINUVAuthParam) != 1 {
 		return []byte{byte(ctap2ErrPINAuthInvalid)}
 	}
 	decryptedPIN := server.decryptPIN(sharedSecret, args.NewPINEncoding)
@@ -542,12 +542,12 @@ func (server *CTAPServer) handleChangePIN(args clientPINArgs) []byte {
 	}
 	sharedSecret := server.getPINSharedSecret(*args.KeyAgreement)
 	pinAuth := server.derivePINAuth(sharedSecret, append(args.NewPINEncoding, args.PINHashEncoding...))
-	if !bytes.Equal(pinAuth, args.PINUVAuthParam) {
+	if subtle.ConstantTimeCompare(pinAuth, args.PINUVAuthParam) != 1 {
 		return []byte{byte(ctap2ErrPINAuthInvalid)}
 	}
 	server.client.SetPINRetries(server.client.PINRetries() - 1)
 	decryptedPINHash := crypto.DecryptAESCBC(sharedSecret, args.PINHashEncoding)
-	if !bytes.Equal(server.client.PINHash(), decryptedPINHash) {
+	if subtle.ConstantTimeCompare(server.client.PINHash(), decryptedPINHash) != 1 {
 		// TODO: Mismatch detected, handle it
 		return []byte{byte(ctap2ErrPINInvalid)}
 	}
@@ -572,7 +572,7 @@ func (server *CTAPServer) handleGetPINToken(args clientPINArgs) []byte {
 	server.client.SetPINRetries(server.client.PINRetries() - 1)
 	pinHash := server.decryptPINHash(sharedSecret, args.PINHashEncoding)
 	ctapLogger.Printf("TRYING PIN HASH: %v\n\n", hex.EncodeToString(pinHash))
-	if !bytes.Equal(pinHash, server.client.PINHash()) {
+	if subtle.ConstantTimeCompare(pinHash, server.client.PINHash()) != 1 {
 		// TODO: Handle mismatch here by regening the key agreement key
 		ctapLogger.Printf("MISMATCH: Provided PIN %v doesn't match stored PIN %v\n\n", hex.EncodeToString(pinHash), hex.EncodeToString(server.client.PINHash()))
 		return []byte{byte(ctap2ErrPINInvalid)}
