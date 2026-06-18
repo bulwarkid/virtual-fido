@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sync"
 
 	"github.com/bulwarkid/virtual-fido/cose"
 	"github.com/bulwarkid/virtual-fido/crypto"
@@ -91,6 +92,11 @@ type CTAPClient interface {
 
 type CTAPServer struct {
 	client CTAPClient
+	// mu serializes message handling. The USB/HID layer dispatches each message
+	// in its own goroutine, but a real authenticator processes one command at a
+	// time; without this, concurrent requests race on the client's mutable state
+	// (PIN retries, signature counters, the identity vault).
+	mu sync.Mutex
 }
 
 func NewCTAPServer(client CTAPClient) *CTAPServer {
@@ -98,6 +104,8 @@ func NewCTAPServer(client CTAPClient) *CTAPServer {
 }
 
 func (server *CTAPServer) HandleMessage(data []byte) []byte {
+	server.mu.Lock()
+	defer server.mu.Unlock()
 	command := ctapCommand(data[0])
 	ctapLogger.Printf("CTAP COMMAND: %s\n\n", ctapCommandDescriptions[command])
 	switch command {
