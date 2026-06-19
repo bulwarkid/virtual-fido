@@ -205,6 +205,12 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	err := cbor.Unmarshal(data, &args)
 	util.CheckErr(err, fmt.Sprintf("Could not decode CBOR for MAKE_CREDENTIAL: %s %v", err, data))
 	ctapLogger.Printf("MAKE CREDENTIAL: %s\n\n", args)
+	// rp is a required parameter; reject a request that omits it rather than
+	// nil-dereferencing args.RP.Name / args.RP.ID below (which crashes the process).
+	if args.RP == nil || args.RP.ID == "" {
+		ctapLogger.Printf("ERROR: MakeCredential missing rp/rp.id\n\n")
+		return []byte{byte(ctap2ErrMissingParam)}
+	}
 	var flags authDataFlags = 0
 
 	supported := false
