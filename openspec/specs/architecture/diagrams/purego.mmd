@@ -1,0 +1,23 @@
+graph TD
+    subgraph "Go Layer"
+        GO[FIDO/CTAP Logic]
+        PG[purego]
+        MANUAL[Manual ObjC Runtime Glue]
+    end
+
+    subgraph "macOS System ABI"
+        LIB[libobjc.A.dylib]
+        SYS[CoreHID.framework]
+    end
+
+    subgraph "Build Requirements"
+        B1[Go Compiler Only]
+    end
+
+    GO --> PG
+    PG -- "dlopen / dlsym" --> LIB
+    MANUAL -- "objc_msgSend" --> LIB
+    LIB -- "Send Msg" --> SYS
+    
+    style MANUAL fill:#f96,stroke:#333,stroke-width:2px
+    style B1 fill:#9f9,stroke:#333

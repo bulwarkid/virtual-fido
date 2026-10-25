@@ -11,6 +11,7 @@ import (
 	virtual_fido "github.com/bulwarkid/virtual-fido"
 	"github.com/bulwarkid/virtual-fido/fido_client"
 	"github.com/bulwarkid/virtual-fido/identities"
+	"github.com/bulwarkid/virtual-fido/transport"
 	"github.com/bulwarkid/virtual-fido/util"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +20,7 @@ var vaultFilename string
 var vaultPassphrase string
 var identityID string
 var verbose bool
+var transportMode string
 
 func checkErr(err error, message string) {
 	if err != nil {
@@ -120,9 +122,11 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	defaultTransport, transportOptions := transport.TransportOptions()
 	rootCmd.PersistentFlags().StringVarP(&vaultFilename, "vault", "", "vault.json", "Identity vault filename")
 	rootCmd.PersistentFlags().StringVarP(&vaultPassphrase, "passphrase", "", "passphrase", "Identity vault passphrase")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
+	rootCmd.PersistentFlags().StringVar(&transportMode, "transport", string(defaultTransport), "Transport: "+transportOptions)
 	rootCmd.MarkFlagRequired("vault")
 	rootCmd.MarkFlagRequired("passphrase")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true

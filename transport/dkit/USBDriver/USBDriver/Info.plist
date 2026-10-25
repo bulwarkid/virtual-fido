@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleShortVersionString</key>
+	<string>10.0</string>
+	<key>CFBundleVersion</key>
+	<string>100</string>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>USBDriver</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleIdentifierKernel</key>
+			<string>com.apple.kpi.iokit</string>
+			<key>IOClass</key>
+			<string>IOUserService</string>
+			<key>IOProviderClass</key>
+			<string>IOUserResources</string>
+			<key>IOUserClass</key>
+			<string>USBDriver</string>
+			<key>IOUserServerName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>UserClientProperties</key>
+			<dict>
+				<key>DeviceProperties</key>
+				<dict>
+					<key>IOClass</key>
+					<string>AppleUserHIDDevice</string>
+					<key>IOUserClass</key>
+					<string>USBDevice</string>
+				</dict>
+				<key>IOClass</key>
+				<string>IOUserUserClient</string>
+				<key>IOUserClass</key>
+				<string>USBUserClient</string>
+			</dict>
+			<key>IOUserClientAllowedEntitlements</key>
+			<array>
+				<string>com.apple.developer.driverkit.user-client-access</string>
+			</array>
+		</dict>
+	</dict>
+</dict>
+</plist>

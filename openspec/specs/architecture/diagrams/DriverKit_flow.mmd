@@ -1,0 +1,64 @@
+graph TB
+    subgraph "Installation Phase"
+        A[USBDriverInstaller.app] -->|Submit Activation| B[sysextd]
+        B -->|Validate Signature| C{Developer Mode?}
+        C -->|Yes| D[kernelmanagerd]
+        C -->|No| E[Reject: Requires Notarization]
+        D -->|Load DEXT| F[IOUserResources]
+        F -->|Match IOKit Resource| G[USBDriver.dext]
+    end
+
+    subgraph "DEXT Lifecycle"
+        G -->|Start| H[USBDriver::Start]
+        H -->|RegisterService| I[IORegistry Entry]
+        I -->|Published| J[Service Available]
+    end
+
+    subgraph "Client Connection"
+        K[virtual-fido-macos] -->|run command| L[usb_driver_init_device]
+        L -->|open_connection| M{IOServiceGetMatchingService}
+        M -->|Search by Name| N["USBDriver"]
+        M -->|Fallback| O["id.bulwark.VirtualUSBDriver.driver"]
+        N -->|Found| P[IOServiceOpen]
+        O -->|Found| P
+        P -->|kIOHIDServerConnectType| Q[io_connect_t]
+        Q -->|NewUserClient| R[USBUserClient]
+    end
+
+    subgraph "Runtime Operation"
+        R -->|IOConnectCallMethod| S[USBDevice]
+        S -->|HID Reports| T[AppleUserHIDDevice]
+        T -->|System Integration| U[macOS HID Stack]
+        U -->|FIDO Events| V[Browser/App]
+    end
+
+    subgraph "E2E Test Flow"
+        W[e2e_orch.py] -->|Start| K
+        K -->|Initialize| X[Vault + Transport]
+        X -->|Connect| R
+        W -->|Launch| Y[Playwright]
+        Y -->|Navigate| Z[webauthn.io]
+        Z -->|Request| V
+        V -->|CTAP2| U
+        U -->|Response| Z
+    end
+
+    subgraph "Authorization Flow"
+        A -->|GUI Prompt| AA[handle_auth.scpt]
+        AA -->|Click Allow| AB[System Preferences]
+        AB -->|Grant Permission| B
+    end
+
+    subgraph "Debugging Tools"
+        AC[systemextensionsctl] -.->|Query Status| B
+        AD[ioreg] -.->|Inspect Registry| I
+        AE[log show] -.->|Kernel Logs| D
+        AF[codesign] -.->|Verify Signature| G
+    end
+
+    J -.->|Available for| M
+    
+    style G fill:#ff9999
+    style R fill:#99ff99
+    style K fill:#9999ff
+    style B fill:#ffff99

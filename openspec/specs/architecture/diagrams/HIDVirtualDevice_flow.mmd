@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant B as Web Browser
+    participant K as macOS Kernel (CoreHID)
+    participant S as VirtualFIDODevice (Swift)
+    participant O as HIDVirtualDeviceBridge (Obj-C)
+    participant G as mac_hidvirtual.go (Go/CGo)
+    participant C as CTAP State Machine (Go)
+
+    Note over B, C: Registration / Login Flow
+
+    B->>K: WebAuthn Request (HID Output)
+    K->>S: receivedSetReportRequestOfType (.output)
+    S->>O: callback(data, length)
+    O->>G: bridgeCallbackWrapper (C-Go Bridge)
+    G->>C: ctapHIDServer.HandleMessage(data)
+    
+    Note right of C: Process CTAP Request
+    
+    C->>G: handleResponse(response)
+    G->>O: hid_virtual_device_send_report
+    O->>S: device.dispatchInputReport(data)
+    
+    Note over S: 20ms Task-Chained Pacing
+    
+    S->>K: dispatchInputReport (HID Input)
+    K->>B: HID Report Delivery

@@ -1,0 +1,43 @@
+# Task: Review Audit Results
+
+- [x] Read and summarize audit results from Gist
+- [x] Cross-reference findings with the codebase
+    - [x] Buffer overflow in `USBUserClient.cpp`
+    - [x] UV flag correctness in `ctap.go`
+    - [x] Attestation change in `ctap.go`
+    - [x] Cgo leak in `mac/mac.go`
+    - [x] SIGINT/Blocking issue in `mac.Start`
+    - [x] Hardcoded passwords in scripts
+    - [x] `notifyFrameAction` leak in `USBUserClient.cpp`
+- [x] Debug HIDVirtualDevice initialization in VM (PureGo Path)
+    - [x] Fix `sudo` password and environment
+    - [x] Enable trace logging
+    - [x] Fix `objc_getClass` logic (CoreHID.HIDVirtualDevice)
+    - [x] Implement stable `SyscallN` / `method_invoke` bridge for ARM64
+    - [x] Verify `NSBundle` loading and class availability
+    - [x] Determine correct property keys for `initWithProperties:`
+    - [x] Check for detailed error (No error description returned)
+    - [x] Verify Entitlements (Present but Ad-Hoc signed)
+    - [x] Conclusion: Restricted Entitlement blocked by kernel/AMFI despite overrides.
+- [x] Develop macOS E2E Test Suite
+    - [x] Create orchestrator script (`scripts/e2e_suite.py`)
+    - [x] Enhance CLI with dynamic device management (`insert`, `remove`, `touch`)
+    - [x] Implement local WebAuthn test server
+    - [x] Refine Playwright interaction with hotkeys
+    - [x] Verify offline/local automated flows
+    - [x] Add Yubico and WebAuthn.io external validation scenarios
+- [x] Verify Swift-based HIDVirtualDevice (Reverted Path)
+    - [x] Build `libHIDVirtualDevice.dylib` using `build.sh`
+    - [x] Sign binary with ad-hoc signature (sanity check)
+    - [x] Run `just vhid_test` to verify initialization in Swift (Success)
+    - [x] Investigate if Swift path works (It works! Entitlements valid in this context)
+- [x] Code Review and Spec Alignment
+    - [x] Compare `uhid` (Linux) vs `vhid` (macOS) implementations
+    - [x] Validate against FIDO CTAP / WebAuthn standards
+    - [x] Create formal HID transport specification in `openspec`
+    - [x] Update architecture spec to reference detailed transport requirements
+- [x] Create an implementation plan to address the findings
+- [x] Implement fixes for the identified issues
+    - [x] Security audit findings
+    - [x] Swift code quality improvements (warnings)
+- [x] Verify the fixes

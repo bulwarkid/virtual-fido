@@ -1,7 +1,6 @@
 package ctap_hid
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/bulwarkid/virtual-fido/util"
@@ -79,12 +78,27 @@ func (channel *ctapHIDChannel) handleBroadcastMessage(header ctapHIDMessageHeade
 	case ctapHIDCommandPing:
 		channel.server.sendResponse(ctapHIDBroadcastChannel, ctapHIDCommandPing, payload)
 	default:
-		util.Panic(fmt.Sprintf("Invalid CTAPHID Broadcast command: %#v", header))
+		channel.server.sendError(ctapHIDBroadcastChannel, ctapHIDErrorInvalidCommand)
 	}
 }
 
 func (channel *ctapHIDChannel) handleDataMessage(header ctapHIDMessageHeader, payload []byte) {
 	switch header.Command {
+	case ctapHIDCommandInit:
+		if len(payload) < 8 {
+			channel.server.sendError(header.ChannelID, ctapHIDErrorInvalidLength)
+			return
+		}
+		response := ctapHIDInitResponse{
+			NewChannelID:       channel.channelId,
+			ProtocolVersion:    2,
+			DeviceVersionMajor: 0,
+			DeviceVersionMinor: 0,
+			DeviceVersionBuild: 1,
+			CapabilitiesFlags:  ctapHIDCapabilityCBOR,
+		}
+		copy(response.Nonce[:], payload[:8])
+		channel.server.sendResponse(header.ChannelID, ctapHIDCommandInit, util.ToLE(response))
 	case ctapHIDCommandMsg:
 		responsePayload := channel.server.u2fServer.HandleMessage(payload)
 		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %d %#v\n\n", len(responsePayload), responsePayload)
@@ -97,8 +111,10 @@ func (channel *ctapHIDChannel) handleDataMessage(header ctapHIDMessageHeader, pa
 		channel.server.sendResponse(header.ChannelID, ctapHIDCommandCBOR, responsePayload)
 	case ctapHIDCommandPing:
 		channel.server.sendResponse(header.ChannelID, ctapHIDCommandPing, payload)
+	case ctapHIDCommandWink:
+		channel.server.sendResponse(header.ChannelID, ctapHIDCommandWink, []byte{})
 	default:
-		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %s", header))
+		channel.server.sendError(header.ChannelID, ctapHIDErrorInvalidCommand)
 	}
 }
 

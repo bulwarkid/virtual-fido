@@ -17,6 +17,7 @@ type ClientAction uint8
 type ClientActionRequestParams struct {
 	RelyingParty string
 	UserName     string
+	Options      []string // For selecting from multiple identities
 }
 
 const (
@@ -29,7 +30,7 @@ const (
 var clientLogger *log.Logger = util.NewLogger("[CLIENT] ", util.LogLevelDebug)
 
 type ClientRequestApprover interface {
-	ApproveClientAction(action ClientAction, params ClientActionRequestParams) bool
+	ApproveClientAction(action ClientAction, params ClientActionRequestParams) (bool, int)
 }
 
 type ClientDataSaver interface {
@@ -111,18 +112,46 @@ func (client *DefaultFIDOClient) GetAssertionSource(relyingPartyID string, allow
 		return nil
 	}
 
-	// TODO: Allow user to choose credential source
-	credentialSource := sources[0]
-	credentialSource.SignatureCounter++
-	client.saveData()
-	return credentialSource
+	if len(sources) == 1 {
+		return sources[0]
+	}
+
+	// Multiple identities found - ask user to select
+	options := make([]string, len(sources))
+	for i, s := range sources {
+		options[i] = s.User.Name
+	}
+
+	params := ClientActionRequestParams{
+		RelyingParty: relyingPartyID,
+		Options:      options,
+	}
+
+	ok, chosenIndex := client.requestApprover.ApproveClientAction(ClientActionFIDOGetAssertion, params)
+	if ok {
+		if chosenIndex >= 0 && chosenIndex < len(sources) {
+			return sources[chosenIndex]
+		}
+		return sources[0]
+	}
+	return nil
 }
 
-func (client DefaultFIDOClient) ApproveAccountCreation(relyingParty string) bool {
+func (client *DefaultFIDOClient) BumpSignatureCounter(credentialSource *identities.CredentialSource) int32 {
+	credentialSource.SignatureCounter++
+	client.saveData()
+	return credentialSource.SignatureCounter
+}
+
+func (client DefaultFIDOClient) ApproveAccountCreation(relyingParty, rpID string) bool {
+	if relyingParty == "" {
+		relyingParty = rpID
+	}
 	params := ClientActionRequestParams{
 		RelyingParty: relyingParty,
 	}
-	return client.requestApprover.ApproveClientAction(ClientActionFIDOMakeCredential, params)
+	ok, _ := client.requestApprover.ApproveClientAction(ClientActionFIDOMakeCredential, params)
+	return ok
 }
 
 func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *identities.CredentialSource) bool {
@@ -130,7 +159,8 @@ func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *identities
 		RelyingParty: credentialSource.RelyingParty.Name,
 		UserName:     credentialSource.User.Name,
 	}
-	return client.requestApprover.ApproveClientAction(ClientActionFIDOGetAssertion, params)
+	ok, _ := client.requestApprover.ApproveClientAction(ClientActionFIDOGetAssertion, params)
+	return ok
 }
 
 // -----------------------
@@ -208,12 +238,14 @@ func (client *DefaultFIDOClient) CreateAttestationCertificiate(privateKey *cose.
 
 func (client DefaultFIDOClient) ApproveU2FRegistration(keyHandle *webauthn.KeyHandle) bool {
 	params := ClientActionRequestParams{}
-	return client.requestApprover.ApproveClientAction(ClientActionU2FRegister, params)
+	ok, _ := client.requestApprover.ApproveClientAction(ClientActionU2FRegister, params)
+	return ok
 }
 
 func (client DefaultFIDOClient) ApproveU2FAuthentication(keyHandle *webauthn.KeyHandle) bool {
 	params := ClientActionRequestParams{}
-	return client.requestApprover.ApproveClientAction(ClientActionU2FAuthenticate, params)
+	ok, _ := client.requestApprover.ApproveClientAction(ClientActionU2FAuthenticate, params)
+	return ok
 }
 
 func (client *DefaultFIDOClient) exportData(passphrase string) []byte {

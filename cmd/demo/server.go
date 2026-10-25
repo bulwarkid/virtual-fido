@@ -1,52 +1,36 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"strings"
-	"sync"
-	"time"
 
 	virtual_fido "github.com/bulwarkid/virtual-fido"
 	"github.com/bulwarkid/virtual-fido/fido_client"
+	"github.com/bulwarkid/virtual-fido/transport"
 )
 
-func prompt(prompt string) bool {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println(prompt)
-	fmt.Print("--> ")
-	response, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Printf("Could not read user input: %s - %s\n", response, err)
-		panic(err)
-	}
-	response = strings.ToLower(strings.TrimSpace(response))
-	if response == "y" || response == "yes" {
-		return true
-	}
-	return false
-}
+func prompt(prompt string) bool { return transport.Prompt(prompt) }
 
 type ClientSupport struct {
 	vaultFilename   string
 	vaultPassphrase string
 }
 
-func (support *ClientSupport) ApproveClientAction(action fido_client.ClientAction, params fido_client.ClientActionRequestParams) bool {
+func (support *ClientSupport) ApproveClientAction(action fido_client.ClientAction, params fido_client.ClientActionRequestParams) (bool, int) {
 	switch action {
 	case fido_client.ClientActionFIDOGetAssertion:
-		return prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", params.RelyingParty, params.UserName))
+		return prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", params.RelyingParty, params.UserName)), 0
 	case fido_client.ClientActionFIDOMakeCredential:
-		return prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", params.RelyingParty))
+		return prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", params.RelyingParty)), 0
 	case fido_client.ClientActionU2FAuthenticate:
-		return prompt("Approve registration of U2F device (Y/n)?")
+		return prompt("Approve registration of U2F device (Y/n)?"), 0
 	case fido_client.ClientActionU2FRegister:
-		return prompt("Approve use of U2F device (Y/n)?")
+		return prompt("Approve use of U2F device (Y/n)?"), 0
 	}
 	fmt.Printf("Unknown client action for approval: %d\n", action)
-	return false
+	return false, 0
 }
 
 func (support *ClientSupport) SaveData(data []byte) {
@@ -72,25 +56,15 @@ func (support *ClientSupport) Passphrase() string {
 }
 
 func runServer(client virtual_fido.FIDOClient) {
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		virtual_fido.Start(client)
-		wg.Done()
-	}()
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		prog := platformUSBIPExec()
-		if prog != nil {
-			prog.Stdin = os.Stdin
-			prog.Stdout = os.Stdout
-			prog.Stderr = os.Stderr
-			err := prog.Run()
-			if err != nil {
-				fmt.Printf("Error: %s\n", err)
-			}
-		}
-		wg.Done()
-	}()
-	wg.Wait()
+	switch strings.ToLower(transportMode) {
+	case "usbip":
+		transport.Start(transport.ModeUSBIP, client, "Virtual FIDO")
+	case "uhid":
+		transport.Start(transport.ModeUHID, client, "Virtual FIDO")
+	case "usbip-win2":
+		transport.Start(transport.ModeUSBIPWin2, client, "Virtual FIDO")
+	default:
+		_, options := transport.TransportOptions()
+		fmt.Printf("Unknown transport %q; expected %s\n", transportMode, options)
+	}
 }
