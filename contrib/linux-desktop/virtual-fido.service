@@ -1,0 +1,14 @@
+[Unit]
+Description=Virtual FIDO2 / WebAuthn Desktop Daemon and X11 Hotkey Helper
+After=graphical-session.target
+
+[Service]
+Type=forking
+PIDFile=%h/.config/virtual-fido/virtual-fido.pid
+ExecStart=%h/.local/bin/virtual-fido-ctl start
+ExecStop=%h/.local/bin/virtual-fido-ctl stop
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
