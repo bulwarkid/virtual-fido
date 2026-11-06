@@ -1,0 +1,3 @@
+# Allow plugdev group and active local desktop sessions to access /dev/uhid and FIDO hidraw nodes
+KERNEL=="uhid", SUBSYSTEM=="misc", GROUP="plugdev", MODE="0660", TAG+="uaccess"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", GROUP="plugdev", MODE="0660", TAG+="uaccess"

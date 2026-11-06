@@ -1,0 +1,351 @@
+#!/usr/bin/env python3
+"""Global X11 hotkey listener and keymap poller for Virtual FIDO touch approval.
+
+Supports:
+  - Ctrl + CapsLock (unlocks CapsLock via XkbLockModifiers so CapsLock never stays toggled)
+  - Ctrl + F12      (alternative global chord)
+  - F12 alone       (when a prompt marker exists at <config-dir>/pending.prompt)
+
+Delivers touch approval both by writing `touch\\n` to `<config-dir>/touch.sig` (for signal-file
+transports) and by writing `y\\n` non-blockingly to `<config-dir>/touch.fifo` when present (for
+stdin-based `cmd/demo start` setups).
+"""
+
+from __future__ import annotations
+
+import ctypes
+import errno
+import os
+from pathlib import Path
+import signal
+import stat
+import subprocess
+import sys
+import time
+
+KeyPress = 2
+KeyRelease = 3
+ControlMask = 1 << 2
+LockMask = 1 << 1
+Mod2Mask = 1 << 4
+GrabModeAsync = 1
+XkbUseCoreKbd = 0x0100
+
+XK_Caps_Lock = 0xFFE5
+XK_F12 = 0xFFC9
+XK_Control_L = 0xFFE3
+XK_Control_R = 0xFFE4
+
+
+class XKeyEvent(ctypes.Structure):
+    _fields_ = [
+        ("type", ctypes.c_int),
+        ("serial", ctypes.c_ulong),
+        ("send_event", ctypes.c_int),
+        ("display", ctypes.c_void_p),
+        ("window", ctypes.c_ulong),
+        ("root", ctypes.c_ulong),
+        ("subwindow", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("x", ctypes.c_int),
+        ("y", ctypes.c_int),
+        ("x_root", ctypes.c_int),
+        ("y_root", ctypes.c_int),
+        ("state", ctypes.c_uint),
+        ("keycode", ctypes.c_uint),
+        ("same_screen", ctypes.c_int),
+    ]
+
+
+class XEvent(ctypes.Union):
+    _fields_ = [
+        ("type", ctypes.c_int),
+        ("xkey", XKeyEvent),
+        ("pad", ctypes.c_long * 24),
+    ]
+
+
+class XErrorEvent(ctypes.Structure):
+    _fields_ = [
+        ("type", ctypes.c_int),
+        ("display", ctypes.c_void_p),
+        ("resourceid", ctypes.c_ulong),
+        ("serial", ctypes.c_ulong),
+        ("error_code", ctypes.c_ubyte),
+        ("request_code", ctypes.c_ubyte),
+        ("minor_code", ctypes.c_ubyte),
+    ]
+
+
+XErrorHandler = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(XErrorEvent))
+
+
+def notify(title: str, body: str, timeout_ms: int = 2500) -> None:
+    try:
+        subprocess.Popen(
+            [
+                "gdbus",
+                "call",
+                "--session",
+                "--dest",
+                "org.freedesktop.Notifications",
+                "--object-path",
+                "/org/freedesktop/Notifications",
+                "--method",
+                "org.freedesktop.Notifications.Notify",
+                "Virtual FIDO",
+                "0",
+                "security-high",
+                title,
+                body,
+                "[]",
+                "{}",
+                str(timeout_ms),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass
+
+
+def is_key_down(keymap: bytes | ctypes.Array[ctypes.c_ubyte], kc: int) -> bool:
+    if kc <= 0 or kc >= 256 or (kc >> 3) >= len(keymap):
+        return False
+    return bool((int(keymap[kc >> 3]) >> (kc & 7)) & 1)
+
+
+def detect_hotkey_combo(
+    keymap: bytes | ctypes.Array[ctypes.c_ubyte],
+    *,
+    kc_ctrl_l: int,
+    kc_ctrl_r: int,
+    kc_caps: int,
+    kc_f12: int,
+    pending_prompt: bool,
+) -> tuple[str, bool] | None:
+    ctrl_down = is_key_down(keymap, kc_ctrl_l) or is_key_down(keymap, kc_ctrl_r)
+    caps_down = is_key_down(keymap, kc_caps)
+    f12_down = is_key_down(keymap, kc_f12)
+
+    if ctrl_down and caps_down:
+        return ("Ctrl+CapsLock (keymap)", True)
+    if ctrl_down and f12_down:
+        return ("Ctrl+F12 (keymap)", False)
+    if f12_down and pending_prompt:
+        return ("F12 (pending prompt)", False)
+    return None
+
+
+def emit_touch_approval(signal_file: Path, fifo_file: Path | None = None) -> None:
+    signal_file.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(signal_file), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(fd, b"touch\n")
+    finally:
+        os.close(fd)
+
+    target_fifo = fifo_file if fifo_file is not None else signal_file.with_name("touch.fifo")
+    try:
+        st = target_fifo.lstat()
+    except OSError:
+        return
+    if not stat.S_ISFIFO(st.st_mode):
+        return
+    try:
+        fifo_fd = os.open(str(target_fifo), os.O_WRONLY | os.O_NONBLOCK)
+    except OSError as exc:
+        if exc.errno in (errno.ENXIO, errno.ENOENT):
+            return
+        raise
+    try:
+        os.write(fifo_fd, b"y\n")
+    finally:
+        os.close(fifo_fd)
+
+
+def _default_signal_file() -> Path:
+    xdg_config = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return Path(xdg_config) / "virtual-fido" / "touch.sig"
+
+
+def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "--once":
+        target = Path(sys.argv[2]) if len(sys.argv) > 2 else _default_signal_file()
+        emit_touch_approval(target)
+        return 0
+
+    signal_file = Path(sys.argv[1]) if len(sys.argv) > 1 else _default_signal_file()
+    pending_file = signal_file.with_name("pending.prompt")
+    fifo_file = signal_file.with_name("touch.fifo")
+    signal_file.parent.mkdir(parents=True, exist_ok=True)
+
+    display_name = os.environ.get("DISPLAY") or ":0"
+    x11 = ctypes.cdll.LoadLibrary("libX11.so.6")
+
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    x11.XDefaultRootWindow.restype = ctypes.c_ulong
+    x11.XKeysymToKeycode.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+    x11.XKeysymToKeycode.restype = ctypes.c_uint
+    x11.XGrabKey.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_uint,
+        ctypes.c_ulong,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+    ]
+    x11.XPending.argtypes = [ctypes.c_void_p]
+    x11.XPending.restype = ctypes.c_int
+    x11.XNextEvent.argtypes = [ctypes.c_void_p, ctypes.POINTER(XEvent)]
+    x11.XNextEvent.restype = ctypes.c_int
+    x11.XQueryKeymap.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte * 32)]
+    x11.XQueryKeymap.restype = ctypes.c_int
+    x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    x11.XSync.restype = ctypes.c_int
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    x11.XCloseDisplay.restype = ctypes.c_int
+    x11.XkbLockModifiers.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_uint,
+    ]
+    x11.XkbLockModifiers.restype = ctypes.c_int
+    x11.XSetErrorHandler.argtypes = [XErrorHandler]
+    x11.XSetErrorHandler.restype = ctypes.c_void_p
+
+    grab_errors: list[int] = []
+
+    @XErrorHandler
+    def _on_x_error(_dpy: int, err_ptr: ctypes.POINTER(XErrorEvent)) -> int:
+        if err_ptr:
+            grab_errors.append(int(err_ptr.contents.error_code))
+        return 0
+
+    x11.XSetErrorHandler(_on_x_error)
+
+    dpy = x11.XOpenDisplay(display_name.encode("utf-8"))
+    if not dpy:
+        print(f"virtual-fido-hotkey: cannot open DISPLAY={display_name}", file=sys.stderr)
+        return 1
+
+    root = x11.XDefaultRootWindow(dpy)
+    kc_caps = int(x11.XKeysymToKeycode(dpy, XK_Caps_Lock)) or 66
+    kc_f12 = int(x11.XKeysymToKeycode(dpy, XK_F12)) or 96
+    kc_ctrl_l = int(x11.XKeysymToKeycode(dpy, XK_Control_L)) or 37
+    kc_ctrl_r = int(x11.XKeysymToKeycode(dpy, XK_Control_R)) or 105
+
+    def install_grabs() -> bool:
+        grab_errors.clear()
+        for extra in (0, LockMask, Mod2Mask, LockMask | Mod2Mask):
+            for kc in (kc_caps, kc_f12):
+                if kc:
+                    x11.XGrabKey(
+                        dpy,
+                        kc,
+                        ControlMask | extra,
+                        root,
+                        0,
+                        GrabModeAsync,
+                        GrabModeAsync,
+                    )
+        x11.XSync(dpy, 0)
+        return len(grab_errors) == 0
+
+    grabs_ok = install_grabs()
+    x11.XkbLockModifiers(dpy, XkbUseCoreKbd, LockMask, 0)
+    x11.XSync(dpy, 0)
+
+    print(
+        f"virtual-fido-hotkey listening on DISPLAY={display_name} "
+        f"(Ctrl+CapsLock kc={kc_caps}, Ctrl+F12 kc={kc_f12}, Ctrl={kc_ctrl_l}/{kc_ctrl_r}, grabs_ok={grabs_ok}) -> {signal_file}",
+        flush=True,
+    )
+
+    running = True
+
+    def _stop(_sig: int, _frame: object) -> None:
+        nonlocal running
+        running = False
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, _stop)
+    signal.signal(signal.SIGINT, _stop)
+
+    ev = XEvent()
+    keymap = (ctypes.c_ubyte * 32)()
+    last_trigger = 0.0
+    last_grab_retry = time.monotonic()
+
+    def trigger_touch(combo: str, clear_caps: bool) -> None:
+        nonlocal last_trigger
+        if clear_caps:
+            x11.XkbLockModifiers(dpy, XkbUseCoreKbd, LockMask, 0)
+            x11.XSync(dpy, 0)
+        now = time.monotonic()
+        if now - last_trigger < 0.30:
+            return
+        last_trigger = now
+        had_pending = pending_file.exists()
+        try:
+            emit_touch_approval(signal_file, fifo_file)
+        except OSError as exc:
+            print(
+                f"virtual-fido-hotkey: failed delivering touch signal: {exc}",
+                file=sys.stderr,
+                flush=True,
+            )
+            return
+        print(
+            f"[{time.strftime('%H:%M:%S')}] Virtual FIDO touch triggered via {combo} (pending={had_pending})",
+            flush=True,
+        )
+        if not had_pending:
+            notify(
+                "Virtual FIDO",
+                f"Touch approval sent ({combo}). Ready for FIDO2 / WebAuthn prompts.",
+                2000,
+            )
+
+    while running:
+        now = time.monotonic()
+        if not grabs_ok and (now - last_grab_retry) >= 1.5:
+            last_grab_retry = now
+            grabs_ok = install_grabs()
+
+        while x11.XPending(dpy) > 0:
+            x11.XNextEvent(dpy, ctypes.byref(ev))
+            if ev.type == KeyPress:
+                keycode = int(ev.xkey.keycode)
+                if keycode == kc_caps:
+                    trigger_touch("Ctrl+CapsLock", clear_caps=True)
+                elif keycode == kc_f12:
+                    trigger_touch("Ctrl+F12", clear_caps=False)
+            elif ev.type == KeyRelease and int(ev.xkey.keycode) == kc_caps:
+                x11.XkbLockModifiers(dpy, XkbUseCoreKbd, LockMask, 0)
+                x11.XSync(dpy, 0)
+
+        x11.XQueryKeymap(dpy, ctypes.byref(keymap))
+        detected = detect_hotkey_combo(
+            keymap,
+            kc_ctrl_l=kc_ctrl_l,
+            kc_ctrl_r=kc_ctrl_r,
+            kc_caps=kc_caps,
+            kc_f12=kc_f12,
+            pending_prompt=pending_file.exists(),
+        )
+        if detected is not None:
+            trigger_touch(detected[0], clear_caps=detected[1])
+
+        time.sleep(0.025)
+
+    x11.XCloseDisplay(dpy)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
