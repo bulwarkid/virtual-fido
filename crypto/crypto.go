@@ -149,9 +149,16 @@ func EncryptAESCBC(key []byte, data []byte) []byte {
 	return encryptedData
 }
 
+// DecryptAESCBC decrypts data with a zero IV. It returns nil if data is empty
+// or not a multiple of the AES block size, which callers must treat as a
+// decryption failure: data is often attacker-controlled (CTAP ClientPIN
+// fields), and cipher.CryptBlocks would panic on it.
 func DecryptAESCBC(key []byte, data []byte) []byte {
 	aesCipher, err := aes.NewCipher(key)
 	util.CheckErr(err, "Could not create AES cipher")
+	if len(data) == 0 || len(data)%aesCipher.BlockSize() != 0 {
+		return nil
+	}
 	iv := make([]byte, aesCipher.BlockSize())
 	cbc := cipher.NewCBCDecrypter(aesCipher, iv)
 	decryptedData := make([]byte, len(data))
