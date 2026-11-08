@@ -438,12 +438,18 @@ func (server *CTAPServer) derivePINAuth(sharedSecret []byte, data []byte) []byte
 	return hash.Sum(nil)[:16]
 }
 
+// decryptPINHash returns nil if pinHashEncoding cannot be decrypted.
 func (server *CTAPServer) decryptPINHash(sharedSecret []byte, pinHashEncoding []byte) []byte {
 	return crypto.DecryptAESCBC(sharedSecret, pinHashEncoding)
 }
 
+// decryptPIN returns nil if pinEncoding cannot be decrypted or is not
+// zero-padded.
 func (server *CTAPServer) decryptPIN(sharedSecret []byte, pinEncoding []byte) []byte {
 	decryptedPINPadded := crypto.DecryptAESCBC(sharedSecret, pinEncoding)
+	if decryptedPINPadded == nil {
+		return nil
+	}
 	var decryptedPIN []byte = nil
 	for i := range decryptedPINPadded {
 		if decryptedPINPadded[i] == 0 {
@@ -546,8 +552,9 @@ func (server *CTAPServer) handleChangePIN(args clientPINArgs) []byte {
 		return []byte{byte(ctap2ErrPINAuthInvalid)}
 	}
 	server.client.SetPINRetries(server.client.PINRetries() - 1)
-	decryptedPINHash := crypto.DecryptAESCBC(sharedSecret, args.PINHashEncoding)
-	if !bytes.Equal(server.client.PINHash(), decryptedPINHash) {
+	decryptedPINHash := server.decryptPINHash(sharedSecret, args.PINHashEncoding)
+	// With no PIN set, PINHash() is nil too, so check nil explicitly.
+	if decryptedPINHash == nil || !bytes.Equal(server.client.PINHash(), decryptedPINHash) {
 		// TODO: Mismatch detected, handle it
 		return []byte{byte(ctap2ErrPINInvalid)}
 	}
@@ -572,7 +579,8 @@ func (server *CTAPServer) handleGetPINToken(args clientPINArgs) []byte {
 	server.client.SetPINRetries(server.client.PINRetries() - 1)
 	pinHash := server.decryptPINHash(sharedSecret, args.PINHashEncoding)
 	ctapLogger.Printf("TRYING PIN HASH: %v\n\n", hex.EncodeToString(pinHash))
-	if !bytes.Equal(pinHash, server.client.PINHash()) {
+	// With no PIN set, PINHash() is nil too, so check nil explicitly.
+	if pinHash == nil || !bytes.Equal(pinHash, server.client.PINHash()) {
 		// TODO: Handle mismatch here by regening the key agreement key
 		ctapLogger.Printf("MISMATCH: Provided PIN %v doesn't match stored PIN %v\n\n", hex.EncodeToString(pinHash), hex.EncodeToString(server.client.PINHash()))
 		return []byte{byte(ctap2ErrPINInvalid)}

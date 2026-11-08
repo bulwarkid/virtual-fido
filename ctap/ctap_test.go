@@ -165,3 +165,59 @@ func TestGetInfo(t *testing.T) {
 	test.Assert(t, response.Options.CanResidentKey, "Cant use resident keys")
 	test.Assert(t, !response.Options.IsPlatform, "Is not marked a non-platform auth")
 }
+// pinTestClient is a dummyCTAPClient with PIN support but no PIN set, so
+// PINHash() returns nil.
+type pinTestClient struct {
+	dummyCTAPClient
+	keyAgreement *crypto.ECDHKey
+}
+
+func (client *pinTestClient) SupportsPIN() bool {
+	return true
+}
+func (client *pinTestClient) PINRetries() int32 {
+	return 8
+}
+func (client *pinTestClient) PINKeyAgreement() *crypto.ECDHKey {
+	return client.keyAgreement
+}
+func (client *pinTestClient) PINToken() []byte {
+	return crypto.RandomBytes(16)
+}
+
+func newPINTestServer() (*CTAPServer, cose.COSEEC2Key) {
+	client := &pinTestClient{keyAgreement: crypto.GenerateECDHKey()}
+	platformKey := crypto.GenerateECDHKey()
+	remoteKey := cose.COSEEC2Key{X: platformKey.X.Bytes(), Y: platformKey.Y.Bytes()}
+	return NewCTAPServer(client), remoteKey
+}
+
+// A pinHashEnc that is not a whole number of AES blocks decrypts to nil.
+// With no PIN set the stored hash is also nil, so these must not compare
+// equal.
+func TestGetPINTokenRejectsUndecryptablePINHash(t *testing.T) {
+	server, remoteKey := newPINTestServer()
+	args := clientPINArgs{
+		PINUVAuthProtocol: 1,
+		KeyAgreement:      &remoteKey,
+		PINHashEncoding:   make([]byte, 17),
+	}
+	response := server.handleGetPINToken(args)
+	test.AssertEqual(t, ctapStatusCode(response[0]), ctap2ErrPINInvalid, "Undecryptable pinHashEnc was accepted")
+}
+
+func TestChangePINRejectsUndecryptablePINHash(t *testing.T) {
+	server, remoteKey := newPINTestServer()
+	sharedSecret := server.getPINSharedSecret(remoteKey)
+	newPINEncoding := crypto.EncryptAESCBC(sharedSecret, append([]byte("1234"), make([]byte, 60)...))
+	pinHashEncoding := make([]byte, 17)
+	args := clientPINArgs{
+		PINUVAuthProtocol: 1,
+		KeyAgreement:      &remoteKey,
+		PINUVAuthParam:    server.derivePINAuth(sharedSecret, append(newPINEncoding, pinHashEncoding...)),
+		NewPINEncoding:    newPINEncoding,
+		PINHashEncoding:   pinHashEncoding,
+	}
+	response := server.handleChangePIN(args)
+	test.AssertEqual(t, ctapStatusCode(response[0]), ctap2ErrPINInvalid, "Undecryptable pinHashEnc was accepted")
+}

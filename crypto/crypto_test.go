@@ -80,3 +80,12 @@ func TestEncryptDecryptAESCBC(t *testing.T) {
 		t.Fatalf("'%s' does not equal '%s'", hex.EncodeToString(decryptedData), hex.EncodeToString(data))
 	}
 }
+
+func TestDecryptAESCBCRejectsPartialBlocks(t *testing.T) {
+	key := GenerateSymmetricKey()
+	for _, length := range []int{0, 1, 15, 17, 33} {
+		if decryptedData := DecryptAESCBC(key, make([]byte, length)); decryptedData != nil {
+			t.Fatalf("length %d: got '%s', want nil", length, hex.EncodeToString(decryptedData))
+		}
+	}
+}
