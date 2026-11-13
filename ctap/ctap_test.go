@@ -14,13 +14,14 @@ import (
 )
 
 type dummyCTAPClient struct {
-	vault identities.IdentityVault
+	vault  identities.IdentityVault
+	pinKey *crypto.ECDHKey
 }
 func (client *dummyCTAPClient) SupportsResidentKey() bool {
 	return true
 }
 func (client *dummyCTAPClient) SupportsPIN() bool {
-	return false
+	return client.pinKey != nil
 }
 
 func (client *dummyCTAPClient) NewCredentialSource(
@@ -53,7 +54,7 @@ func (client *dummyCTAPClient) PINRetries() int32 {
 }
 func (client *dummyCTAPClient) SetPINRetries(retries int32) {}
 func (client *dummyCTAPClient) PINKeyAgreement() *crypto.ECDHKey {
-	return nil
+	return client.pinKey
 }
 func (client *dummyCTAPClient) PINToken() []byte {
 	return nil
@@ -164,4 +165,24 @@ func TestGetInfo(t *testing.T) {
 	test.Assert(t, !bytes.Equal(make([]byte,16), response.AAGUID[:]), "AAGUID is empty")
 	test.Assert(t, response.Options.CanResidentKey, "Cant use resident keys")
 	test.Assert(t, !response.Options.IsPlatform, "Is not marked a non-platform auth")
+}
+func TestGetKeyAgreementIsP256Key(t *testing.T) {
+	// About 1 in 128 keys has a coordinate starting with a zero byte; try
+	// enough keys to hit some.
+	for i := 0; i < 1000; i++ {
+		client := &dummyCTAPClient{pinKey: crypto.GenerateECDHKey()}
+		ctap := NewCTAPServer(client)
+		args := util.MarshalCBOR(clientPINArgs{PINUVAuthProtocol: 1, SubCommand: clientPinSubcommandGetKeyAgreement})
+		responseBytes := ctap.HandleMessage(util.Concat([]byte{byte(ctapCommandClientPIN)}, args))
+		test.AssertEqual(t, ctapStatusCode(responseBytes[0]), ctap1ErrSuccess, "Response is not success")
+		var response clientPINResponse
+		err := cbor.Unmarshal(responseBytes[1:], &response)
+		util.CheckErr(err, "Could not decode response")
+		key := response.KeyAgreement
+		test.Assert(t, key != nil, "Missing key agreement key")
+		test.AssertEqual(t, key.KeyType, int8(cose.COSE_KEY_TYPE_EC2), "Wrong key type")
+		test.AssertEqual(t, key.Curve, int8(cose.COSE_CURVE_ID_P256), "Wrong curve")
+		test.AssertEqual(t, len(key.X), 32, "X coordinate is not 32 bytes")
+		test.AssertEqual(t, len(key.Y), 32, "Y coordinate is not 32 bytes")
+	}
 }
