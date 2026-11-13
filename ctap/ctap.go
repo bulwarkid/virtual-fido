@@ -502,8 +502,9 @@ func (server *CTAPServer) handleGetKeyAgreement() []byte {
 		KeyAgreement: &cose.COSEEC2Key{
 			KeyType:   int8(cose.COSE_KEY_TYPE_EC2),
 			Algorithm: int8(cose.COSE_ALGORITHM_ID_ECDH_HKDF_256),
-			X:         key.X.Bytes(),
-			Y:         key.Y.Bytes(),
+			Curve:     int8(cose.COSE_CURVE_ID_P256),
+			X:         key.X.FillBytes(make([]byte, 32)),
+			Y:         key.Y.FillBytes(make([]byte, 32)),
 		},
 	}
 	ctapLogger.Printf("CLIENT_PIN_GET_KEY_AGREEMENT RESPONSE: %#v\n\n", response)

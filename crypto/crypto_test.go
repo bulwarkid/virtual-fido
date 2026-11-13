@@ -80,3 +80,16 @@ func TestEncryptDecryptAESCBC(t *testing.T) {
 		t.Fatalf("'%s' does not equal '%s'", hex.EncodeToString(decryptedData), hex.EncodeToString(data))
 	}
 }
+
+func TestECDHSecretIsFullLength(t *testing.T) {
+	// About 1 in 256 shared secrets starts with a zero byte; try enough key
+	// pairs to hit some. Both sides must hash the full 32-byte x-coordinate.
+	for i := 0; i < 2000; i++ {
+		local := GenerateECDHKey()
+		remote := GenerateECDHKey()
+		secret := local.ECDH(remote.X, remote.Y)
+		if len(secret) != 32 {
+			t.Fatalf("Shared secret is %d bytes, not 32", len(secret))
+		}
+	}
+}

@@ -173,7 +173,7 @@ func GenerateECDHKey() *ECDHKey {
 
 func (key *ECDHKey) ECDH(remoteX, remoteY *big.Int) []byte {
 	secret, _ := elliptic.P256().Params().ScalarMult(remoteX, remoteY, key.Priv)
-	return secret.Bytes()
+	return secret.FillBytes(make([]byte, 32))
 }
 
 func (key *ECDHKey) PublicKeyBytes() []byte {
