@@ -127,13 +127,17 @@ func (conn *usbipConnection) handleCommandSubmit(device USBIPDevice, header usbi
 	}
 	// Getting the reponse may not be immediate, so we need a callback
 	onReturnSubmit := func(response []byte) {
-		if response != nil {
-			copy(transferBuffer, response)
+		actualLength := len(transferBuffer)
+		if header.Direction == usbipDirIn {
+			// A nil response means the device had no data: report an empty
+			// transfer instead of a buffer of zeros.
+			actualLength = copy(transferBuffer, response)
+			transferBuffer = transferBuffer[:actualLength]
 		}
 		replyHeader := header.replyHeader()
 		replyBody := usbipReturnSubmitBody{
 			Status:          0,
-			ActualLength:    uint32(len(transferBuffer)),
+			ActualLength:    uint32(actualLength),
 			StartFrame:      0,
 			NumberOfPackets: 0,
 			ErrorCount:      0,
