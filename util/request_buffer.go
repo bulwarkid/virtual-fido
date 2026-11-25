@@ -2,17 +2,26 @@ package util
 
 import "sync"
 
+type waitingRequest struct {
+	id      uint32
+	respond func([]byte)
+}
+
+// RequestBuffer pairs requests for data with responses, in first-in,
+// first-out order on both sides.
 type RequestBuffer struct {
-	lock           *sync.Mutex
-	waitingForData map[uint32]func([]byte)
-	responses      [][]byte
+	lock *sync.Mutex
+	// Requests waiting for a response, oldest first.
+	waiting []waitingRequest
+	// Responses waiting for a request, oldest first.
+	responses [][]byte
 }
 
 func MakeRequestBuffer() *RequestBuffer {
 	buffer := RequestBuffer{
-		lock:           &sync.Mutex{},
-		waitingForData: make(map[uint32]func([]byte)),
-		responses:      make([][]byte, 0),
+		lock:      &sync.Mutex{},
+		waiting:   make([]waitingRequest, 0),
+		responses: make([][]byte, 0),
 	}
 	return &buffer
 }
@@ -26,7 +35,7 @@ func (buffer *RequestBuffer) Request(id uint32, request func(response []byte)) b
 		request(response)
 		return true
 	} else {
-		buffer.waitingForData[id] = request
+		buffer.waiting = append(buffer.waiting, waitingRequest{id: id, respond: request})
 		return false
 	}
 }
@@ -34,26 +43,23 @@ func (buffer *RequestBuffer) Request(id uint32, request func(response []byte)) b
 func (buffer *RequestBuffer) CancelRequest(id uint32) bool {
 	buffer.lock.Lock()
 	defer buffer.lock.Unlock()
-	if _, ok := buffer.waitingForData[id]; ok {
-		delete(buffer.waitingForData, id)
-		return true
-	} else {
-		return false
+	for i, request := range buffer.waiting {
+		if request.id == id {
+			buffer.waiting = append(buffer.waiting[:i], buffer.waiting[i+1:]...)
+			return true
+		}
 	}
+	return false
 }
 
 func (buffer *RequestBuffer) Respond(data []byte) {
 	buffer.lock.Lock()
-	if len(buffer.waitingForData) > 0 {
-		// Get first waiting request
-		var id uint32
-		var request func([]byte)
-		for id, request = range buffer.waitingForData {
-			break
-		}
-		delete(buffer.waitingForData, id)
+	if len(buffer.waiting) > 0 {
+		// Answer the oldest waiting request
+		request := buffer.waiting[0]
+		buffer.waiting = buffer.waiting[1:]
 		buffer.lock.Unlock()
-		request(data)
+		request.respond(data)
 	} else {
 		buffer.responses = append(buffer.responses, data)
 		buffer.lock.Unlock()
