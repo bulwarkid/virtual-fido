@@ -80,3 +80,20 @@ func TestEncryptDecryptAESCBC(t *testing.T) {
 		t.Fatalf("'%s' does not equal '%s'", hex.EncodeToString(decryptedData), hex.EncodeToString(data))
 	}
 }
+
+func TestECDHFixedLength(t *testing.T) {
+	// A leading zero byte in the shared secret or a coordinate occurs ~1/256 of
+	// the time, so enough iterations make it very likely to be exercised.
+	for i := 0; i < 2048; i++ {
+		a := GenerateECDHKey()
+		b := GenerateECDHKey()
+		secretA := a.ECDH(b.X, b.Y)
+		secretB := b.ECDH(a.X, a.Y)
+		if len(secretA) != 32 || len(a.XBytes()) != 32 || len(a.YBytes()) != 32 {
+			t.Fatalf("expected 32-byte values, got secret=%d x=%d y=%d", len(secretA), len(a.XBytes()), len(a.YBytes()))
+		}
+		if !bytes.Equal(secretA, secretB) {
+			t.Fatalf("shared secrets differ: %x vs %x", secretA, secretB)
+		}
+	}
+}
