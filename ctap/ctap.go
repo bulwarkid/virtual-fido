@@ -2,6 +2,7 @@ package ctap
 
 import (
 	"bytes"
+	"crypto/aes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -438,8 +439,35 @@ func (server *CTAPServer) derivePINAuth(sharedSecret []byte, data []byte) []byte
 	return hash.Sum(nil)[:16]
 }
 
+// Encrypted ClientPIN field lengths for PIN protocol 1 (CTAP 2.1 §6.5.5).
+const (
+	// LEFT(SHA-256(PIN), 16), encrypted.
+	pinHashEncodingLength = 16
+	// The PIN, padded with 0x00 bytes to 64 bytes, encrypted.
+	newPINEncodingLength = 64
+)
+
+// decryptPINHash returns nil if pinHashEncoding is not exactly one encrypted
+// PIN hash; callers treat that as a wrong PIN. Decrypting it unchecked would
+// panic on partial AES blocks, and an empty value would decrypt to an empty
+// hash that equals the unset (nil) PIN hash.
 func (server *CTAPServer) decryptPINHash(sharedSecret []byte, pinHashEncoding []byte) []byte {
+	if len(pinHashEncoding) != pinHashEncodingLength {
+		return nil
+	}
 	return crypto.DecryptAESCBC(sharedSecret, pinHashEncoding)
+}
+
+// checkNewPINEncoding validates newPinEnc before it is decrypted.
+func checkNewPINEncoding(newPINEncoding []byte) ctapStatusCode {
+	if len(newPINEncoding)%aes.BlockSize != 0 {
+		// Decryption would fail (and AES-CBC would panic).
+		return ctap2ErrPINAuthInvalid
+	}
+	if len(newPINEncoding) != newPINEncodingLength {
+		return ctap1ErrInvalidParameter
+	}
+	return ctap1ErrSuccess
 }
 
 func (server *CTAPServer) decryptPIN(sharedSecret []byte, pinEncoding []byte) []byte {
@@ -522,6 +550,9 @@ func (server *CTAPServer) handleSetPIN(args clientPINArgs) []byte {
 	if !bytes.Equal(pinAuth, args.PINUVAuthParam) {
 		return []byte{byte(ctap2ErrPINAuthInvalid)}
 	}
+	if status := checkNewPINEncoding(args.NewPINEncoding); status != ctap1ErrSuccess {
+		return []byte{byte(status)}
+	}
 	decryptedPIN := server.decryptPIN(sharedSecret, args.NewPINEncoding)
 	if len(decryptedPIN) < 4 {
 		return []byte{byte(ctap2ErrPINPolicyViolation)}
@@ -534,7 +565,7 @@ func (server *CTAPServer) handleSetPIN(args clientPINArgs) []byte {
 }
 
 func (server *CTAPServer) handleChangePIN(args clientPINArgs) []byte {
-	if args.KeyAgreement == nil || args.PINUVAuthParam == nil {
+	if args.KeyAgreement == nil || args.PINUVAuthParam == nil || args.NewPINEncoding == nil || args.PINHashEncoding == nil {
 		return []byte{byte(ctap2ErrMissingParam)}
 	}
 	if server.client.PINRetries() == 0 {
@@ -546,12 +577,15 @@ func (server *CTAPServer) handleChangePIN(args clientPINArgs) []byte {
 		return []byte{byte(ctap2ErrPINAuthInvalid)}
 	}
 	server.client.SetPINRetries(server.client.PINRetries() - 1)
-	decryptedPINHash := crypto.DecryptAESCBC(sharedSecret, args.PINHashEncoding)
-	if !bytes.Equal(server.client.PINHash(), decryptedPINHash) {
+	decryptedPINHash := server.decryptPINHash(sharedSecret, args.PINHashEncoding)
+	if decryptedPINHash == nil || !bytes.Equal(server.client.PINHash(), decryptedPINHash) {
 		// TODO: Mismatch detected, handle it
 		return []byte{byte(ctap2ErrPINInvalid)}
 	}
 	server.client.SetPINRetries(8)
+	if status := checkNewPINEncoding(args.NewPINEncoding); status != ctap1ErrSuccess {
+		return []byte{byte(status)}
+	}
 	newPIN := server.decryptPIN(sharedSecret, args.NewPINEncoding)
 	if len(newPIN) < 4 {
 		return []byte{byte(ctap2ErrPINPolicyViolation)}
@@ -562,7 +596,7 @@ func (server *CTAPServer) handleChangePIN(args clientPINArgs) []byte {
 }
 
 func (server *CTAPServer) handleGetPINToken(args clientPINArgs) []byte {
-	if args.PINHashEncoding == nil || args.KeyAgreement.X == nil {
+	if args.PINHashEncoding == nil || args.KeyAgreement == nil {
 		return []byte{byte(ctap2ErrMissingParam)}
 	}
 	if server.client.PINRetries() <= 0 {
@@ -572,7 +606,7 @@ func (server *CTAPServer) handleGetPINToken(args clientPINArgs) []byte {
 	server.client.SetPINRetries(server.client.PINRetries() - 1)
 	pinHash := server.decryptPINHash(sharedSecret, args.PINHashEncoding)
 	ctapLogger.Printf("TRYING PIN HASH: %v\n\n", hex.EncodeToString(pinHash))
-	if !bytes.Equal(pinHash, server.client.PINHash()) {
+	if pinHash == nil || !bytes.Equal(pinHash, server.client.PINHash()) {
 		// TODO: Handle mismatch here by regening the key agreement key
 		ctapLogger.Printf("MISMATCH: Provided PIN %v doesn't match stored PIN %v\n\n", hex.EncodeToString(pinHash), hex.EncodeToString(server.client.PINHash()))
 		return []byte{byte(ctap2ErrPINInvalid)}
