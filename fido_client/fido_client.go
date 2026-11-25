@@ -166,7 +166,8 @@ func (client *DefaultFIDOClient) SetPINHash(newHash []byte) {
 }
 
 func (client *DefaultFIDOClient) PINRetries() int32 {
-	util.Assert(client.pinRetries > 0 && client.pinRetries <= 8, "Invalid PIN Retries")
+	// 0 is valid: it means the PIN is blocked after too many wrong attempts.
+	util.Assert(client.pinRetries >= 0 && client.pinRetries <= 8, "Invalid PIN Retries")
 	return client.pinRetries
 }
 
