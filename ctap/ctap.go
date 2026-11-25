@@ -89,6 +89,14 @@ type CTAPClient interface {
 	ApproveAccountLogin(credentialSource *identities.CredentialSource) bool
 }
 
+// DeviceSelectionApprover can optionally be implemented by a CTAPClient to show
+// a dedicated prompt when the platform asks the user to touch the device, e.g.
+// to pick one of several authenticators. Clients without it are asked to
+// approve account creation instead.
+type DeviceSelectionApprover interface {
+	ApproveDeviceSelection() bool
+}
+
 type CTAPServer struct {
 	client CTAPClient
 }
@@ -206,6 +214,14 @@ func (server *CTAPServer) handleMakeCredential(data []byte) []byte {
 	util.CheckErr(err, fmt.Sprintf("Could not decode CBOR for MAKE_CREDENTIAL: %s %v", err, data))
 	ctapLogger.Printf("MAKE CREDENTIAL: %s\n\n", args)
 	var flags authDataFlags = 0
+
+	if server.isPINAuthProbe(args.PINUVAuthParam) {
+		relyingParty := ""
+		if args.RP != nil {
+			relyingParty = args.RP.Name
+		}
+		return server.handlePINAuthProbe(relyingParty)
+	}
 
 	supported := false
 	for _, param := range args.PubKeyCredParams {
@@ -332,6 +348,10 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	}
 	ctapLogger.Printf("GET ASSERTION: %#v\n\n", args)
 
+	if server.isPINAuthProbe(args.PINUVAuthParam) {
+		return server.handlePINAuthProbe(args.RPID)
+	}
+
 	if server.client.SupportsPIN() {
 		if args.PINUVAuthParam != nil {
 			if args.PINUVAuthProtocol != 1 {
@@ -375,6 +395,33 @@ func (server *CTAPServer) handleGetAssertion(data []byte) []byte {
 	ctapLogger.Printf("GET ASSERTION RESPONSE: %#v\n\n", response)
 
 	return append([]byte{byte(ctap1ErrSuccess)}, util.MarshalCBOR(response)...)
+}
+
+// isPINAuthProbe reports whether the platform sent a zero-length
+// pinUvAuthParam, which asks for a touch to check the PIN state (and to let
+// the user select this authenticator).
+func (server *CTAPServer) isPINAuthProbe(pinUVAuthParam []byte) bool {
+	return server.client.SupportsPIN() && pinUVAuthParam != nil && len(pinUVAuthParam) == 0
+}
+
+// handlePINAuthProbe implements the zero-length pinUvAuthParam step of
+// makeCredential and getAssertion (CTAP 2.1 §6.1.2 and §6.2.2, step 1):
+// collect user interaction, then report whether a PIN is set.
+func (server *CTAPServer) handlePINAuthProbe(relyingParty string) []byte {
+	var approved bool
+	if approver, ok := server.client.(DeviceSelectionApprover); ok {
+		approved = approver.ApproveDeviceSelection()
+	} else {
+		approved = server.client.ApproveAccountCreation(relyingParty)
+	}
+	if !approved {
+		ctapLogger.Printf("ERROR: Unapproved action (Device selection)")
+		return []byte{byte(ctap2ErrOperationDenied)}
+	}
+	if server.client.PINHash() == nil {
+		return []byte{byte(ctap2ErrNoPINSet)}
+	}
+	return []byte{byte(ctap2ErrPINInvalid)}
 }
 
 type clientPINSubcommand uint32

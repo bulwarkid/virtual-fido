@@ -24,6 +24,7 @@ const (
 	ClientActionU2FAuthenticate    ClientAction = 1
 	ClientActionFIDOMakeCredential ClientAction = 2
 	ClientActionFIDOGetAssertion   ClientAction = 3
+	ClientActionFIDOSelectDevice   ClientAction = 4
 )
 
 var clientLogger *log.Logger = util.NewLogger("[CLIENT] ", util.LogLevelDebug)
@@ -131,6 +132,12 @@ func (client DefaultFIDOClient) ApproveAccountLogin(credentialSource *identities
 		UserName:     credentialSource.User.Name,
 	}
 	return client.requestApprover.ApproveClientAction(ClientActionFIDOGetAssertion, params)
+}
+
+// ApproveDeviceSelection asks the user to confirm this device when the
+// platform requests a touch, e.g. to choose between several authenticators.
+func (client DefaultFIDOClient) ApproveDeviceSelection() bool {
+	return client.requestApprover.ApproveClientAction(ClientActionFIDOSelectDevice, ClientActionRequestParams{})
 }
 
 // -----------------------

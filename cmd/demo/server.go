@@ -38,6 +38,8 @@ func (support *ClientSupport) ApproveClientAction(action fido_client.ClientActio
 	switch action {
 	case fido_client.ClientActionFIDOGetAssertion:
 		return prompt(fmt.Sprintf("Approve login for \"%s\" with identity \"%s\" (Y/n)?", params.RelyingParty, params.UserName))
+	case fido_client.ClientActionFIDOSelectDevice:
+		return prompt("Touch requested: select this device (Y/n)?")
 	case fido_client.ClientActionFIDOMakeCredential:
 		return prompt(fmt.Sprintf("Approve account creation for \"%s\" (Y/n)?", params.RelyingParty))
 	case fido_client.ClientActionU2FAuthenticate:
