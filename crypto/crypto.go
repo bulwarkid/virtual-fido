@@ -171,9 +171,22 @@ func GenerateECDHKey() *ECDHKey {
 	return &ECDHKey{Priv: priv, X: x, Y: y}
 }
 
+// ECDH returns the x-coordinate of the shared point as a fixed-length
+// 32-byte big-endian value, as required by CTAP2 (big.Int.Bytes() would drop
+// leading zero bytes and yield a wrong shared secret ~1/256 of the time).
 func (key *ECDHKey) ECDH(remoteX, remoteY *big.Int) []byte {
 	secret, _ := elliptic.P256().Params().ScalarMult(remoteX, remoteY, key.Priv)
-	return secret.Bytes()
+	return secret.FillBytes(make([]byte, 32))
+}
+
+// XBytes returns the public key's x-coordinate as a fixed-length 32-byte value.
+func (key *ECDHKey) XBytes() []byte {
+	return key.X.FillBytes(make([]byte, 32))
+}
+
+// YBytes returns the public key's y-coordinate as a fixed-length 32-byte value.
+func (key *ECDHKey) YBytes() []byte {
+	return key.Y.FillBytes(make([]byte, 32))
 }
 
 func (key *ECDHKey) PublicKeyBytes() []byte {
