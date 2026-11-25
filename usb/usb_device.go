@@ -85,7 +85,9 @@ func (device *USBDevice) HandleMessage(id uint32, onFinish func(response []byte)
 		// onFinish will be called when a response is returned
 	case usbEndpointInput:
 		usbLogger.Printf("INPUT DATA: %#v\n\n", data)
-		go device.delegate.HandleMessage(data)
+		// Handled synchronously so packets are processed in the order they
+		// arrive; the delegate returns quickly and runs commands itself.
+		device.delegate.HandleMessage(data)
 		onFinish(nil)
 	default:
 		util.Panic(fmt.Sprintf("Invalid USB endpoint: %d", endpoint))

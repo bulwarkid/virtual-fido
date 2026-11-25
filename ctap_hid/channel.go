@@ -1,16 +1,12 @@
 package ctap_hid
 
 import (
-	"fmt"
-	"sync"
-
 	"github.com/bulwarkid/virtual-fido/util"
 )
 
 type ctapHIDChannel struct {
 	server      *CTAPHIDServer
 	channelId   ctapHIDChannelID
-	messageLock sync.Locker
 	transaction *ctapHIDTransaction
 }
 
@@ -18,14 +14,13 @@ func newCTAPHIDChannel(server *CTAPHIDServer, channelId ctapHIDChannelID) *ctapH
 	return &ctapHIDChannel{
 		server:      server,
 		channelId:   channelId,
-		messageLock: &sync.Mutex{},
 		transaction: nil,
 	}
 }
 
+// handleMessage adds a packet to the channel's current transaction. Called
+// with server.lock held.
 func (channel *ctapHIDChannel) handleMessage(message []byte) {
-	channel.messageLock.Lock()
-	defer channel.messageLock.Unlock()
 	if channel.transaction == nil {
 		channel.transaction = newCTAPHIDTransaction(message)
 	} else {
@@ -60,11 +55,17 @@ type ctapHIDInitResponse struct {
 	CapabilitiesFlags  ctapHIDCapabilityFlag
 }
 
+// handleBroadcastMessage handles INIT and PING on the broadcast channel. They
+// are answered even while a command is running, so other programs can still
+// allocate a channel.
 func (channel *ctapHIDChannel) handleBroadcastMessage(header ctapHIDMessageHeader, payload []byte) {
 	switch header.Command {
 	case ctapHIDCommandInit:
+		if len(payload) != 8 {
+			channel.server.sendError(ctapHIDBroadcastChannel, ctapHIDErrorInvalidLength)
+			return
+		}
 		newChannel := channel.server.newChannel()
-		nonce := payload[:8]
 		response := ctapHIDInitResponse{
 			NewChannelID:       newChannel.channelId,
 			ProtocolVersion:    2,
@@ -73,37 +74,36 @@ func (channel *ctapHIDChannel) handleBroadcastMessage(header ctapHIDMessageHeade
 			DeviceVersionBuild: 1,
 			CapabilitiesFlags:  ctapHIDCapabilityCBOR,
 		}
-		copy(response.Nonce[:], nonce)
+		copy(response.Nonce[:], payload)
 		ctapHIDLogger.Printf("CTAPHID INIT RESPONSE: %#v\n\n", response)
 		channel.server.sendResponse(ctapHIDBroadcastChannel, ctapHIDCommandInit, util.ToLE(response))
 	case ctapHIDCommandPing:
 		channel.server.sendResponse(ctapHIDBroadcastChannel, ctapHIDCommandPing, payload)
 	default:
-		util.Panic(fmt.Sprintf("Invalid CTAPHID Broadcast command: %#v", header))
+		ctapHIDLogger.Printf("ERROR: Unsupported CTAPHID broadcast command: %s\n\n", header)
+		channel.server.sendError(ctapHIDBroadcastChannel, ctapHIDErrorInvalidCommand)
 	}
 }
 
+// handleDataMessage handles a complete request on an allocated channel. While
+// a command is running, every request other than CANCEL (handled during
+// assembly) is rejected with ERR_CHANNEL_BUSY, as hardware authenticators do.
 func (channel *ctapHIDChannel) handleDataMessage(header ctapHIDMessageHeader, payload []byte) {
+	server := channel.server
+	if server.busyChannel != 0 {
+		ctapHIDLogger.Printf("CTAPHID: Channel 0x%x busy, rejecting %s\n\n", server.busyChannel, header)
+		server.sendError(channel.channelId, ctapHIDErrorChannelBusy)
+		return
+	}
 	switch header.Command {
 	case ctapHIDCommandMsg:
-		responsePayload := channel.server.u2fServer.HandleMessage(payload)
-		ctapHIDLogger.Printf("CTAPHID MSG RESPONSE: %d %#v\n\n", len(responsePayload), responsePayload)
-		channel.server.sendResponse(header.ChannelID, ctapHIDCommandMsg, responsePayload)
+		server.runCommand(channel.channelId, header.Command, server.u2fServer, payload)
 	case ctapHIDCommandCBOR:
-		stop := util.StartRecurringFunction(keepConnectionAlive(channel.server, channel.channelId, ctapHIDStatusUpneeded), 50)
-		responsePayload := channel.server.ctapServer.HandleMessage(payload)
-		stop <- 0
-		ctapHIDLogger.Printf("CTAPHID CBOR RESPONSE: %#v\n\n", responsePayload)
-		channel.server.sendResponse(header.ChannelID, ctapHIDCommandCBOR, responsePayload)
+		server.runCommand(channel.channelId, header.Command, server.ctapServer, payload)
 	case ctapHIDCommandPing:
-		channel.server.sendResponse(header.ChannelID, ctapHIDCommandPing, payload)
+		server.sendResponse(channel.channelId, ctapHIDCommandPing, payload)
 	default:
-		panic(fmt.Sprintf("Invalid CTAPHID Channel command: %s", header))
-	}
-}
-
-func keepConnectionAlive(server *CTAPHIDServer, channelId ctapHIDChannelID, status byte) func() {
-	return func() {
-		server.sendResponse(channelId, ctapHIDCommandKeepalive, []byte{status})
+		ctapHIDLogger.Printf("ERROR: Unsupported CTAPHID channel command: %s\n\n", header)
+		server.sendError(channel.channelId, ctapHIDErrorInvalidCommand)
 	}
 }
